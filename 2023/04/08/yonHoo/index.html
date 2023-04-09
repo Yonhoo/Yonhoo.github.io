@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Jvm Detal | Yonhoo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <meta name="description" content="
+美团技术详解
+
+Java中9种常见的CMS GC问题分析与解决
+
+
+垃圾回收算法手册：自动内存管理的艺术
+深入理解java虚拟机
+
+实战
+
+TODO 内存回收 log info
+TODO 内存分配与回收策略
+
+
+
+
+minigc的实现
+G1 gc技术分析
+gc 过程分析
+
+
+">
+  
+  
+  
+  <link rel="stylesheet" href="../../../../css/style.css">
+  
+    <link rel="stylesheet" href="../../../../fancybox/jquery.fancybox-1.3.4.css">
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="../../../../archives">Home</a>
+    
+      <a class="main-nav-link" href="../../../../archives">Archives</a>
+    
+      <a class="main-nav-link" href="../../../../about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+  </nav>
+</div>
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="../../../../index.html" id="logo">Yonhoo</a>
+  </h1>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-yonHoo" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="" class="article-date">
+  <time class="dt-published" datetime="2023-04-08T04:00:52.428Z" itemprop="datePublished">2023-04-08</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      Jvm Detal
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <ul>
+<li>美团技术详解
+<ul>
+<li><a target="_blank" rel="noopener" href="https://tech.meituan.com/2020/11/12/java-9-cms-gc.html">Java中9种常见的CMS GC问题分析与解决</a></li>
+</ul>
+</li>
+<li>垃圾回收算法手册<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>自动内存管理的艺术</li>
+<li>深入理解java虚拟机
+<ul>
+<li>实战
+<ul>
+<li>TODO 内存回收 log info</li>
+<li>TODO 内存分配与回收策略</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/authorNari/minigc">minigc的实现</a></li>
+<li><a target="_blank" rel="noopener" href="https://tech.meituan.com/2016/09/23/g1.html">G1 gc技术分析</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/klvchen/articles/11841337.html">gc 过程分析</a></li>
+<li></li>
+</ul>
+<h2 id=""><span id="more"></span></h2>
+<ul>
+<li>classLoader memory issue
+<ul>
+<li><a target="_blank" rel="noopener" href="https://www.dynatrace.com/resources/ebooks/javabook/class-loader-issues/">https://www.dynatrace.com/resources/ebooks/javabook/class-loader-issues/</a></li>
+</ul>
+</li>
+<li></li>
+<li></li>
+<li>softReference impact GC
+<ul>
+<li><a target="_blank" rel="noopener" href="https://plumbr.io/blog/garbage-collection/weak-soft-and-phantom-references-impact-on-gc">https://plumbr.io/blog/garbage-collection/weak-soft-and-phantom-references-impact-on-gc</a></li>
+</ul>
+</li>
+<li></li>
+<li>分析元空间分配内存失败原因
+<ul>
+<li><a target="_blank" rel="noopener" href="https://poonamparhar.github.io/understanding-metaspace-gc-logs/">https://poonamparhar.github.io/understanding-metaspace-gc-logs/</a></li>
+<li><a target="_blank" rel="noopener" href="https://huseyinbabal.com/2022/07/23/java-thread-dump-analysis/">https://huseyinbabal.com/2022/07/23/java-thread-dump-analysis/</a></li>
+</ul>
+</li>
+<li></li>
+<li>为什么分代
+<ul>
+<li><a target="_blank" rel="noopener" href="https://segmentfault.com/a/1190000037428080">https://segmentfault.com/a/1190000037428080</a></li>
+</ul>
+</li>
+<li></li>
+<li>jvm博客
+<ul>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7016522638910554143">https://juejin.cn/post/7016522638910554143</a></li>
+</ul>
+</li>
+<li></li>
+<li></li>
+<li>内存泄漏问题
+<ul>
+<li>通过top 命令查看线程内存<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>cpu使用情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Jstack 生成线程快照<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>分析是什么方法导致的
+<ul>
+<li>如果是GC 线程<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则使用jmap来分析内存使用情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是不是存在内存泄露<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>以及什么对象占用内存过多</li>
+<li>jmap dump 内存文件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>mat分析工具分析</li>
+</ul>
+</li>
+</ul>
+</li>
+<li></li>
+<li></li>
+<li>mask log performance issue</li>
+<li>chatgpt 写单元测试<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>直接e2e的web 页面测试</li>
+<li>chatgpt 能做压测吗</li>
+<li></li>
+<li></li>
+<li>文章</li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7058958428370108452">metaSpace内存溢出</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7021088899787292703">metaSpaceOOM原因</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/8dfa51498343">java Metaspace频繁FGC问题定位</a></li>
+<li></li>
+<li></li>
+<li>result输出
+<ul>
+<li>内存分配</li>
+<li>垃圾回收</li>
+<li>性能监控</li>
+</ul>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="../GCWithTroubleShoot/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          垃圾回收与检查工具
+        
+      </div>
+    </a>
+  
+  
+    <a href="../hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          Hello World
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2023 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="../../../../archives" class="mobile-nav-link">Home</a>
+  
+    <a href="../../../../archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="../../../../about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="../../../../js/clipboard.min.js"></script>
+<script src="../../../../js/jquery-1.4.3.min.js"></script>
+
+<script src="../../../../fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="../../../../js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="../../../../mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+
+
+  </div>
+</body>
+</html>

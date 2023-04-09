@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Yonhoo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <meta name="description" content="recording things">
+  
+  
+  
+  <link rel="stylesheet" href="css/style.css">
+  
+    <link rel="stylesheet" href="fancybox/jquery.fancybox-1.3.4.css">
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+  </nav>
+</div>
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="index.html" id="logo">Yonhoo</a>
+  </h1>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main">
+  
+    <article id="post-GCWithTroubleShoot" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="2023/04/08/GCWithTroubleShoot/" class="article-date">
+  <time class="dt-published" datetime="2023-04-08T08:06:02.232Z" itemprop="datePublished">2023-04-08</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="2023/04/08/GCWithTroubleShoot/">垃圾回收与检查工具</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h2 id="java内存区域">java内存区域</h2>
+<p>  运行时数据区域<br>
+<img src="runtime_region.png" alt=""></p>
+<ol>
+<li>程序计数器</li>
+</ol>
+<p>  当前线程私有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是当前线程所执行的字节码的行号指示器</p>
+<ol start="3">
+<li>java虚拟机栈</li>
+</ol>
+<p>  当前线程私有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个方法被执行时的栈帧<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>用于储存局部变量表<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>操作数栈<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>动态连接<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>方法出口等信息动态连接作用就是为了将这些方法符号引用转换为调用方法的直接引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为有的对象调用方法时动态生成的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所以在编译器不能确定要执行的符号<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而需要在运行时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>去方法区动态的找<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+        
+          <p class="article-more-link">
+            <a href="2023/04/08/GCWithTroubleShoot/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-yonHoo" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="2023/04/08/yonHoo/" class="article-date">
+  <time class="dt-published" datetime="2023-04-08T04:00:52.428Z" itemprop="datePublished">2023-04-08</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="2023/04/08/yonHoo/">Jvm Detal</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <ul>
+<li>美团技术详解
+<ul>
+<li><a target="_blank" rel="noopener" href="https://tech.meituan.com/2020/11/12/java-9-cms-gc.html">Java中9种常见的CMS GC问题分析与解决</a></li>
+</ul>
+</li>
+<li>垃圾回收算法手册<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>自动内存管理的艺术</li>
+<li>深入理解java虚拟机
+<ul>
+<li>实战
+<ul>
+<li>TODO 内存回收 log info</li>
+<li>TODO 内存分配与回收策略</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/authorNari/minigc">minigc的实现</a></li>
+<li><a target="_blank" rel="noopener" href="https://tech.meituan.com/2016/09/23/g1.html">G1 gc技术分析</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/klvchen/articles/11841337.html">gc 过程分析</a></li>
+<li></li>
+</ul>
+<h2 id="">
+        
+          <p class="article-more-link">
+            <a href="2023/04/08/yonHoo/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-hello-world" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="2023/04/08/hello-world/" class="article-date">
+  <time class="dt-published" datetime="2023-04-08T02:55:05.169Z" itemprop="datePublished">2023-04-08</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="2023/04/08/hello-world/">Hello World</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
+<h2 id="quick-start">Quick Start</h2>
+<h3 id="create-a new post">Create a new post</h3>
+<div class="highlight"><pre class="code"><code>$ hexo new <span class="hljs-string">&quot;My New Post&quot;</span>
+</code></pre></div>
+<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
+<h3 id="run-server">Run server</h3>
+<div class="highlight"><pre class="code"><code>$ hexo server
+</code></pre></div>
+<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
+<h3 id="generate-static files">Generate static files</h3>
+<div class="highlight"><pre class="code"><code>$ hexo generate
+</code></pre></div>
+<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
+<h3 id="deploy-to remote sites">Deploy to remote sites</h3>
+<div class="highlight"><pre class="code"><code>$ hexo deploy
+</code></pre></div>
+<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2023 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="js/clipboard.min.js"></script>
+<script src="js/jquery-1.4.3.min.js"></script>
+
+<script src="fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+
+
+  </div>
+</body>
+</html>

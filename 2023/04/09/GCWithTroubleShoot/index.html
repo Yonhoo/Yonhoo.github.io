@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>垃圾回收与检查工具 | Yonhoo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <meta name="description" content="java内存区域
+  运行时数据区域
+
+
+程序计数器
+
+  当前线程私有，是当前线程所执行的字节码的行号指示器
+
+java虚拟机栈
+
+  当前线程私有，每个方法被执行时的栈帧，用于储存局部变量表、操作数栈，动态连接，方法出口等信息动态连接作用就是为了将这些方法符号引用转换为调用方法的直接引用，因为有的对象调用方法时动态生成的，所以在编译器不能确定要执行的符号，从而需要在运行时，去方法区动态的找。">
+  
+  
+  
+  <link rel="stylesheet" href="../../../../css/style.css">
+  
+    <link rel="stylesheet" href="../../../../fancybox/jquery.fancybox-1.3.4.css">
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="../../../../archives">Home</a>
+    
+      <a class="main-nav-link" href="../../../../archives">Archives</a>
+    
+      <a class="main-nav-link" href="../../../../about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+  </nav>
+</div>
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="../../../../index.html" id="logo">Yonhoo</a>
+  </h1>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-GCWithTroubleShoot" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="" class="article-date">
+  <time class="dt-published" datetime="2023-04-09T05:44:01.000Z" itemprop="datePublished">2023-04-09</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      垃圾回收与检查工具
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h2 id="java内存区域">java内存区域</h2>
+<p>  运行时数据区域<br>
+<img src="runtime_region.png" alt=""></p>
+<ol>
+<li>程序计数器</li>
+</ol>
+<p>  当前线程私有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是当前线程所执行的字节码的行号指示器</p>
+<ol start="3">
+<li>java虚拟机栈</li>
+</ol>
+<p>  当前线程私有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个方法被执行时的栈帧<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>用于储存局部变量表<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>操作数栈<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>动态连接<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>方法出口等信息动态连接作用就是为了将这些方法符号引用转换为调用方法的直接引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为有的对象调用方法时动态生成的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所以在编译器不能确定要执行的符号<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而需要在运行时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>去方法区动态的找<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<span id="more"></span>
+<p>  <a target="_blank" rel="noopener" href="https://www.cnblogs.com/Timeouting-Study/p/12511969.html">栈帧内部结构,动态链接及方法的调用</a></p>
+<ol start="4">
+<li>本地方法栈</li>
+</ol>
+<p>  虚拟机使用本地方法</p>
+<ol start="5">
+<li>Java heap</li>
+</ol>
+<p>  对象实例存放的地方</p>
+<ol start="6">
+<li>方法区</li>
+</ol>
+<p>  它是各个线程共享的内存区域<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>存储被虚拟机加载的类型信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>常量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>静态变量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>即时编译器编译后的代码缓存等数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+  <strong>JDK8 之前<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Hotspot 中方法区的实现是永久代<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Perm<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>JDK8 开始使用元空间<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Metaspace<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>JDK7中将永久代的字符串常量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>静态变量移至堆内存<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>元空间直接在本地内存分配<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而不是在虚拟机中进行分配<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></strong><br>
+  使用永久代会导致如果类及方法信息如果增加<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则永久代的大小就不好设置<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而可能会导致OOM<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>现在使用metaSpace<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是将这些内容直接放在本地内存<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而可以方便扩展<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>且很少进行垃圾回收<br>
+为什么要使用元空间取代永久代的实现<span class="bd-box"><h-char class="bd bd-beg"><h-inner>？</h-inner></h-char></span></p>
+<ul>
+<li>字符串存在永久代中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>容易出现性能问题和内存溢出<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>类及方法的信息等比较难确定其大小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因此对于永久代的大小指定比较困难<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>太小容易出现永久代溢出<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>太大则容易导致老年代溢出<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>永久代会为 GC 带来不必要的复杂度<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且回收效率偏低<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>将 HotSpot 与 JRockit 合二为一<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+<ol start="7">
+<li>运行时常量池</li>
+</ol>
+<p>  运行时常量池是方法区的一部分<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>Class 文件中除了有类的版本<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>字段<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>接口等描述信息外<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>还有一项信息是常量池<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Constant Pool Table<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>用于存放编译期生成的各种字面量和符号引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这部分内容将在类加载后进入方法区的运行时常量池中存放<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>一般来说<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>除了保存 Class 文件中描述的符号引用外<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>还会把翻译出来的直接引用也存储在运行时常量池中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>运行期间将新的常量放入池中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>比如String的intern<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<ol start="8">
+<li>直接内存</li>
+</ol>
+<p>  直接内存并不是虚拟机运行时数据区的一部分<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也不是<span class="bd-box"><h-char class="bd bd-end"><h-inner>《</h-inner></h-char></span>java虚拟机规范<span class="bd-box"><h-char class="bd bd-beg"><h-inner>》</h-inner></h-char></span>中定义的内存区域<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>但是这部分内存也被频繁的使用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也可能导致OOM<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+  比如NIO<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一种基于通道(Channel)与缓冲区(Buffer)的I/O方式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它可以使用Native函数库直接分配堆外内存<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后通过一个存储在Java堆里面的DirectByteBuffer对象作为这块内存的引用进行操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>避免在Java堆和Native堆中来回复制数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p><img src="memory_map.png" alt=""></p>
+<ol start="9">
+<li>OutOfMemory</li>
+</ol>
+<ul>
+<li>
+<p>堆内存异常</p>
+</li>
+<li>
+<p>虚拟机栈异常</p>
+</li>
+<li>
+<p>本地方法栈</p>
+<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">stackLeak</span><span class="hljs-params">()</span> </span>&#123;
+  stackLeak();
+&#125;
+</code></pre></div>
+</li>
+<li>
+<p>方法区和运行时常量池溢出<br>
+  String::intern 是一个本地方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它的作用是如果字符串常量池中已经包含一个等于此String对象的字符串<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则返回代表池中这个字符串的String对象的引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>否则<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会将此String对象包含的字符串添加到常量池中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且返回此String对象的引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+<a target="_blank" rel="noopener" href="https://hellofrank.github.io/2019/10/13/Java%E9%87%8C%E9%9D%A2%E7%9A%84String%E5%AF%B9%E8%B1%A1%E5%88%B0%E5%BA%95%E7%A5%9E%E5%A5%87%E5%9C%A8%E4%BB%80%E4%B9%88%E5%9C%B0%E6%96%B9/">Java里面的String对象到底神奇在什么地方</a></p>
+<ul>
+<li>运行时常量池溢出</li>
+</ul>
+<div class="highlight"><pre class="code"><code>  <span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>;
+  List&lt;String&gt; strList = <span class="hljs-keyword">new</span> ArrayList&lt;&gt;();
+  <span class="hljs-keyword">while</span>(<span class="hljs-keyword">true</span>)&#123;
+    strList.add(String.valueOf(i++).intern());
+  &#125;
+</code></pre></div>
+<ul>
+<li>方法区溢出<br>
+  使用动态代理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>比如CGLib直接操作字节码运行时生成大量的动态类<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当增强的类越多<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就需要越大的方法区以保证动态生成的新类型可以载入内存<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span><div class="highlight"><pre class="code"><code>  <span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RuntimeConstantPoolOOM</span> </span>&#123;
+
+  <span class="hljs-keyword">static</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">OOMObject</span> </span>&#123;
+      &#125;
+
+  <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> <span class="hljs-keyword">throws</span> NoSuchMethodException, InvocationTargetException, IllegalAccessException </span>&#123;
+  <span class="hljs-keyword">while</span> (<span class="hljs-keyword">true</span>) &#123;
+      Enhancer enhancer = <span class="hljs-keyword">new</span> Enhancer();
+      enhancer.setSuperclass(OOMObject.class);
+      enhancer.setUseCache(<span class="hljs-keyword">false</span>);
+      enhancer.setCallback(<span class="hljs-keyword">new</span> MethodInterceptor() &#123;
+          <span class="hljs-meta">@Override</span>
+          <span class="hljs-function"><span class="hljs-keyword">public</span> Object <span class="hljs-title">intercept</span><span class="hljs-params">(Object o, Method method, Object[] objects, MethodProxy methodProxy)</span> <span class="hljs-keyword">throws</span> Throwable </span>&#123;
+            <span class="hljs-keyword">return</span> methodProxy.invokeSuper(o, args);
+          &#125;
+      &#125;);
+    enhancer.create();
+    &#125;
+  &#125;
+&#125;
+</code></pre></div>
+</li>
+</ul>
+</li>
+</ul>
+<p>  在经常运行时生成大量动态类的应用场景中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>应该特别关注这些类的回收状况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>这类场景除了之前提到的程序使用CGLib字节码增强和动态语言外<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>常见的还有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>大量JSP或动态产生JSP文件的应用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>基于OSGi的应用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>即使是同一个文件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>被不同的加载器加载也会视为不同的类<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<ul>
+<li>可以设定元空间最大值<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> -XX:MaxMetaspaceSize</li>
+<li>设定元空间初始空间大小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> -XX:MetaspaceSize</li>
+</ul>
+<p>以上代码虽然创建的临时对象应该被回收<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但是通过heap dump发现<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个class都是soft Reference<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而即使是full gc<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也不会回收它们<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+<img src="heam_dump.png" alt=""><br>
+<a target="_blank" rel="noopener" href="https://www.yourkit.com/docs/java/help/sizes.jsp">shallow size and retained size</a></p>
+<ul>
+<li><strong>Dominator by retain size</strong>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://firefox-source-docs.mozilla.org/devtools-user/memory/dominators_view/index.html">Dominators view ‒ Firefox Source Docs documentation</a></li>
+<li><a target="_blank" rel="noopener" href="https://firefox-source-docs.mozilla.org/devtools-user/memory/dominators/index.html">Dominators ‒ Firefox Source Docs documentation</a></li>
+</ul>
+</li>
+</ul>
+<p>  这里有个对Dominator tree更加直观的描述支配树体现了对象实例间的支配关系<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>在对象引用图中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所有指向对象B的路径都经过对象A<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则认为对象A支配对象B<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>如果对象A是离对象B最近的一个支配对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则认为对象A为对象B的直接支配者<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>支配树是基于对象间的引用图所建立的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它有以下基本性质:</p>
+<ul>
+<li>对象A的子树<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>所有被对象A支配的对象集合<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span>表示对象A的保留集(retained set)<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>即深堆<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>如果对象A支配对象B<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么对象A的直接支配者也支配对象B<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>支配树的边与对象引用图的边不直接对应<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+如下图所示:左图表示对象引用图<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>右图表示左图所对应的支配树<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>对象A和B由根对象直接支配<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>由于在到对象C的路径中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可以经过A<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也可以经过B<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因此对象C的直接支配者也是根对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>对象F与对象 D相互引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为到对象F的所有路径必然经过对象D<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因此<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>对象D是对象F的直接支配者<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>而到对象D的所有路径中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>必然经过对象c<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>即使是从对象F到对象D的引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从根节点出发<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也是经过对象c的,所以<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>对象D的直接支配者为对象C<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+<p><img src="Dominator_tree.png" alt=""></p>
+<ul>
+<li>本机直接内存溢出</li>
+</ul>
+<p>  直接内存的容量大小可通过-XX:MaxDirectMemorySize参数来指定<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果不去指定<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则默认与Java堆最大值一致<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<div class="highlight"><pre class="code"><code><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> _1MB = <span class="hljs-number">1024</span> * <span class="hljs-number">1024</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">directMemoryOOM</span><span class="hljs-params">()</span> <span class="hljs-keyword">throws</span> IllegalAccessException </span>&#123;
+    Field unsafeField = Unsafe.class.getDeclaredFields()[<span class="hljs-number">0</span>];
+    unsafeField.setAccessible(<span class="hljs-keyword">true</span>);
+    Unsafe unsafe = (Unsafe) unsafeField.get(<span class="hljs-keyword">null</span>);
+    <span class="hljs-keyword">while</span> (<span class="hljs-keyword">true</span>) &#123;
+        unsafe.allocateMemory(_1MB);
+    &#125;
+
+&#125;
+</code></pre></div>
+<p>  由直接内存导致的内存溢出<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一个明显的特征是在Heap Dump文件中不会看见有什么明显的异常情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这有可能就是直接内存溢出的原因<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<h2 id="垃圾收集器与内存分配策略">垃圾收集器与内存分配策略</h2>
+<ol>
+<li>可达性分析算法<br>
+<img src="reachable.png" alt=""></li>
+</ol>
+<p>在Java技术体系里<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>固定可作为GC Roots的对象包括以下几种<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ul>
+<li>在虚拟机栈中引用的对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>譬如当前正在运行的方法所使用到的参数<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>局部变量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>临时变量</li>
+</ul>
+<div class="highlight"><pre class="code"><code><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Test</span> </span>&#123;
+
+&#125;
+
+<span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title">method</span><span class="hljs-params">()</span> </span>&#123;
+    Integer temp = <span class="hljs-keyword">new</span> Test();
+    temp = <span class="hljs-keyword">null</span>;
+&#125;
+
+temp 作为临时变量&lt;span <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd-box&quot;</span>&gt;&lt;h-<span class="hljs-keyword">char</span> <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd bd-beg&quot;</span>&gt;&lt;h-inner&gt;，&lt;/h-inner&gt;&lt;/h-<span class="hljs-keyword">char</span>&gt;&lt;/span&gt;引用了<span class="hljs-keyword">new</span> Test(), 从而不会被回收&lt;span <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd-box&quot;</span>&gt;&lt;h-<span class="hljs-keyword">char</span> <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd bd-beg&quot;</span>&gt;&lt;h-inner&gt;，&lt;/h-inner&gt;&lt;/h-<span class="hljs-keyword">char</span>&gt;&lt;/span&gt;当temp = <span class="hljs-keyword">null</span> 时&lt;span <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd-box&quot;</span>&gt;&lt;h-<span class="hljs-keyword">char</span> <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd bd-beg&quot;</span>&gt;&lt;h-inner&gt;，&lt;/h-inner&gt;&lt;/h-<span class="hljs-keyword">char</span>&gt;&lt;/span&gt;原来的<span class="hljs-keyword">new</span> Test()就会被回收
+- 在方法区中类静态属性引用的对象&lt;span <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd-box&quot;</span>&gt;&lt;h-<span class="hljs-keyword">char</span> <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd bd-beg&quot;</span>&gt;&lt;h-inner&gt;，&lt;/h-inner&gt;&lt;/h-<span class="hljs-keyword">char</span>&gt;&lt;/span&gt;譬如Java类的引用类型静态变量
+<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Test</span> </span>&#123;
+    p rivate <span class="hljs-keyword">static</span> Test s;
+    
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;
+        Test temp = <span class="hljs-keyword">new</span> Test();
+        temp.s = <span class="hljs-keyword">new</span> Test();
+        temp = <span class="hljs-keyword">null</span>;
+    &#125;
+&#125;
+
+s 作为类的静态属性&lt;span <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd-box&quot;</span>&gt;&lt;h-<span class="hljs-keyword">char</span> <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd bd-beg&quot;</span>&gt;&lt;h-inner&gt;，&lt;/h-inner&gt;&lt;/h-<span class="hljs-keyword">char</span>&gt;&lt;/span&gt;被赋值<span class="hljs-keyword">new</span> Test();从而这个<span class="hljs-keyword">new</span> Test()不会被回收&lt;span <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd-box&quot;</span>&gt;&lt;h-<span class="hljs-keyword">char</span> <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd bd-beg&quot;</span>&gt;&lt;h-inner&gt;，&lt;/h-inner&gt;&lt;/h-<span class="hljs-keyword">char</span>&gt;&lt;/span&gt;但是这个temp作为临时变量&lt;span <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd-box&quot;</span>&gt;&lt;h-<span class="hljs-keyword">char</span> <span class="hljs-class"><span class="hljs-keyword">class</span></span>=<span class="hljs-string">&quot;bd bd-beg&quot;</span>&gt;&lt;h-inner&gt;，&lt;/h-inner&gt;&lt;/h-<span class="hljs-keyword">char</span>&gt;&lt;/span&gt;则它之前被赋值的<span class="hljs-keyword">new</span> test()就会被回收
+</code></pre></div>
+<ul>
+<li>在方法区中常量引用的对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>譬如字符串常量池里的引用(<a target="_blank" rel="noopener" href="https://juejin.cn/post/6844903988781907981#comment">字符串常量池</a>)<div class="highlight"><pre class="code"><code>  <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;            
+    String s1 = <span class="hljs-string">&quot;abc&quot;</span>;           
+    String s2 = <span class="hljs-string">&quot;abc&quot;</span>;         
+    String s3 = <span class="hljs-string">&quot;xxx&quot;</span>;     
+  &#125;
+</code></pre></div>
+</li>
+</ul>
+<p><img src="string_pool.png" alt=""></p>
+<ul>
+<li>在本地方法栈中JNI引用的对象</li>
+</ul>
+<p>  所谓本地方法就是一个 java 调用非 java 代码的接口<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>该方法并非 Java 实现的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可能由 C 或 Python等其他语言实现的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span> Java 通过 JNI 来调用本地方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span> 而本地方法是以库文件的形式存放的<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>在 WINDOWS 平台上是 DLL 文件形式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在 UNIX 机器上是 SO 文件形式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>通过调用本地的库文件的内部方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>使 JAVA 可以实现和本地机器的紧密联系<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>调用系统级的各接口方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>还是不明白<span class="bd-box"><h-char class="bd bd-beg"><h-inner>？</h-inner></h-char></span>见文末参考<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>对本地方法定义与使用有详细介绍<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+  当调用 Java 方法时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>虚拟机会创建一个栈桢并压入 Java 栈<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而当它调用的是本地方法时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>虚拟机会保持 Java 栈不变<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>不会在 Java 栈祯中压入新的祯<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>虚拟机只是简单地动态连接并直接调用指定的本地方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<ul>
+<li>Java虚拟机内部的引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如基本数据类型对应的Class对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一些常驻的异常对象(比如NullPointerException<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>OutOfMemoryError)等<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>还有系统类加载器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>所有被同步锁(synchronized关键字)持有的对象</li>
+<li>反映Java虚拟机内部情况的JMXBean<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>JVMTI中注册的回调<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>本地代码缓存等</li>
+</ul>
+<p>  除了这些固定的GC Roots集合以外<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>根据用户所选用的垃圾收集器以及当前回收的内存区域不同<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>还可以有其他对象<span class="bd-box"><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>临时性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char></span>地加入<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>共同构成完整GC Roots集合<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>譬如后文将会提到的分代收集和局部回收(Partial GC),如果只针对Java堆中某一块区域发起垃圾收集时(如最典型的只针对新生代的垃圾收集)<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>必须考虑到内存区域是虚拟机自己的实现细节<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而不是孤立封闭的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所以某个区域里的对象完全有可能被位于堆中其他区域的对象所引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这时候就需要将这些关联区域的对象也一并加入GC Roots集合中去<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>才能保证可达性分析的正确性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>(<a target="_blank" rel="noopener" href="https://blog.csdn.net/weixin_38007185/article/details/108093716">GC root</a>)</p>
+<p> </p>
+<h2 id="引用([直观理解](https://bboyjinggithub.io/2020/04/16/java%e5%bc%ba%e3%80%81%e8%bd%af%e3%80%81%e5%bc%b1%e3%80%81%e8%99%9a%e5%bc%95%e7%94%a8%e7%9a%84%e7%9b%b4%e8%a7%82%e7%90%86%e8%a7%a3/))">引用(<a target="_blank" rel="noopener" href="https://bboyjing.github.io/2020/04/16/Java%E5%BC%BA%E3%80%81%E8%BD%AF%E3%80%81%E5%BC%B1%E3%80%81%E8%99%9A%E5%BC%95%E7%94%A8%E7%9A%84%E7%9B%B4%E8%A7%82%E7%90%86%E8%A7%A3/">直观理解</a>)</h2>
+<ul>
+<li>强应用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>只要强引用关系还在<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>垃圾收集器就永远不会回收掉被引用的对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>软引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>只被软引用关联着的对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在系统将要发生内存溢出异常前<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会把这些对象列进回收范围之中进行第二次回收<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果这次回收还没有足够的内存<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>才会抛出内存溢出异常<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>弱引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>只被弱引用关联的对象只能生存到下一次垃圾收集发生为止<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>虚引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>一个对象是否有虚引用的存在<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>完全不会对其生存时间构成影响<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也无法通过虚引用来取得一个对象实例<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>为一个对象设置虚引用关联的唯一目的只是为了能在这个对象被收集器回收时收到一个系统通知<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+<h2 id="分代收集理论">分代收集理论</h2>
+<p>当前的垃圾收集器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>大多数都遵循了<span class="bd-box"><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>分代收集<span class="bd-box"><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char></span>理论<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>主要是建立两个分代假说之上</p>
+<ul>
+<li>弱分代假说<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>绝大多数对象都是朝生夕灭的</li>
+<li>强分代假说<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>熬过越多次垃圾收集过程的对象就越难以消亡</li>
+</ul>
+<p>  这两个分代假说共同奠定了多款常用的垃圾收集器的一致设计原则<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>收集器应该将Java堆划分出不同的区域<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后将回收对象依据其年龄分配到不同的区域之中存储<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>显而易见<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果一个区域中大多数对象都是朝生夕灭<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>难以熬过垃圾收集过程的话<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么把它们集中放在一起<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每次回收只关注如何保留少量存活而不是去标记那些大量将要被回收的对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就能以较低代价回收到大量的空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span>如果剩下的都是难以消亡的对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那把它们集中放在一块<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>虚拟机便可以使用较低频率来回收这个区域<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这就同时兼顾了垃圾收集的时间开销和内存的空间有效利用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<h2 id="基础的垃圾回收器">基础的垃圾回收器</h2>
+<ol>
+<li>
+<p>标记-清除算法<br>
+ 首先标记出所有需要回收的对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在标记完成后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>统一回收掉所有被标记的对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+缺点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ul>
+<li>执行效率不稳定<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果堆中大部分是需要被回收的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则会导致标记和清除两个过程的执行效率都随对象数量增长而降低</li>
+<li>内存空间碎片问题</li>
+</ul>
+</li>
+<li>
+<p>标记复制算法<br>
+ 为了解决标记-清除算法面对大量可回收对象时执行效率低的问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>标记-复制算法将可用内存按容量划分为大小相等的两块<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每次只使用其中的一块<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>当这一块的内存用完了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就将还存活着的对象复制到另一块上面<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后再把已使用过的内存空间一次清理掉<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+ IBM有一项研究表明<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>新生代中的对象有98%熬不过第一轮收集<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因此不需要按照1:1的比例来划分<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Appel式回收的具体做法是把新生代分为一块较大的Eden空间和两块较小的Survivor空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>HotSpot设定的比例是8:2<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每次分配内存只使用Eden和其中一块Survivor空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>发生垃圾收集时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>将Eden和Survivor中仍然存活的对象一次性复制到另外一块Survivor空间上<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后直接清理掉Eden和已用过的那块Survivor空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>缺点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ul>
+<li>如果大量对象存活<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则会导致大量的内存复制开销</li>
+<li>内存利用率只有一半<br>
+ </li>
+</ul>
+</li>
+<li>
+<p>标记-整理算法<br>
+ 标记-复制算法在对象存活率较高时就要进行较多的复制操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>效率将会降低<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>标记-整理算法是让所有存活对象都向内存空间一端移动<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后直接清理掉边界以外的内存<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+缺点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ul>
+<li>当有大量存活对象时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则移动对象就会降低回收效率<br>
+ </li>
+</ul>
+</li>
+</ol>
+<h2 id="垃圾收集器">垃圾收集器</h2>
+<ol>
+<li>
+<p>Serial收集器<br>
+  单线程工作的收集器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它&quot;单线程&quot;的意义并不仅仅是说明它只会使用一个处理器或一条收集线程去完成垃圾收集工作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>更重要的是强调在它进行垃圾收集时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>必须暂停其他所有工作线程<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>直到它收集结束<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+<img src="Serial.png" alt=""><br>
+  虽然是很早出现的收集器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但是有着优于其他收集器的地方<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那就是简单高效<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>对于内存资源受限的环境<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它是所有收集器里额外内存消耗最小的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span>对于单核处理器或处理器核心数较少的环境来说<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Serial收集器由于没有线程交互的开销<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>专心做垃圾收集自然可以获得最高的单线程收集效率<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+</li>
+<li>
+<p>ParNew收集器<br>
+  ParNew收集器实质上是Serial收集器的多线程并行版本<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>除了同时使用多条线程进行垃圾收集之外<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>其余的行为包括Serial收集器可用的所有控制参数<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>收集算法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>Stop The World<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>对象分配策略<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>回收策略等都与Serial收集器完全一致<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+<img src="ParNew.png" alt=""></p>
+</li>
+<li>
+<p>Parallel Scavenge 收集器<br>
+  Parallel Scavenge收集器又称为吞吐量优先收集器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>和ParNew收集器类似<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是一个新生代收集器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>同样是使用标记-复制算法的并行多线程收集器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>它的目标是达到一个可控制的吞吐量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>吞吐量就是处理器用于运行用户代码的时间与处理器总消耗时间的比值:<br>
+<div class="markdown-them-math-block">$$吞吐量=\cfrac{运行用户代码时间}{运行用户代码时间+运行垃圾收集时间}$$</div><br>
+  高吞吐量就可以最高效率地利用处理器资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>尽快完成程序的运算任务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>有一些参数可以控制GC停顿的时间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>-XX:MaxGCPauseMills<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>还可以通过-XX:GCTimeRatio来控制GC消耗时间所占的比例<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而来控制吞吐量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>此外还可以通过-XX:+UseAdaptiveSizePolicy<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>让JVM来动态调整<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>但是过分的设置高吞吐量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可能会导致新生代频繁的回收<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>新生代内存变小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>来降至提高吞吐量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+</li>
+<li>
+<p>Serial Old收集器<br>
+<img src="Serial_Old.png" alt=""><br>
+  Serial Old收集器是Serial收集器的老年版本</p>
+</li>
+<li>
+<p>Parallel Old收集器<br>
+  Parallel Old是Parallel Scavenge收集器的老年代版本<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>支持多线程并行收集<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>基于标记-整理算法实现<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+<img src="Parallel_Old.png" alt=""></p>
+</li>
+<li>
+<p>CMS收集器<br>
+CMS收集器是一种以获取最短回收停顿时间为目标的收集器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>整个过程分为四个步骤:</p>
+<ul>
+<li>初始标记</li>
+<li>并发标记</li>
+<li>重新标记</li>
+<li>并发清除<br>
+<img src="CMS.png" alt=""></li>
+</ul>
+</li>
+</ol>
+<p>  由于是和用户线程一起并发执行<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而会降低GC的停顿时间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>但是由于是和用户线程并发执行<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而会导致占用一部分线程而导致应用程序变慢<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>降低总吞吐量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>如果处理器核心不足<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则还需要分出算力给收集器线程去执行<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>并且CMS会进行标记清理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>造成垃圾碎片<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>于是就无法处理<span class="bd-box"><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>浮动垃圾<span class="bd-box"><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>有可能出现<span class="bd-box"><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>Concurrent Mode Failure<span class="bd-box"><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char></span>失败进而导致另一次完全<span class="bd-box"><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>Stop The World<span class="bd-box"><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char></span>的Full GC的产生<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<ol start="7">
+<li>
+<p>Garbage First收集器<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>G1<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span><br>
+  G1开创的基于Region的堆内存布局能够控制消耗在垃圾收集器上的时间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>G1不再根据分代收集<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>要么是整个新生代<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>要么是这个老年代<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>再要么就是整个Java堆(Full GC)<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>G1可以面向堆内存任何部分来组成回收集进行回收<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>衡量标准不再是它属于哪个分代<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而是哪块内存中存放的垃圾数量最多<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>回收受益最大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这就是G1收集器的Mixed GC模式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>G1把连续的堆划分为多个大小相等的region<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每一个region可以根据需要扮演不同的空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如Eden<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>Survivor<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>老年代<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>以及存储大对象的Humongous区域<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+<img src="G1.png" alt=""><br>
+  用户可以指定期望的停顿时间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>设置不同的期望停顿时间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可使得G1在不同应用场景中取得关注吞吐量和关注延迟之间的最佳平衡<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>从G1开始<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>最先进的垃圾收集器的设计导向都不约而同地变为追求能够应付应用的内存分配速率<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而不追求一次把整个Java堆全部清理干净<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+  G1是基于标记整理算法的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而不会产生内存碎片<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但无论是内存占用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>还是运行时的额外执行负载都要比CMS要高<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+</li>
+<li>
+<p>低延迟收集器<br>
+  在内存占用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>吞吐量和延迟三项指标里<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>延迟的重要性日益凸显<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>随着硬件性能的提升<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>吞吐量会变高<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>内存会逐渐扩大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而回收大内存就会耗费更多的时间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>以低延迟出发的收集器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>Shenandoah<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>ZGC收集器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+</li>
+</ol>
+<h2 id="[gc-日志分析](https://poonamparhargithub.io/understanding-metaspace-gc-logs/)"><a target="_blank" rel="noopener" href="https://poonamparhar.github.io/understanding-metaspace-gc-logs/">GC 日志分析</a></h2>
+<ol>
+<li>GC 日志参数<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></li>
+</ol>
+<ul>
+<li>-verbose:gc :输出gc日志信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>默认输出到标准输出</li>
+<li>-XX:+PrintGC :等同于-verbose:gc表示打开简化的GC日志</li>
+<li>-XX:+PrintGCDetails :在发生垃圾回收时打印内存回收详细的日志并在进程退出- 时输出当前内存各区域分配情况</li>
+<li>-XX:+PrintGCTimeStamps :输出GC发生时的时间戳</li>
+<li>-XX:+PrintGCDateStamps :输出GC发生时的时间戳<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>以日期的形式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如- 2021-10-04T21:53:59.234+0800)</li>
+<li>-XX:+PrintHeapAtGC :每一次GC前和GC后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>都打印堆信息</li>
+<li>-Xloggc:<file> :把GC日志写入到一个文件中去<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而不是打印到标准输出中</li>
+<li>-XX:+TraceClassLoading : 监控类的加载</li>
+<li>-XX:+PrintGCApplicationStoppedTime: 打印GC时线程的停顿时间</li>
+<li>-XX:+PrintGCApplicationConcurrentTime : 垃圾收集之前打印出应用未中- 断的执行时间</li>
+<li>-XX:+PrintReferenceGC : 记录回收了多少种不同引用类型的引用</li>
+<li>-XX:+PrintTenuringDistribution : 让JVM在每次MinorGC后打印出当前使用- 的Survivor中对象的年龄分布</li>
+<li>-XX:+UseGCLogFileRotation : 启用GC日志文件的自动转储</li>
+<li>-XX:NumberOfGClogFiles=1 : GC日志文件的循环数目</li>
+<li>-XX:GCLogFileSize=1M : 控制GC日志文件的大小</li>
+</ul>
+<ol start="2">
+<li>GC 日志分类<br>
+  针对HotSpot VM的实现<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它里面的GC按照回收区域又分为两大种类型:一种是部分收集<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Partial GC<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一种是整堆收集(Full GC)
+<ul>
+<li>部分收集:不是完整收集整个Java堆的垃圾收集<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>其中又分为:
+<ul>
+<li>新生代收集<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Minor GC / Young GC<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span>:只是新生代<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Eden\S0,S1<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span>的垃圾收集</li>
+<li>老年代收集<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Major GC / Old GC<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span>:只是老年代的垃圾收集<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>
+<ul>
+<li>目前<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>只有CMS GC会有单独收集老年代的行为<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>注意<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>很多时候Major GC会和Full GC混淆使用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要具体分辨是老年代回收还是整堆回收<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>混合收集<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Mixed GC):收集整个新生代以及部分老年代的垃圾收集<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>目前,只有G1 GC会有这种行为</li>
+<li>整堆收集<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Full GC):收集整个java堆和方法区的垃圾收集<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+</li>
+</ol>
+<p> <br>
+  GC日志格式的规律一般都是:</p>
+<ul>
+<li>GC前内存占用-&gt;GC后内存占用<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>该区域内存总大小)</li>
+<li>[PSYoungGen: 5986K-&gt;696K(8704K)] 5986K-&gt;704K(9216K)</li>
+<li>中括号内:GC回收前年轻代堆大小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>回收后大小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>(年轻代堆总大小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span></li>
+<li>括号外:GC回收前年轻代和老年代大小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>回收后大小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>(年轻代和老年代总大小)</li>
+</ul>
+<div class="highlight"><pre class="code"><code><span class="hljs-operator">----------------------</span><span class="hljs-variable">Minor</span> <span class="hljs-variable">GC</span><span class="hljs-operator">----------------------------</span> 
+<span class="hljs-number">2021</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-variable">T14</span><span class="hljs-operator">:</span><span class="hljs-number">44</span><span class="hljs-operator">:</span><span class="hljs-number">04.813</span><span class="hljs-operator">+</span><span class="hljs-number">0800</span><span class="hljs-operator">:</span> <span class="hljs-number">0.163</span><span class="hljs-operator">:</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-variable">GC</span> <span class="hljs-punctuation">(</span><span class="hljs-variable">Allocation</span> <span class="hljs-built_in">Failure</span><span class="hljs-punctuation">)</span> <span class="hljs-number">2021</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-variable">T14</span><span class="hljs-operator">:</span><span class="hljs-number">44</span><span class="hljs-operator">:</span><span class="hljs-number">04.813</span><span class="hljs-operator">+</span><span class="hljs-number">0800</span><span class="hljs-operator">:</span> <span class="hljs-number">0.163</span><span class="hljs-operator">:</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-variable">DefNew</span><span class="hljs-operator">:</span> <span class="hljs-number">139776</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">17472</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">157248</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.0164545</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span> <span class="hljs-number">139776</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">45787</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">506816</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.0165501</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-built_in">Times</span><span class="hljs-operator">:</span> <span class="hljs-variable">user</span><span class="hljs-operator">=</span><span class="hljs-number">0.00</span> <span class="hljs-variable">sys</span><span class="hljs-operator">=</span><span class="hljs-number">0.02</span><span class="hljs-operator">,</span> <span class="hljs-variable">real</span><span class="hljs-operator">=</span><span class="hljs-number">0.02</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span> <span class="hljs-number">2021</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-variable">T14</span><span class="hljs-operator">:</span><span class="hljs-number">44</span><span class="hljs-operator">:</span><span class="hljs-number">04.853</span><span class="hljs-operator">+</span><span class="hljs-number">0800</span><span class="hljs-operator">:</span> <span class="hljs-number">0.203</span><span class="hljs-operator">:</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-variable">GC</span> <span class="hljs-punctuation">(</span><span class="hljs-variable">Allocation</span> <span class="hljs-built_in">Failure</span><span class="hljs-punctuation">)</span> <span class="hljs-number">2021</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-variable">T14</span><span class="hljs-operator">:</span><span class="hljs-number">44</span><span class="hljs-operator">:</span><span class="hljs-number">04.853</span><span class="hljs-operator">+</span><span class="hljs-number">0800</span><span class="hljs-operator">:</span> <span class="hljs-number">0.203</span><span class="hljs-operator">:</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-variable">DefNew</span><span class="hljs-operator">:</span> <span class="hljs-number">157248</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">17471</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">157248</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.0192998</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span> <span class="hljs-number">185563</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">84401</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">506816</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.0193485</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-built_in">Times</span><span class="hljs-operator">:</span> <span class="hljs-variable">user</span><span class="hljs-operator">=</span><span class="hljs-number">0.02</span> <span class="hljs-variable">sys</span><span class="hljs-operator">=</span><span class="hljs-number">0.01</span><span class="hljs-operator">,</span> <span class="hljs-variable">real</span><span class="hljs-operator">=</span><span class="hljs-number">0.02</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span>
+ <span class="hljs-operator">-----------------------</span><span class="hljs-built_in">Full</span> <span class="hljs-variable">GC</span><span class="hljs-operator">----------------------------</span> 
+<span class="hljs-number">2021</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-variable">T14</span><span class="hljs-operator">:</span><span class="hljs-number">44</span><span class="hljs-operator">:</span><span class="hljs-number">05.240</span><span class="hljs-operator">+</span><span class="hljs-number">0800</span><span class="hljs-operator">:</span> <span class="hljs-number">0.589</span><span class="hljs-operator">:</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-variable">GC</span> <span class="hljs-punctuation">(</span><span class="hljs-variable">Allocation</span> <span class="hljs-built_in">Failure</span><span class="hljs-punctuation">)</span> <span class="hljs-number">2021</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-variable">T14</span><span class="hljs-operator">:</span><span class="hljs-number">44</span><span class="hljs-operator">:</span><span class="hljs-number">05.240</span><span class="hljs-operator">+</span><span class="hljs-number">0800</span><span class="hljs-operator">:</span> <span class="hljs-number">0.589</span><span class="hljs-operator">:</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-variable">DefNew</span><span class="hljs-operator">:</span> <span class="hljs-number">157148</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">157148</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">157248</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.0000289</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span><span class="hljs-number">2021</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-operator">-</span><span class="hljs-number">09</span><span class="hljs-variable">T14</span><span class="hljs-operator">:</span><span class="hljs-number">44</span><span class="hljs-operator">:</span><span class="hljs-number">05.240</span><span class="hljs-operator">+</span><span class="hljs-number">0800</span><span class="hljs-operator">:</span> <span class="hljs-number">0.589</span><span class="hljs-operator">:</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-variable">Tenured</span><span class="hljs-operator">:</span> <span class="hljs-number">341758</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">308956</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">349568</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> <span class="hljs-number">0.0459961</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span> <span class="hljs-number">498907</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">308956</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">506816</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-operator">,</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-variable">Metaspace</span><span class="hljs-operator">:</span> <span class="hljs-number">2608</span><span class="hljs-built_in">K</span><span class="hljs-operator">-&gt;</span><span class="hljs-number">2608</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">(</span><span class="hljs-number">1056768</span><span class="hljs-built_in">K</span><span class="hljs-punctuation">)</span><span class="hljs-punctuation">]</span><span class="hljs-operator">,</span> <span class="hljs-number">0.0460956</span> <span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span> 
+<span class="hljs-punctuation">[</span><span class="hljs-built_in">Times</span><span class="hljs-operator">:</span> <span class="hljs-variable">user</span><span class="hljs-operator">=</span><span class="hljs-number">0.05</span> <span class="hljs-variable">sys</span><span class="hljs-operator">=</span><span class="hljs-number">0.00</span><span class="hljs-operator">,</span> <span class="hljs-variable">real</span><span class="hljs-operator">=</span><span class="hljs-number">0.05</span><span class="hljs-variable">secs</span><span class="hljs-punctuation">]</span> 
+</code></pre></div>
+<p>2021-09-09T14:44:04.813-GC事件开始的时间点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>+0800表示当前时区为东八区<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这只是一个标识<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>0.163是GC事件相对于JVM启动时间的间隔<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>单位是秒</p>
+<p>GC - 用来区分Minor GC还是Full GC的标志<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>GC表明这是一次小型GC<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Minor GC<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>即年轻代GC<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>Allocation Failure 表示触发GC的原因<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>本次GC事件是由于对象分配失败<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>即年轻代中没有空间来存放新生成的对象引起的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>DefNew表示垃圾收集器的名称<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>这个名称表示<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>年轻到使用的单线程<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>标记-复制<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>STW的垃圾收集器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>139776K-&gt;17472K 表示在垃圾收集之前和之后的年轻代使用量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>(157248K) 表示年轻代的总空间大小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>分析可得<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>GC之后年轻代使用率为11%<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+139776K-&gt;45787K 表示在垃圾收集前后整个堆内存的使用情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>(506816K)表示整个堆的大小</p>
+<p>0.0165501 secs - GC事件的持续时间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>单位<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>秒<br>
+[Times: user=0.00 sys=0.02, real=0.02 secs] 表示此次GC事件的持续时间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>通过三个部分来衡量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ul>
+<li>user<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>进程执行用户态代码所耗费的处理器时间</li>
+<li>sys<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 进程执行核心态代码所耗费的时间</li>
+<li>real<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 执行动作从开始到结束耗费的时钟时间</li>
+</ul>
+<p>  前面两个是处理器时间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>real代表的是时钟时间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它们的区别是处理器时间代表的是线程占用处理器一个核心的耗时计数器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而时钟时间就是现实世界中的时间计数<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>如果是单核单线程的场景下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这两者可以认为是等价的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但如果是多喝环境下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同一个时钟时间内有多少处理器核心正在工作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就会有多少倍的处理器时间被消耗和记录下来<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<h2 id="虚拟机性能监控和故障处理工具">虚拟机性能监控和故障处理工具</h2>
+<ol>
+<li>Jps<br>
+  可以列出正在运行的虚拟机进程<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并显示虚拟机执行主类名称以及这些进程的本地虚拟机唯一ID<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+ 基本语法为:jps [options] [hostid]
+<ul>
+<li>-q:仅仅显示LVMID (local virtual machine id)<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>即本地虚拟机唯一id<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>不显示主类的名称等</li>
+<li>-1:输出应用程序主类的全类名或如果进程执行的是jar包<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则输出jar完整路径</li>
+<li>-m:输出虚拟机进程启动时传递给主类main()的参数</li>
+<li>-v:列出虚拟机进程启动时的JVM参数<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>比如: -Xms20m -Xmx50m是启动程序指定的jvm参数<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>说明:以上参数可以综合使用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+</li>
+<li>虚拟机统计信息监视工具<br>
+  jstat(VM Statistics Monitoring Tool):用于监视虚拟机各种运行状态信息的命令行工具<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>它可以显示本地或者远程虚拟机进程中的类装载<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>内存<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>垃圾收集<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>JIT编译等运行数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+ -class:显示ClassLoader的相关信息:类的装载<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>卸载数量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>总空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>类装载所消耗的时间等
+<ul>
+<li>-t <span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>前面显示Timestamp一列</li>
+<li>-h3 <span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>每隔三次输出标题</li>
+<li>9000 <span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>进程号</li>
+<li>1000 <span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>每隔1000毫米输出一次</li>
+<li>10 <span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>一共输出10次</li>
+</ul>
+</li>
+</ol>
+<p> </p>
+<p>垃圾回收相关的:</p>
+<ul>
+<li>-gc:显示与GC相关的堆信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>包括Eden区<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>两个Survivor区<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>老年代<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>永久代等的容量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>己用空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>GC时间合计等信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>-gccapacity:显示内容与-gc基本相同<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但输出主要关注Java堆各个区域使用到的最大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>最小空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>-gcutil:显示内容与-gc基本相同<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但输出主要关注已使用空间占总空间的百分比<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>-gccause:与-gcutil功能一样<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但是会额外输出导致最后一次或当前正在发生的GC产生的原因<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>-gcnew:显示新生代Gc状况</li>
+<li>-gcnewcapacity:显示内容与-gcnew基本相同<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>输出主要关注使用到的最大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>最小空间</li>
+<li>-geold:显示老年代GC状况</li>
+<li>-gcoldcapacity:显示内容与-gcold基本相同<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>输出主要关注使用到的最大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>最小空间</li>
+<li>-gcpermcapacity:显示永久代使用到的最大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>最小空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+<p> </p>
+<ol>
+<li>Jmap <span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>java内存映像工具<br>
+ jmap(JVM Memory Map):作用一方面是获取dump文件<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>堆转储快照文件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>二进制文件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它还可以获取目标Java进程的内存相关信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>包括Java堆各区域的使用情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>堆中对象的统计信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>类加载信息等<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>
+<ul>
+<li>jmap [option] <pid></li>
+<li>jmap [option] &lt;executable <core></li>
+<li>jmap [option] [server_id@] <remote server IP or hostname></li>
+</ul>
+</li>
+</ol>
+<ul>
+<li>-dump<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 生成Java堆转储快照: dump文件
+<ul>
+<li>特别的: -dump:live只保存堆中的存活对象</li>
+</ul>
+</li>
+<li>-heap<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 输出整个堆空间的详细信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>包括GC的使用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>堆配置信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>以及内存的使用信息等</li>
+<li>-histo<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 输出堆中对象的统计信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>包括类<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>实例数量和合计容量
+<ul>
+<li>特别的:-histo:live只统计堆中的存活对象</li>
+</ul>
+</li>
+<li>-permstat<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 以ClassLoader为统计口径输出永久代的内存状态信息
+<ul>
+<li>仅linux/solaris平台有效</li>
+</ul>
+</li>
+<li>-finalizerinfo<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 显示在F-Queue中等待Finalizer线程执行finalize方法的对象
+<ul>
+<li>仅linux/solaris平台有效</li>
+</ul>
+</li>
+<li>-F<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 当虚拟机进程对-dump选项没有任何响应时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可使用此选项强制执行生成dump文件
+<ul>
+<li>仅linux/solaris平台有效</li>
+</ul>
+</li>
+<li>-h |-help<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> jmap工具使用的帮助命令</li>
+<li>-J <flag><span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 传递参数给jmap启动的jvm</li>
+</ul>
+<ol>
+<li>Jstack: java 堆栈跟踪工具<br>
+  生成线程快照的作用:可用于定位线程出现长时间停顿的原因<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如线程间死锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>死循环<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>请求外部资源导致的长时间等待等问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>这些都是导致线程长时间停顿的常见原因<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>当线程出现停顿时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就可以用jstack显示各个线程调用的堆栈情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ol>
+<p>option参数<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ul>
+<li>-F<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>当正常输出的请求不被响应时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>强制输出线程堆栈</li>
+<li>-m<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>除堆栈外<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>显示关于锁的附加信息</li>
+<li>-h<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>如果调用到本地方法的话<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可以显示C/C++的堆栈</li>
+</ul>
+<ol start="5">
+<li>Jcmd<br>
+  它是一个多功能的工具<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可以用来实现前面除了jstat之外所有命令的功能<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>比如:用它来导出堆<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>内存使用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>查看Java进程<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>导出线程信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>执行GC<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>JVM运行时间等</li>
+</ol>
+<p> 可视化故障处理工具</p>
+<ul>
+<li>JConsole</li>
+<li>VisualVM<br>
+Monitor 显示CPU<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>Classes<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>Heap<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>Metaspace<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>Threads的Usage</li>
+</ul>
+<p><img src="monitor.png" alt=""></p>
+<p><img src="monitor_thread.png" alt=""></p>
+<p>对进程进行heap dump进行分析<br>
+<img src="monitor_heap_dump.png" alt=""><br>
+dump的结果可以看到class实例的个数<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>size<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个instance的size<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>以及分析从父节点开始的支配树 size<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>来分析引用关系<br>
+<img src="monitor_heap_dump_result.png" alt=""></p>
+<ul>
+<li>mat<br>
+  对Object的引用关系分析更加准确</li>
+<li>Jprofile</li>
+</ul>
+<h2 id="判断是不是-gc 引发的问题&lt;span class=&quot;bd-box&quot;&gt;&lt;h-char class=&quot;bd bd-beg&quot;&gt;&lt;h-inner&gt;？&lt;/h-inner&gt;&lt;/h-char&gt;&lt;/span&gt;">判断是不是 GC 引发的问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>？</h-inner></h-char></span></h2>
+<p>  到底是结果<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>现象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span>还是原因<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在一次 GC 问题处理的过程中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如何判断是 GC 导致的故障<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>还是系统本身引发 GC 问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>这里继续拿在本文开头提到的一个 Case<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>GC 耗时增大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>线程 Block 增多<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>慢查询增多<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>CPU 负载高等四个表象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如何判断哪个是根因<span class="bd-box"><h-char class="bd bd-beg"><h-inner>？</h-inner></h-char><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>笔者这里根据自己的经验大致整理了四种判断方法供参考<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ul>
+<li>时序分析<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 先发生的事件是根因的概率更大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>通过监控手段分析各个指标的异常时间点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>还原事件时间线<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如先观察到 CPU 负载高<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>要有足够的时间 Gap<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么整个问题影响链就可能是<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>CPU 负载高 -&gt; 慢查询增多 -&gt; GC 耗时增大 -&gt; 线程Block增多 -&gt; RT 上涨<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>概率分析<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 使用统计概率学<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>结合历史问题的经验进行推断<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>由近到远按类型分析<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如过往慢查的问题比较多<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么整个问题影响链就可能是<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>慢查询增多 -&gt; GC 耗时增大 -&gt; CPU 负载高 -&gt; 线程 Block 增多 -&gt; RT上涨<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>实验分析<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 通过故障演练等方式对问题现场进行模拟<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>触发其中部分条件<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>一个或多个<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>观察是否会发生问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如只触发线程 Block 就会发生问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么整个问题影响链就可能是<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>线程Block增多 -&gt; CPU 负载高 -&gt; 慢查询增多 -&gt; GC 耗时增大 -&gt; RT 上涨<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>反证分析<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 对其中某一表象进行反证分析<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>即判断表象的发不发生跟结果是否有相关性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>例如我们从整个集群的角度观察到某些节点慢查和 CPU 都正常<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但也出了问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么整个问题影响链就可能是<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>GC 耗时增大 -&gt; 线程 Block 增多 -&gt; RT 上涨<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+不同的根因<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>后续的分析方法是完全不同的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>如果是 CPU 负载高那可能需要用火焰图看下热点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>如果是慢查询增多那可能需要看下 DB 情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>如果是线程 Block 引起那可能需要看下锁竞争的情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>最后如果各个表象证明都没有问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那可能 GC 确实存在问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可以继续分析 GC 问题了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+<p>  <br>
+总结<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span><br>
+  我们可以根据进程的内存使用特点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>结合实际场景考虑吞吐量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>延迟性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>内存使用情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>配合参数来进行JVM的调优<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时在出现频繁GC<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>GC耗时增加<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>内存使用猛增等情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>我们可以使用一些命令<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>Jmap<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>Jcmd<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>dump整个堆内存以及Visiualize的工具来分析jvm的情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+  在分析是不是GC导致应用出现问题时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>要注意时序分析<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>不要只看GC异常<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>有可能更早的是CPU等出现了问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而引发GC异常<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如今项目上可能使用了k8s这些容器技术<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么jvm的控制还需要结合k8s的参数来综合考虑问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  <br>
+  </p>
+<p>Reference:</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://github.com/authorNari/minigc">minigc的实现</a></li>
+<li><a target="_blank" rel="noopener" href="https://tech.meituan.com/2016/09/23/g1.html">G1 gc技术分析</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/klvchen/articles/11841337.html">gc 过程分析</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.dynatrace.com/resources/ebooks/javabook/class-loader-issues/">classLoader memory issue</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7058958428370108452">metaSpace内存溢出</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7021088899787292703">metaSpaceOOM原因</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.jianshu.com/p/8dfa51498343">java Metaspace频繁FGC问题定位</a></li>
+<li><a target="_blank" rel="noopener" href="https://tech.meituan.com/2017/12/29/jvm-optimize.html">GC优化与评价指标</a></li>
+<li><a target="_blank" rel="noopener" href="https://heapdump.cn/article/1907253">CPU 优化线上实战篇:Java JVM 频繁 GC的原因和排查方法 | HeapDump性能社区</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7012488939219091487">JVM监控及诊断工具</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7029130033268555807">GC日志解读<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这次别再说看不懂GC日志了</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="../../22/task_scheduler/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          任务调度
+        
+      </div>
+    </a>
+  
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2023 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="../../../../archives" class="mobile-nav-link">Home</a>
+  
+    <a href="../../../../archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="../../../../about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="../../../../js/clipboard.min.js"></script>
+<script src="../../../../js/jquery-1.4.3.min.js"></script>
+
+<script src="../../../../fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="../../../../js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="../../../../mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+
+
+  </div>
+</body>
+</html>

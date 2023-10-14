@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Zookeeper 简介与使用场景 | Yonhoo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <meta name="description" content="  
+&amp;emsp;&amp;emsp;Zookeeper的视图结构和标准的Unix文件系统非常类似，但没有引入传统文件系统中目录和文件等相关概念，而是使用了其特有的“数据节点”概念，我们称之为ZNode。ZNode是Zookeeper中数据的最小单元，每个ZNode上都可以保存数据，同时还可以挂载子节点，因此构成了一个层次化的命名空间，我们称之为树。">
+  
+  
+  
+  <link rel="stylesheet" href="../../../../css/style.css">
+  
+    <link rel="stylesheet" href="../../../../fancybox/jquery.fancybox-1.3.4.css">
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="../../../../archives">Home</a>
+    
+      <a class="main-nav-link" href="../../../../archives">Archives</a>
+    
+      <a class="main-nav-link" href="../../../../about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+  </nav>
+</div>
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="../../../../index.html" id="logo">Yonhoo</a>
+  </h1>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-zookeeper_utilize" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="" class="article-date">
+  <time class="dt-published" datetime="2023-05-20T14:10:14.000Z" itemprop="datePublished">2023-05-20</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      Zookeeper 简介与使用场景
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <img src="zookeeper.png" width="300" height="300">  
+&emsp;&emsp;Zookeeper的视图结构和标准的Unix文件系统非常类似<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但没有引入传统文件系统中目录和文件等相关概念<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而是使用了其特有的<span class="bd-box"><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>数据节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char></span>概念<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>我们称之为ZNode<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>ZNode是Zookeeper中数据的最小单元<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个ZNode上都可以保存数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时还可以挂载子节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因此构成了一个层次化的命名空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>我们称之为树<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>  
+<span id="more"></span>
+### 树型结构 
+&emsp;&emsp;在Zookeeper中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每一个数据节点都被称为一个ZNode<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所有ZNode按层次化结构进行组织<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>形成一棵树<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>ZNode的节点路径标识方式和Unix文件系统路径非常相似<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>都是由一系列使用斜杠(/)进行分割的路径表示<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>开发人员可以向这个节点中写入数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也可以在节点下面创建子节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>
+<img src="zookeeper_tree.png" width="400" height="400">  
+<h3 id="事务">事务</h3>
+<p>   在Zookeeper中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>事务是指能够改变Zookeeper服务器状态的操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>我们也称之为事务操作或更新操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一般包括数据节点创建与删除<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>数据节点内容更新和客户端会话创建与失效等操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>对于每一个事务请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Zookeeper都会为其分配一个全局唯一的事务ID<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>用ZXID来表示<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>通常是一个64位的数字<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>每一个ZXID对应一次更新操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从这些ZXID中可以间接地识别出Zookeeper处理这些更新操作请求的全局顺序<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<h3 id="节点类型">节点类型</h3>
+<ul>
+<li>
+<p>持久节点(<strong>PERSISTENT</strong>)<br>
+   该数据节点被创建后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就会一直存在于Zookeeper服务器上<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>直到有删除操作来主动清楚这个节点</p>
+</li>
+<li>
+<p>持久顺序节点(<strong>PERSISTENT_SEQUENTIAL</strong>)<br>
+   持久顺序节点的基本特性和持久节点是一致的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>额外的特性表现在顺序性上<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>在Zookeeper中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个父节点都会为它的第一级子节点维护一份顺序<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+</li>
+<li>
+<p>临时节点(<strong>EPHEMERAL</strong>)<br>
+   和持久节点不同的是<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>临时节点的生命周期和客户端的会话绑定在一起<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果客户端会话失效<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么这个节点就会被自动清理掉<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+</li>
+<li>
+<p>临时顺序节点(<strong>EPHEMERAL_SEQUENTIAL</strong>)<br>
+   临时顺序节点的基本特性和临时节点是一致的,只是在此基础上添加了顺序特性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+</li>
+</ul>
+<h3 id="watcher----数据变更的通知">Watcher----数据变更的通知</h3>
+<p>    Zookeeper提供了分布式数据的发布/订阅功能<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>一个典型的发布/订阅模型系统定义了一种一对多的订阅关系<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>能够让多个订阅者同时监听某一个主题对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当这个主题对象自身状态变化时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会通知所有订阅者<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>使它们能够做出相应的处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>在 zookeeper 中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>引入了Watcher 机制来实现这种分布式的通知功能<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>Zookeeper 允许客户端向服务端注册一个Watcher 监听<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当服务端的一些指定事件触发了这个Watcher<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就会向指定客户端发送一个事件通知来实现分布式的通知功能<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+<img src="zookeeper_watcher.png" width="300" height="300"></p>
+<h3 id="应用场景">应用场景</h3>
+<h4 id="1-数据发布/订阅">1. 数据发布/订阅</h4>
+<p>  客户端服务端注册自己需要关注的节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一旦该节点的数据发生变更<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么服务端就会向相应的客户端发送Watcher事件通知<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>客户端接收到这个消息通知之后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要主动到服务端获取最新的数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+  如果将配置信息存放到ZooKeeper上进行集中管理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么通常情况下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>应用在启动的时候都会主动到Zookeeper服务端上进行一次配置信息的获取<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在指定节点上注册一个Watcher监听<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这样一来<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但凡配置信息发生变更<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>服务端都会实时通知到所有订阅的客户端<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而达到实时获取最新配置信息的目的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<h4 id="2-服务发现与注册">2. 服务发现与注册</h4>
+<p>  服务端通过暴露服务接口和IP地址的绑定<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>客户端需要消费服务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可以通过服务发现来找到暴露出去的IP地址列表<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>目前RPC就是通过服务发现与注册来实现远程服务调用<br>
+  My implementation: <a target="_blank" rel="noopener" href="https://github.com/Yonhoo/netty-rpc/blob/master/src/main/java/com/yonhoo/nettyrpc/registry/ZookeeperRegistry.java">zookeeper registry &amp; discovery</a><br>
+<img src="zookeeper_discovery.png" alt=""><br>
+<img src="discovery_flow.png" alt=""></p>
+<h4 id="3-分布式全局唯一id">3. 分布式全局唯一ID</h4>
+<p>  在单数据库场景下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>我们可以通过数据库的自增ID来生成唯一ID<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但是在分库分表的场景下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>数据库就比较难做到了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>通过Zookeeper的创建顺序节点的特性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>来生成全局唯一的ID<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<h4 id="4-master选举">4. Master选举</h4>
+<p>  Master 选举是一个在分布式系统中非常常见的应用场景<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>分布式最核心的特性就是能够将具有独立计算能力的系统单元部署在不同的机器上<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>构成一个完整的分布式系统<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>而与此同时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>实际场景中往往也需要在这些分布在不同机器上的独立系统单元中选出一个所谓的 <span class="bd-box"><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>老大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在计算机科学中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>我们称之为 Master<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  在分布式系统中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Master 往往用来协调集群中其他系统单元<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>具有对分布式系统状态变更的决定权<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>例如<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在一些读写分离的应用场景中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>客户端的写请求往往是由 Master来处理的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>而在另一些场景中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Master 则常常负责处理一些复杂的逻辑<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并将处理结果同步给集群中其他系统单元<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  在Zookeeper中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>多个客户端同时创建一个临时节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么最终一定只有一个客户端能够创建成功<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>利用这个特性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就能容易地在分布式环境中进行Master选举了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时其他客户端节点没有创建成功的话<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要在此节点上注册一个子节点变更的Watcher<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>用于监控当前的Master机器是否存活<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一旦发现当前的Master挂了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么其余的客户端将会重新进行Master选举<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>来抢占成为Master<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<h4 id="5-分布式锁">5. 分布式锁</h4>
+<p>  分布式锁是控制分布式系统之间同步访问共享资源的一种方式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>如果不同的系统或是同一个系统的不同主机之间共享了一个或一组资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么访问这些资源的时候<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>往往需要通过一此互斥手段来防止彼此之间的干扰<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>以保证一致性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在这种情况下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就需要使用分布式锁了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<ul>
+<li>
+<p><strong>排他锁</strong><br>
+  通过调用客户端create接口<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在<code>/exclusive_lock</code>节点下创建临时子节点<code>/exclusive_lock/lock</code><span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>因为Zookeeper会保证在所有客户端中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>最终只有一个客户端能够创建成功<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>对于其他没有获取到锁的客户端就可以在<code>/exclusive_lock</code>下注册一个子节点变更的Watcher<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当有变更时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>进行抢占获取锁资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<ul>
+<li>当获取锁的客户端完成处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则可以通过删除该临时节点来释放锁</li>
+<li>如果获取锁的客户端发生宕机<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么临时节点也会被移除<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>达到释放锁的效果<br>
+<img src="exclusive_lock.png" alt=""></li>
+</ul>
+</li>
+<li>
+<p><strong>读写锁</strong><br>
+  在获取共享锁时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所有客户端会到/shared_lock这个节点下面创建一个临时顺序节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果是读请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会创建/shared_lock/R-001的节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果是写请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则创建/shared_lock/R-002<br>
+<img src="read_write_tree.png" width="400" height="400"></p>
+<ul>
+<li>判断读写顺序<br>
+  不同的事务都可以同时对同一个数据对象进行读取操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而更新操作必须在当前没有任何事务进行读写操作的情况下进行<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>步骤如下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></li>
+<li>创建完节点后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>获取shared lock 节点下的所有子节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并对该节点注册子节点变更的Watcher监听</li>
+<li>确定自己的节点序号在所有子节点中的顺序</li>
+<li>对于读请求<br>
+  如果没有比自己序号小的子节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>或是所有比自己序号小的子节点都是读请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么表明自己已经成功获取到了共享锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时开始执行读取逻辑<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>如果比自己序号小的子节点中有写请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就需要进人等待<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>对于写请求<br>
+  如果自己不是序号最小的子节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就需要进人等待<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>接收到 Watcher 通知后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>重复步骤</li>
+<li>释放锁的过程和排他锁是一致的<br>
+<img src="read_write_lock.png" width="600" height="500"></li>
+</ul>
+</li>
+<li>
+<p>羊群效应<br>
+  如果每个节点都去监听最小的节点是否有变动<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当出现大量节点等待最小的写节点释放锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么靠后的节点会被激活<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>拉取新的节点列表<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但是发现还没有轮到自己<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>于是继续等待<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所以最小节点的变动除了对下一节点有影响外<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>对余下的其他节点没有任何作用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<ul>
+<li>改进
+<ul>
+<li>读请求<br>
+  向比自己序号小的最后一个写请求节点注册Watcher监听</li>
+<li>写请求<br>
+  向比自己序号小的最后一个节点注册Watcher监听</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="../../../10/14/distribute_transaction/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          分布式事务
+        
+      </div>
+    </a>
+  
+  
+    <a href="../../../04/22/task_scheduler/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          任务调度
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2023 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="../../../../archives" class="mobile-nav-link">Home</a>
+  
+    <a href="../../../../archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="../../../../about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="../../../../js/clipboard.min.js"></script>
+<script src="../../../../js/jquery-1.4.3.min.js"></script>
+
+<script src="../../../../fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="../../../../js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="../../../../mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>分布式事务 | Yonhoo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <meta name="description" content="  在如今的项目实践中，存在多个微服务之间互相通信，对于一个外卖服务，涉及到订单支付，优惠券扣减，餐厅下单，外卖配送等，在微服务设计下，就需要保证多个系统之间的数据一致性，这个时候就需要考虑到分布式事务来处理一致性问题。">
+  
+  
+  
+  <link rel="stylesheet" href="../../../../css/style.css">
+  
+    <link rel="stylesheet" href="../../../../fancybox/jquery.fancybox-1.3.4.css">
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="../../../../archives">Home</a>
+    
+      <a class="main-nav-link" href="../../../../archives">Archives</a>
+    
+      <a class="main-nav-link" href="../../../../about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+  </nav>
+</div>
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="../../../../index.html" id="logo">Yonhoo</a>
+  </h1>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-distribute_transaction" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="" class="article-date">
+  <time class="dt-published" datetime="2023-10-14T15:36:48.045Z" itemprop="datePublished">2023-10-14</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      分布式事务
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  在如今的项目实践中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>存在多个微服务之间互相通信<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>对于一个外卖服务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>涉及到订单支付<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>优惠券扣减<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>餐厅下单<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>外卖配送等<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在微服务设计下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就需要保证多个系统之间的数据一致性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这个时候就需要考虑到分布式事务来处理一致性问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<span id="more"></span>
+<p> 单个数据库事务提供了原子性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>一致性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>隔离性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>持久性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这四个属性通常称为 ACID 特性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<ul>
+<li>Atomicity<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>原子性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>一个事务中的所有操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>要么全部完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>要么全部不完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>不会结束在中间某个环节<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>事务在执行过程中发生错误<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会被恢复到事务开始前的状态<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就像这个事务从来没有执行过一样<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>Consistency<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>一致性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>在事务开始之前和事务结束以后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>数据库的完整性没有被破坏<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>完整性包括外键约束<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>应用定义的等约束不会被破坏<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>Isolation<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>隔离性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>数据库允许多个并发事务同时对其数据进行读写和修改的能力<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>隔离性可以防止多个事务并发执行时由于交叉执行而导致数据的不一致<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>Durability<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>持久性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>事务处理结束后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>对数据的修改就是永久的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>即便系统故障也不会丢失<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+<p>  分布式事务涉及多个节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是一个典型的分布式系统<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>与单机系统有非常大的差别<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>一个分布式系统最多只能同时满足一致性<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Consistency<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>可用性<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Availability<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span>和分区容错性<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Partition tolerance<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span>这三项中的两项<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这被称为CAP理论<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<ul>
+<li>
+<h4 id="c-一致性">C 一致性</h4>
+<ul>
+<li>分布式系统中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>数据一般会存在不同节点的副本中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果对第一个节点的数据成功进行了更新操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而第二个节点上的数据却没有得到相应更新<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这时候读取第二个节点的数据依然是更新前的数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>即脏数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这就是分布式系统数据不一致的情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>在分布式系统中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果能够做到针对一个数据项的更新操作执行成功后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所有的用户都能读取到最新的值<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么这样的系统就被认为具有强一致性<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>或严格的一致性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>请注意CAP中的一致性和ACID中的一致性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>虽然单词相同<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但实际含义不同<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>请注意区分</li>
+</ul>
+</li>
+<li>
+<h4 id="a-可用性">A 可用性</h4>
+<ul>
+<li>在集群中一部分节点故障后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>集群整体是否还能响应客户端的读写请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>在现代的互联网应用中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果因为服务器宕机等问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>导致服务长期不可用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是不可接受的</li>
+</ul>
+</li>
+<li>
+<h4 id="p-分区容错性">P 分区容错性</h4>
+<ul>
+<li>以实际效果而言<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>分区相当于对通信的时限要求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>系统如果不能在时限内达成数据一致性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就意味着发生了分区的情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就会导致C和A不能同时满足</li>
+<li>提高分区容忍性的办法就是一个数据项复制到多个节点上<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么出现分区之后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这一数据项仍然能在其他区中读取<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>容忍性就提高了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>然而<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>把数据复制到多个节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就会带来一致性的问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就是多个节点上面的数据可能是不一致的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+</li>
+</ul>
+<h3 id="分布式事务类型">分布式事务类型</h3>
+<ul>
+<li>由于不能同时满足CAP<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>目前在跨库<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>跨服务的分布式实际应用中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>有这几种方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>我们以银行跨行转账作为例子<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></li>
+</ul>
+<blockquote>
+<p>A需要转100元给B<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么需要给A的余额-100元<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>给B的余额+100元<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>整个转账要保证<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>A-100和B+100同时成功<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>或者同时失败</p>
+</blockquote>
+<p><img src="image_1696854563129_0.png" alt=""></p>
+<h3 id="xa事务模式-(二阶段提交)">XA事务模式 (二阶段提交)</h3>
+<p>  XA定义了(全局)事务管理器™和(局部)资源管理器(RM)之间的接口<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>本地的数据库如mysql在XA中扮演的是RM角色</p>
+<ul>
+<li>
+<h4 id="第一阶段">第一阶段</h4>
+<ul>
+<li>应用程序先向全局事务管理器™注册开启全局事务</li>
+<li>prepare
+<ul>
+<li>应用程序开始调用参与者</li>
+<li>参与者先注册子事务记录到全局事务管理器™</li>
+<li>本地开始进行update</li>
+</ul>
+</li>
+<li>当所有参与者完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>上报全局事务管理器™所有参与者已经完成prepare<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>本地事务还未提交<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span><br>
+<img src="image_1697208520472_0.png" alt=""></li>
+</ul>
+</li>
+<li>
+<h4 id="第二阶段">第二阶段</h4>
+<ul>
+<li>在经过第一阶段协调者的询盘之后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>各个参与者会回复自己事务的执行情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这时候存在 3 种可能性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>
+<ul>
+<li>所有的参与者都回复能够正常执行事务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>一个或多个参与者回复事务执行失败<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>协调者等待超时</li>
+</ul>
+</li>
+<li>
+<h4 id="对于第一种情况">对于第一种情况</h4>
+<ul>
+<li>协调者向各个参与者发送 commit通知<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>请求提交事务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span></li>
+<li>参与者收到事务提交通知之后执行 commit 操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后释放占有的资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span></li>
+<li>参与者向协调者返回事务 commit 结果信息<br>
+<img src="image_1697208762383_0.png" alt=""></li>
+</ul>
+</li>
+<li>
+<h4 id="对于失败和超时情况">对于失败和超时情况</h4>
+<ul>
+<li>协调者均认为参与者无法成功执行事务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>为了整个集群数据的一致性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所以要向各个参与者发送事务回滚通知<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>具体步骤如下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>
+<ul>
+<li>协调者向各个参与者发送事务 rollback 通知<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>请求回滚事务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span></li>
+<li>参与者收到事务回滚通知之后执行 rollback 操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后释放占有的资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span></li>
+<li>参与者向协调者返回事务 rollback 结果信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+<img src="image_1697208982925_0.png" alt=""></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>  但是可以发现<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在全局事务完成之前<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会在数据库层面锁住所有资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而并发度就会降低<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>而且当事务协调者出现问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就会出现资源一直锁住的情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>！</h-inner></h-char></span></p>
+<p>  </p>
+<h3 id="二阶段提交的使用场景:- mysql 是怎么保证数据不丢失的">二阶段提交的使用场景:  Mysql 是怎么保证数据不丢失的</h3>
+<ul>
+<li>
+<p>我们先从一条SQL更新语句是如何执行的开始<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<div class="highlight"><pre class="code" ><code>  &gt; mysql&gt; update T <span class="hljs-builtin-name">set</span> <span class="hljs-attribute">c</span>=c+1 where <span class="hljs-attribute">ID</span>=2; 
+</code></pre></div>
+<p> 更新流程涉及两个重要的日志模块: redo log<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>重做日志<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span>和 binlog<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>归档日志<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span></p>
+</li>
+<li>
+<h3 id="redo-log">redo log</h3>
+<ul>
+<li>redo log 是 InnoDB 引擎特有的日志, InnoDB 的 redo log 是固定大小的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>比如可以配置为一组 4 个文件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个文件的大小是 1GB<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么总共可以记录 4GB 的操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>从头开始写<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>写到末尾就又回到开头循环写<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+<img src="image_1697269981237_0.png" alt=""></li>
+<li>有了 redo log<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>InnoDB 就可以保证即使数据库发生异常重启<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>之前提交的记录都不会丢失<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这个能力称为 crash-safe</li>
+</ul>
+</li>
+<li>
+<h3 id="bin-log">bin log</h3>
+<ul>
+<li>bin log是MySQL server层的日志<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是逻辑日志<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>用来记录每次更新操作的语句</li>
+<li>redo log 是 InnoDB 引擎特有的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span>bin log 是 MySQL 的 Server 层实现的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所有引擎都可以使用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>redo log 是物理日志<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>记录的是<span class="bd-box"><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>在某个数据页上做了什么修改<span class="bd-box"><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span>binlog 是逻辑日志<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>记录的是这个语句的原始逻辑<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>比如<span class="bd-box"><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>给 ID=2 这一行的 c 字段加 1 <span class="bd-box"><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>redo log 是循环写的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>空间固定会用完<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span>binlog 是可以追加写入的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char><h-char class="bd bd-end"><h-inner>“</h-inner></h-char></span>追加写<span class="bd-box"><h-char class="bd bd-beg"><h-inner>”</h-inner></h-char></span>是指 binlog 文件写到一定大小后会切换到下一个<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并不会覆盖以前的日志<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+</li>
+</ul>
+<h3 id="update的二阶段提交">update的二阶段提交</h3>
+<p><img src="image_1697271395463_0.png" alt=""></p>
+<ul>
+<li>这样的二阶段提交可以保证binlog 与redolog 日志保证数据的一致性</li>
+<li>redolog 可以在数据库崩溃后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>根据写入到磁盘的日志进行引擎层的磁盘页的恢复</li>
+<li>由于redo log 并没有记录数据页的完整数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而可以根据binlog 归档的作用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>进行数据库的备份和复制</li>
+<li>更加具体的原理可以看<a target="_blank" rel="noopener" href="https://time.geekbang.org/column/article/73161">Mysql实战45讲</a></li>
+</ul>
+<h3 id="tcc事务模式">TCC事务模式</h3>
+<p>  TCC 模式需要用户根据自己的业务场景实现 Try<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>Confirm 和 Cancel 三个操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span>事务发起方在一阶段执行 Try 方式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在二阶段提交执行 Confirm 方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>二阶段回滚执行 Cancel 方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  以扣钱场景为例<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>try阶段将预留资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>冻结30元<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>保证在confirm阶段一定能成功<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>confirm阶段就是扣减预留资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>如果出现业务问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要回滚<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么cancel阶段就会释放预留资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p><img src="image_1696949248073_0.png" alt=""></p>
+<p>我们看一下当存在多个微服务同时处于分布式事务时:<br>
+  <br>
+<img src="image_1697210088342_0.png" alt=""></p>
+<ul>
+<li>
+<p>对于失败情况</p>
+<p><img src="image_1697210286703_0.png" alt=""></p>
+</li>
+</ul>
+<p>  对于try阶段<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要提交全局事务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>保证所有资源都已经预留了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>confirm/cancel 可以进行异步执行<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而提高性能</p>
+<ul>
+<li>
+<p>但是对于TCC模式来说<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会存在几种异常情况</p>
+<ul>
+<li><strong>空补偿<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></strong> 因为网络问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在执行第3步时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>已经超时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而进行Cancel<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而第三步的Try未执行<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>事务分支的Cancel操作需要判断出Try未执行<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这时需要忽略Cancel中的业务数据更新<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>直接返回</li>
+<li><strong>悬挂<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></strong> 因为网络问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在Try未执行时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Cancel已执行完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>之后try操作将开始执行<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么事务分支的Try操作需要判断出Cancel已执行<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这时需要忽略Try中的业务数据更新<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>直接返回</li>
+<li>分布式事务还有一类需要处理的常见问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就是重复请求</li>
+<li><strong>幂等<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></strong> 在进行confirm/cancel阶段<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>TC 没有收到分支事务的响应<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>或者出现网络问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>出现重复请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所有的分布式事务分支操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>都需要保证幂等性</li>
+</ul>
+</li>
+<li>
+<p>目前TCC分布式事务异常几种情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ul>
+<li><strong>空补偿</strong>
+<ul>
+<li>当执行try的时候<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为网络问题直接丢包<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>导致超时执行cancel<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>此时就会发生空补偿<br>
+<img src="image_1697277797711_0.png" alt=""></li>
+</ul>
+</li>
+<li><strong>悬挂</strong>
+<ul>
+<li>因为网络问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>try时发生网络拥堵<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>导致超时先执行cancel<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>之后try请求到来<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>此时会造成悬挂问题<br>
+<img src="image_1697277855926_0.png" alt=""></li>
+</ul>
+</li>
+<li><strong>幂等</strong>
+<ul>
+<li>在try阶段完成后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>执行confirm时因为网络问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>造成ack没有响应回事务管理器<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>事务管理器会重复发送confirm请求<br>
+<img src="image_1697278082775_0.png" alt=""></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>解决方案</p>
+<p>创建一个事务记录表<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在每次执行try/cancel/confirm 时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>都往其中插入一条记录</p>
+<ul>
+<li>
+<p>在执行<strong>try</strong>的时候<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>先检查有没有<code>STATUS_SUSPENDED</code>记录, 如果没有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则往table中插入<code>STATUS_TRIED</code>记录<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就直接返回避免悬挂</p>
+</li>
+<li>
+<p>当<strong>cancel</strong>进来时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就先检查是否有<code>STATUS_TRIED</code>的记录<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果没有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就不进行<strong>cancel</strong><span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且插入<code>STATUS_SUSPENDED</code>记录<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则插入<code>STATUS_TRIED</code>记录</p>
+</li>
+<li>
+<p>当执行<strong>confirm</strong>时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>先检查是否已经有<code>STATUS_COMMITTED</code>记录<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果没有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则往其中插入<code>STATUS_COMMITTED</code>记录<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当有重复请求时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就直接跳过</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>  可以看到TCC也是一个二阶段处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>二阶段要么是confirm<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>要么就是cancel<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且有try阶段<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就不会存在二阶段提交<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一直锁住资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>等待全部完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>TCC的try阶段就提前将需要的资源进行预占<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而大大的提高并发<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<h3 id="saga模式">Saga模式</h3>
+<p>  Saga模式看起来比较简单<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>且容易上手编写<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>其核心思想是将长事务拆分为多个短事务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>由Saga事务协调器协调<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果每个短事务都成功提交完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么全局事务就正常完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果某个步骤失败<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则根据相反顺序分别调用补偿操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  假如我们要进行买票服务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么在下订单的过程中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>首先需要锁住库存<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>使用优惠券<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>进行支付<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>支付成功后进行库存的扣减<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而完成一笔订单<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p><img src="image_1697273125396_0.png" alt=""><br>
+  如果其中最后一步扣减库存失败<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就需要按照相反顺序<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>进行回滚<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>先退款<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后回滚优惠券<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后是释放库存</p>
+<p><img src="image_1697273377403_0.png" alt=""></p>
+<p>  saga 可能也会出现如TCC模式的异常情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如幂等<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>悬挂<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>空补偿<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而也需要做同样的处理</p>
+<p>  关于saga模式的分布式事务框架<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可以参考<a target="_blank" rel="noopener" href="https://dtm.pub/practice/saga.html">DTM-Saga</a>提供的方式</p>
+<div class="highlight"><pre class="code"><code>	    <span class="hljs-regexp">//</span> request body
+	  req := &amp;gin.H&#123;<span class="hljs-string">&quot;ticket&quot;</span>: <span class="hljs-string">&quot;museum&quot;</span>,<span class="hljs-string">&quot;nums&quot;</span>: <span class="hljs-number">3</span>,<span class="hljs-string">&quot;unitPrice&quot;</span>: <span class="hljs-number">2.99</span>&#125; 
+	  
+	    <span class="hljs-regexp">//</span> DtmServer as server address of DTM service
+	  saga := dtmcli.NewSaga(DtmServer, shortuuid.New()).
+	    <span class="hljs-regexp">//</span> add holdInventory &amp; Compensate releaseInventory
+	    Add(<span class="hljs-string">&quot;/holdInventory&quot;</span>, <span class="hljs-string">&quot;/releaseInventory&quot;</span>, req).
+	    <span class="hljs-regexp">//</span> add useVoucher &amp; Compensate backVoucher
+	    Add(<span class="hljs-string">&quot;/useVoucher&quot;</span>, <span class="hljs-string">&quot;/backVoucher&quot;</span>, req)
+	    <span class="hljs-regexp">//</span> add pay &amp; Compensate refund
+	    Add(<span class="hljs-string">&quot;/pay&quot;</span>, <span class="hljs-string">&quot;/refund&quot;</span>, req)
+	    <span class="hljs-regexp">//</span> add confirmInventory &amp; Compensate nothing
+	    Add(<span class="hljs-string">&quot;/useVoucher&quot;</span>, <span class="hljs-string">&quot;&quot;</span>, req)
+	  
+	    <span class="hljs-regexp">//</span> commit transaction
+	  err := saga.Submit()
+</code></pre></div>
+<p>  如上所示<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>目前分布式事务的方式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可以通过二阶段提交<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>XA<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>TCC<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Saga不同的方式来保证分布式事务的数据一致性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当然每种方式所使用的场景也是不同的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ul>
+<li>XA模式
+<ul>
+<li>通过在preapre锁住资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>等待全局事务完成才提交<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>保证了数据要么都提交成功<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>要么全局事务失败<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>且在数据库层面就可以支持<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>但是这种方式由于各资源要等全局事务都完成才提交<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而降低了并发<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+<li>假如业务中包含集成第三方系统<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么很明显第三方系统未必支持这种等待提交的方式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而并不适用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且当业务在同一资源并发度较高时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>且一致性要求没那么高时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这种方式并不适用</li>
+</ul>
+</li>
+<li>TCC
+<ul>
+<li>通过在try阶段直接预留资源<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>进行本地事务提交<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后可以等所有本地事务提交后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可以异步的进行commit<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而大大的提高了并发度<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>且数据一致性比较高<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>不过需要考虑异常和幂等处理</li>
+<li><a target="_blank" rel="noopener" href="https://seata.io/zh-cn/blog/tcc-mode-applicable-scenario-analysis">关于TCC模式适用场景</a></li>
+<li>但是对于业务来说<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一个资源需要编写try, commit, cancel三个interface<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而增加了开发成本<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同样并不是全部的第三方都是支持的</li>
+</ul>
+</li>
+<li>Saga
+<ul>
+<li>通过对每种资源编写正向处理和补偿机制<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当出现失败时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>只需要反向回滚即可<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每种资源都是本地事务提交<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而提高了并发度<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但数据一致性没有那么强<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时如TCC模式一样需要考虑异常和幂等处理</li>
+<li>对于业务来说<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>多个资源的处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可能会存在不同的状态<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>业务流程较长<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>利用Saga模式可以减少开发成本<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>理解上也比较简单</li>
+<li>对于有些业务并不是每个资源在失败时都需要进行立马的回滚操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>可以继续重试来保证数据的最终一致性</li>
+</ul>
+</li>
+</ul>
+<h3 id="业务中关于分布式事务的思考">业务中关于分布式事务的思考</h3>
+<ul>
+<li>
+<p>假设在定票业务中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>有这几个阶段</p>
+<ol>
+<li>create order</li>
+<li>hold inventory</li>
+<li>use voucher</li>
+<li>pay</li>
+<li>confirm inventory</li>
+<li>add member points</li>
+<li>audit</li>
+<li>send email</li>
+</ol>
+</li>
+<li>
+<p>对于支付网关<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一般都会支持异步callback<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而进行剩下的steps<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而需要考虑payment timeout的场景<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>此时就可能会存在悬挂的场景<br>
+<img src="image_1697280180879_0.png" alt=""></p>
+</li>
+<li>
+<p>可以通过在cancel时插入ignore pay success record 到DB中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>防止悬挂<br>
+<img src="image_1697280230655_0.png" alt=""></p>
+</li>
+<li>
+<p>对于后续的审计和增加会员积分<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>发邮件等<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要结合业务考虑<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是否在调用第三方失败时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是进行后续重试补偿还是直接失败回滚</p>
+</li>
+</ul>
+<p>Reference:</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://dtm.pub/guide/start.html">DTM 分布式事务框架</a></li>
+<li><a target="_blank" rel="noopener" href="https://seata.io/zh-cn/blog">Seata 分布式事务框架</a></li>
+<li><a target="_blank" rel="noopener" href="https://time.geekbang.org/column/intro/100020801">Mysql实战45讲</a></li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="../../../05/20/zookeeper_utilize/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          Zookeeper 简介与使用场景
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2023 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="../../../../archives" class="mobile-nav-link">Home</a>
+  
+    <a href="../../../../archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="../../../../about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="../../../../js/clipboard.min.js"></script>
+<script src="../../../../js/jquery-1.4.3.min.js"></script>
+
+<script src="../../../../fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="../../../../js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="../../../../mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+
+
+  </div>
+</body>
+</html>

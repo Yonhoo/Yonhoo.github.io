@@ -67,8 +67,14 @@
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <p>代填坑</p>
-
+        <h2 id="1-channelpipline 传播事件">1. ChannelPipline 传播事件</h2>
+<p>  每一个Channel都会分配一个新的ChannelPipline<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所有的出入站事件都会流经ChannelPipline来进行处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  其中处理每一个事件的主要是ChannelHandler<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>例如ChannelOutboundHandler<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>ChannelInboundHandler分别用来处理出入站事件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>通过调用ChannelHandlerContext实现<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它将被转发给同一超类型的下一个ChannelHandler进行处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+        
+          <p class="article-more-link">
+            <a href="2023/10/15/netty_write/#more">Read More</a>
+          </p>
+        
       
     </div>
     <footer class="article-footer">

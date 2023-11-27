@@ -13,7 +13,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   
-  <meta name="description" content="  关于Kafka的文章，主要是为了学习在分布式系统下，非常重要的部分如数据复制，数据分区的真正实践，同时对于消息队列的使用并不是很多，从而通过学习Kafka相关内容来进行深入，当然没有大型项目关于Kafka的深入实践，很难结合业务场景来调优最佳实践和更加深刻的认知，但还是希望通过这种方式来进行入门">
+  <meta name="description" content="  关于Kafka的文章，主要是为了学习在分布式系统下，非常重要的部分如数据复制，数据分区的真正实践，同时对于消息队列的使用并不是很多，从而通过学习Kafka相关内容来进行深入，当然没有大型项目关于Kafka的深入实践，很难结合业务场景来调优最佳实践和更加深刻的认知，但还是希望通过这种方式来进行入门，了解万变不离其宗的分布式系统下的复杂性。">
   
   
   
@@ -74,6 +74,7 @@
     <div class="e-content article-entry" itemprop="articleBody">
       
         <p>  关于Kafka的文章<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>主要是为了学习在分布式系统下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>非常重要的部分如数据复制<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>数据分区的真正实践<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时对于消息队列的使用并不是很多<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而通过学习Kafka相关内容来进行深入<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当然没有大型项目关于Kafka的深入实践<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>很难结合业务场景来调优最佳实践和更加深刻的认知<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但还是希望通过这种方式来进行入门<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>了解万变不离其宗的分布式系统下的复杂性<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<span id="more"></span>
 <p>  Kafka本身算是一个复杂项目<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而不想一下子掉进开源代码中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>本次学习还是按照想要了解数据复制<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>数据分区<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>负载均衡这种主题来进行学习<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>故而有些点比如log本地写入磁盘<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>网络模型等内容暂时不是我的重点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
 <p>  本节是关于Kafka比较重要的组成部分进行简单的介绍<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>方便接下来更深入的了解<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
 <ul>

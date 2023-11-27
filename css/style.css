@@ -302,6 +302,7 @@ body:after {
     width: 16em;
   }
 }
+@import 'https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css';
 html,
 body,
 div,
@@ -447,52 +448,28 @@ button::-moz-focus-inner {
   src: url("fonts/lmroman10-bolditalic.ttf");
 }
 @font-face {
-  font-family: Chinese;
-  font-style: normal;
-  font-weight: normal;
-  src: url("fonts/HYShuSongErS.ttf");
-}
-@font-face {
-  font-family: Chinese;
-  font-style: normal;
-  font-weight: bold;
-  src: url("fonts/FZHTJW.ttf");
-}
-@font-face {
-  font-family: Chinese;
-  font-style: italic;
-  font-weight: normal;
-  src: url("fonts/FZKTJW.ttf");
-}
-@font-face {
-  font-family: ChineseMono;
-  font-style: normal;
-  font-weight: normal;
-  src: url("fonts/HYFangSongJ.ttf");
-}
-@font-face {
   font-family: biaodian;
   font-style: normal;
   font-weight: normal;
-  src: url("fonts/biaodian.ttf");
+  src: url("fonts/biaodian-minus59.ttf");
 }
 @font-face {
   font-family: biaodian;
   font-style: italic;
   font-weight: normal;
-  src: url("fonts/biaodian.ttf");
+  src: url("fonts/biaodian-minus59.ttf");
 }
 @font-face {
   font-family: biaodian;
   font-style: normal;
   font-weight: bold;
-  src: url("fonts/biaodian.ttf");
+  src: url("fonts/biaodian-minus59.ttf");
 }
 @font-face {
   font-family: biaodian;
   font-style: italic;
   font-weight: bold;
-  src: url("fonts/biaodian.ttf");
+  src: url("fonts/biaodian-minus59.ttf");
 }
 html {
   scroll-padding-top: 80px;
@@ -980,7 +957,8 @@ a.article-title:hover {
 .article-entry ul li input {
   margin-right: 10px;
 }
-.article-entry mjx-container {
+.article-entry .markdown-them-math-block,
+.article-entry .markdown-them-math-inline {
   overflow: auto;
   overflow-y: hidden;
   outline: 0;
@@ -995,29 +973,6 @@ a.article-title:hover {
 }
 .article-entry .highlight {
   position: relative;
-}
-.article-entry .highlight:hover .copy-button {
-  opacity: 1;
-}
-.article-entry .copy-button {
-  position: absolute;
-  right: 15px;
-  top: 15px;
-  background: #fff;
-  border: 1px solid #ddd;
-  padding: 0px 5px;
-  -webkit-transition: opacity 0.2s;
-  -moz-transition: opacity 0.2s;
-  -ms-transition: opacity 0.2s;
-  transition: opacity 0.2s;
-}
-@media (any-hover: hover) {
-  .article-entry .copy-button {
-    opacity: 0;
-  }
-}
-.article-entry .copy-button:hover {
-  cursor: pointer;
 }
 .article-entry pre {
   padding: 20px 0;
@@ -1427,16 +1382,84 @@ a.article-title:hover {
   font-size: 0.85em;
   text-align: center;
 }
+.markdown-body .highlight table,
+.markdown-body .code-wrapper pre {
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+.markdown-body .highlight,
+.markdown-body .code-wrapper {
+  background-color: #e6ebf1;
+  border-radius: 0.625rem;
+}
+.markdown-body .highlight > i,
+.markdown-body .code-wrapper > i {
+  color: #777;
+  margin-left: 10px;
+  line-height: 2rem;
+  -webkit-transform: none;
+  -moz-transform: none;
+  -ms-transform: none;
+  transform: none;
+  -webkit-transition: color 0.2s ease-in-out, -webkit-transform 0.2s ease-in-out;
+  -moz-transition: color 0.2s ease-in-out, -moz-transform 0.2s ease-in-out;
+  -ms-transition: color 0.2s ease-in-out, -ms-transform 0.2s ease-in-out;
+  transition: color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+.markdown-body .highlight > i.collapsed,
+.markdown-body .code-wrapper > i.collapsed {
+  -webkit-transform: rotate(-90deg);
+  -moz-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+}
+.markdown-body .highlight > span,
+.markdown-body .code-wrapper > span {
+  color: #777;
+  margin-left: 10px;
+  font-weight: bold;
+}
+[data-user-color-scheme='dark'] .markdown-body .highlight,
+[data-user-color-scheme='dark'] .markdown-body .code-wrapper {
+  background-color: #696969;
+  -webkit-transition: background-color 0.2s ease-in-out;
+  -moz-transition: background-color 0.2s ease-in-out;
+  -ms-transition: background-color 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out;
+}
+[data-user-color-scheme='dark'] .markdown-body .highlight > i,
+[data-user-color-scheme='dark'] .markdown-body .code-wrapper > i {
+  color: #c4c6c9;
+}
+[data-user-color-scheme='dark'] .markdown-body .highlight > span,
+[data-user-color-scheme='dark'] .markdown-body .code-wrapper > span {
+  color: #c4c6c9;
+  -webkit-transition: color 0.2s ease-in-out;
+  -moz-transition: color 0.2s ease-in-out;
+  -ms-transition: color 0.2s ease-in-out;
+  transition: color 0.2s ease-in-out;
+}
 .article-entry pre,
 .article-entry .highlight {
-  background: #fff;
+  background: #f7f3e9;
   margin: 0;
-  border-style: solid;
   border-color: #ddd;
-  border-width: 1px;
+  border: 0 !important;
   overflow: auto;
-  color: #4d4d4c;
+  color: #1a1918;
   line-height: 25.6px;
+}
+.article-entry pre ::-webkit-scrollbar-track,
+.article-entry .highlight ::-webkit-scrollbar-track {
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
+.article-entry pre ::-webkit-scrollbar-thumb,
+.article-entry .highlight ::-webkit-scrollbar-thumb {
+  border: none;
+  background-color: #393837;
+  width: 1px;
+  height: 50px; /* 调整滚动条手柄的高度 */
+  outline: 0.05px #e56313;
 }
 .article-entry .gist .gist-file .gist-data .line-numbers {
   color: #666;
@@ -1474,7 +1497,7 @@ a.article-title:hover {
   border-style: solid;
   border-color: #ddd;
   border-width: 1px 0;
-  background: #fff;
+  background: #f7f3e9;
   padding: 15px 15px 15px 0;
 }
 .article-entry .gist .gist-file {
@@ -1500,8 +1523,8 @@ a.article-title:hover {
   border: none;
 }
 .article-entry .gist .gist-file .gist-meta {
-  background: #fff;
-  color: #8e908c;
+  background: #f7f3e9;
+  color: #9494b8;
   font: 0.85em font-sans;
   text-shadow: 0 0;
   padding: 0;
@@ -1515,9 +1538,11 @@ a.article-title:hover {
 .article-entry .gist .gist-file .gist-meta a:hover {
   text-decoration: underline;
 }
-pre .hljs-comment,
+pre .hljs-comment {
+  color: #9494b8;
+}
 pre .hljs-title {
-  color: #8e908c;
+  color: #f33;
 }
 pre .hljs-variable,
 pre .hljs-attribute,
@@ -1531,20 +1556,22 @@ pre .hljs-html .hljs-doctype,
 pre .hljs-css .hljs-id,
 pre .hljs-css .hljs-class,
 pre .hljs-css .hljs-pseudo {
-  color: #c82829;
+  color: #c66;
 }
 pre .hljs-number,
 pre .hljs-preprocessor,
 pre .hljs-built_in,
 pre .hljs-literal,
-pre .hljs-params,
+pre .hljs-params {
+  color: #1d66cb;
+}
 pre .hljs-constant {
-  color: #f5871f;
+  color: #de935f;
 }
 pre .hljs-class,
 pre .hljs-ruby .hljs-class .hljs-title,
 pre .hljs-css .hljs-rules .hljs-attribute {
-  color: #718c00;
+  color: #69f;
 }
 pre .hljs-string,
 pre .hljs-value,
@@ -1552,24 +1579,26 @@ pre .hljs-inheritance,
 pre .hljs-header,
 pre .hljs-ruby .hljs-symbol,
 pre .hljs-xml .hljs-cdata {
-  color: #718c00;
+  color: #69f;
 }
 pre .hljs-css .hljs-hexcolor {
-  color: #3e999f;
+  color: #8abeb7;
 }
-pre .hljs-function,
 pre .hljs-python .hljs-decorator,
 pre .hljs-python .hljs-title,
-pre .hljs-ruby .hljs-function .hljs-title,
+pre .hljs-ruby .hljs-title,
 pre .hljs-ruby .hljs-title .hljs-keyword,
 pre .hljs-perl .hljs-sub,
 pre .hljs-javascript .hljs-title,
 pre .hljs-coffeescript .hljs-title {
-  color: #4271ae;
+  color: #81a2be;
 }
 pre .hljs-keyword,
-pre .hljs-javascript .hljs-function {
-  color: #8959a8;
+pre .hljs-javascript {
+  color: #1d66cb;
+}
+pre .hljs-function {
+  color: #a83254;
 }
 @media screen and (max-width: 470px) {
   #mobile-nav {

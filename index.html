@@ -138,6 +138,51 @@
 
 
   
+    <article id="post-Kafka-fetch" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="2023/11/25/Kafka-fetch/" class="article-date">
+  <time class="dt-published" datetime="2023-11-25T08:14:39.925Z" itemprop="datePublished">2023-11-25</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="2023/11/25/Kafka-fetch/">Kafka-Fetch</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  每个Broker上都有一个ReplicaManager<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它管理每个Partition的数据同步逻辑<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为每个Partition都会存在副本<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而在Broker中的TopicPartition可能是Leader或者Follower<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  当它是Leader时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就需要处理来自Producer的请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>写入log数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时等ISR集合同步完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果是Follower<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就需要同步来自Leader的log数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>保持数据同步<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  在ReplicaManager中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就会开启同步Follower线程来FetchMessage<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>在ReplicaManager中会调用makeFollowers来处理同步Leader数据的逻辑<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+        
+          <p class="article-more-link">
+            <a href="2023/11/25/Kafka-fetch/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
     <article id="post-netty_write" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
     <a href="2023/10/15/netty_write/" class="article-date">

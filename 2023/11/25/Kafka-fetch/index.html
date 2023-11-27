@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Kafka-Fetch | Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <meta name="description" content="  每个Broker上都有一个ReplicaManager，它管理每个Partition的数据同步逻辑，因为每个Partition都会存在副本，从而在Broker中的TopicPartition可能是Leader或者Follower。
+  当它是Leader时，就需要处理来自Producer的请求，写入log数据，同时等ISR集合同步完成，如果是Follower，就需要同步来自Leader的log数据，保持数据同步。
+  在ReplicaManager中，就会开启同步Follower线程来FetchMessage。在ReplicaManager中会调用makeFollowers来处理同步Leader数据的逻辑。">
+  
+  
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="../../../../archives">Home</a>
+    
+      <a class="main-nav-link" href="../../../../archives">Archives</a>
+    
+      <a class="main-nav-link" href="../../../../about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="../../../../index.html" id="logo">Yonhoo</a>
+  </h1>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-Kafka-fetch" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="" class="article-date">
+  <time class="dt-published" datetime="2023-11-25T08:14:39.925Z" itemprop="datePublished">2023-11-25</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      Kafka-Fetch
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  每个Broker上都有一个ReplicaManager<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它管理每个Partition的数据同步逻辑<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为每个Partition都会存在副本<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而在Broker中的TopicPartition可能是Leader或者Follower<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  当它是Leader时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就需要处理来自Producer的请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>写入log数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时等ISR集合同步完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果是Follower<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就需要同步来自Leader的log数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>保持数据同步<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  在ReplicaManager中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就会开启同步Follower线程来FetchMessage<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>在ReplicaManager中会调用makeFollowers来处理同步Leader数据的逻辑<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<span id="more"></span>
+<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">private</span> def <span class="hljs-title">makeFollowers</span><span class="hljs-params">(controllerId: Int,
+                          controllerEpoch: Int,
+                          partitionStates: Map[Partition, LeaderAndIsrPartitionState],
+                          correlationId: Int,
+                          responseMap: mutable.Map[TopicPartition, Errors],
+                          highWatermarkCheckpoints: OffsetCheckpoints,
+                          topicIds: String =&gt; Option[Uuid])</span>: Set[Partition] </span>= &#123;
+  val traceLoggingEnabled = stateChangeLogger.isTraceEnabled
+  partitionStates.forKeyValue &#123; (partition, partitionState) =&gt;
+    responseMap.put(partition.topicPartition, Errors.NONE)
+  &#125;
+
+  val partitionsToMakeFollower: mutable.Set[Partition] = mutable.Set()
+  <span class="hljs-keyword">try</span> &#123;
+    partitionStates.forKeyValue &#123; (partition, partitionState) =&gt;
+      val newLeaderBrokerId = partitionState.leader
+      <span class="hljs-keyword">try</span> &#123;
+        <span class="hljs-keyword">if</span> (metadataCache.hasAliveBroker(newLeaderBrokerId)) &#123;
+          <span class="hljs-comment">// Only change partition state when the leader is available  </span>
+          <span class="hljs-keyword">if</span> (partition.makeFollower(partitionState, highWatermarkCheckpoints, topicIds(partitionState.topicName))) &#123;
+            partitionsToMakeFollower += partition
+          &#125;
+        &#125; <span class="hljs-keyword">else</span> &#123;
+          <span class="hljs-comment">// The leader broker should always be present in the metadata cache.  </span>
+          <span class="hljs-comment">// If not, we should record the error message and abort the transition process for this partition  </span>
+          stateChangeLogger.error(s<span class="hljs-string">&quot;Received LeaderAndIsrRequest with correlation id $correlationId from &quot;</span> +
+            s<span class="hljs-string">&quot;controller $controllerId epoch $controllerEpoch for partition $&#123;partition.topicPartition&#125; &quot;</span> +
+            s<span class="hljs-string">&quot;(last update controller epoch $&#123;partitionState.controllerEpoch&#125;) &quot;</span> +
+            s<span class="hljs-string">&quot;but cannot become follower since the new leader $newLeaderBrokerId is unavailable.&quot;</span>)
+          <span class="hljs-comment">// Create the local replica even if the leader is unavailable. This is required to ensure that we include  </span>
+          <span class="hljs-comment">// the partition&#x27;s high watermark in the checkpoint file (see KAFKA-1647)  </span>
+          partition.createLogIfNotExists(isNew = partitionState.isNew, isFutureReplica = <span class="hljs-keyword">false</span>,
+            highWatermarkCheckpoints, topicIds(partitionState.topicName))
+        &#125;
+      &#125; <span class="hljs-keyword">catch</span> &#123;
+        <span class="hljs-keyword">case</span> e: KafkaStorageException =&gt;
+          stateChangeLogger.error(s<span class="hljs-string">&quot;Skipped the become-follower state change with correlation id $correlationId from &quot;</span> +
+            s<span class="hljs-string">&quot;controller $controllerId epoch $controllerEpoch for partition $&#123;partition.topicPartition&#125; &quot;</span> +
+            s<span class="hljs-string">&quot;(last update controller epoch $&#123;partitionState.controllerEpoch&#125;) with leader &quot;</span> +
+            s<span class="hljs-string">&quot;$newLeaderBrokerId since the replica for the partition is offline due to storage error $e&quot;</span>)
+          <span class="hljs-comment">// If there is an offline log directory, a Partition object may have been created and have been added  </span>
+          <span class="hljs-comment">// to `ReplicaManager.allPartitions` before `createLogIfNotExists()` failed to create local replica due  </span>
+          <span class="hljs-comment">// to KafkaStorageException. In this case `ReplicaManager.allPartitions` will map this topic-partition  </span>
+          <span class="hljs-comment">// to an empty Partition object. We need to map this topic-partition to OfflinePartition instead.  </span>
+          markPartitionOffline(partition.topicPartition)
+          responseMap.put(partition.topicPartition, Errors.KAFKA_STORAGE_ERROR)
+      &#125;
+    &#125;
+
+    <span class="hljs-comment">// Stopping the fetchers must be done first in order to initialize the fetch  </span>
+    <span class="hljs-comment">// position correctly.  </span>
+    replicaFetcherManager.removeFetcherForPartitions(partitionsToMakeFollower.map(_.topicPartition))
+    stateChangeLogger.info(s<span class="hljs-string">&quot;Stopped fetchers as part of become-follower request from controller $controllerId &quot;</span> +
+      s<span class="hljs-string">&quot;epoch $controllerEpoch with correlation id $correlationId for $&#123;partitionsToMakeFollower.size&#125; partitions&quot;</span>)
+
+    partitionsToMakeFollower.foreach &#123; partition =&gt;
+      completeDelayedFetchOrProduceRequests(partition.topicPartition)
+    &#125;
+
+    <span class="hljs-keyword">if</span> (isShuttingDown.get()) &#123;
+      ...
+    &#125; <span class="hljs-keyword">else</span> &#123;
+      <span class="hljs-comment">// we do not need to check if the leader exists again since this has been done at the beginning of this process  </span>
+      val partitionsToMakeFollowerWithLeaderAndOffset = partitionsToMakeFollower.map &#123; partition =&gt;
+        val leaderNode = partition.leaderReplicaIdOpt.flatMap(leaderId =&gt; metadataCache.
+          getAliveBrokerNode(leaderId, config.interBrokerListenerName)).getOrElse(Node.noNode())
+        val leader = <span class="hljs-keyword">new</span> BrokerEndPoint(leaderNode.id(), leaderNode.host(), leaderNode.port())
+        val log = partition.localLogOrException
+        val fetchOffset = initialFetchOffset(log)
+        partition.topicPartition -&gt; InitialFetchState(topicIds(partition.topic), leader, partition.getLeaderEpoch, fetchOffset)
+      &#125;.toMap
+
+      replicaFetcherManager.addFetcherForPartitions(partitionsToMakeFollowerWithLeaderAndOffset)
+    &#125;
+  &#125; <span class="hljs-keyword">catch</span> &#123;
+    <span class="hljs-keyword">case</span> e: Throwable =&gt;
+      stateChangeLogger.error(s<span class="hljs-string">&quot;Error while processing LeaderAndIsr request with correlationId $correlationId &quot;</span> +
+        s<span class="hljs-string">&quot;received from controller $controllerId epoch $controllerEpoch&quot;</span>, e)
+      <span class="hljs-comment">// Re-throw the exception for it to be caught in KafkaApis  </span>
+      <span class="hljs-keyword">throw</span> e
+  &#125;
+
+  partitionsToMakeFollower
+&#125;
+</code></pre></div>
+<p>源码注释了什么情况下会将partition变成Follower,makeFollowers这个方法会在handleLeaderAndIsrRequest中被调用</p>
+<div class="highlight"><pre class="code"><code>/*  
+* Make <span class="hljs-keyword">the</span> current broker <span class="hljs-keyword">to</span> become follower <span class="hljs-keyword">for</span> a <span class="hljs-keyword">given</span> <span class="hljs-keyword">set</span> <span class="hljs-keyword">of</span> partitions <span class="hljs-keyword">by</span>:  
+*  
+* <span class="hljs-number">1.</span> Remove these partitions <span class="hljs-keyword">from</span> <span class="hljs-keyword">the</span> leader partitions <span class="hljs-keyword">set</span>.  
+* <span class="hljs-number">2.</span> Mark <span class="hljs-keyword">the</span> replicas <span class="hljs-keyword">as</span> followers so <span class="hljs-keyword">that</span> no more data can be added <span class="hljs-keyword">from</span> <span class="hljs-keyword">the</span> producer clients.  
+* <span class="hljs-number">3.</span> Stop fetchers <span class="hljs-keyword">for</span> these partitions so <span class="hljs-keyword">that</span> no more data can be added <span class="hljs-keyword">by</span> <span class="hljs-keyword">the</span> replica fetcher threads.  
+* <span class="hljs-number">4.</span> Truncate <span class="hljs-keyword">the</span> <span class="hljs-built_in">log</span> <span class="hljs-keyword">and</span> checkpoint offsets <span class="hljs-keyword">for</span> these partitions.  
+* <span class="hljs-number">5.</span> Clear <span class="hljs-keyword">the</span> produce <span class="hljs-keyword">and</span> fetch requests <span class="hljs-keyword">in</span> <span class="hljs-keyword">the</span> purgatory  
+* <span class="hljs-number">6.</span> If <span class="hljs-keyword">the</span> broker <span class="hljs-keyword">is</span> <span class="hljs-keyword">not</span> shutting down, add <span class="hljs-keyword">the</span> fetcher <span class="hljs-keyword">to</span> <span class="hljs-keyword">the</span> new leaders.  
+*  
+* The ordering <span class="hljs-keyword">of</span> doing these steps make sure <span class="hljs-keyword">that</span> <span class="hljs-keyword">the</span> replicas <span class="hljs-keyword">in</span> transition will <span class="hljs-keyword">not</span>  
+* take any more messages <span class="hljs-keyword">before</span> checkpointing offsets so <span class="hljs-keyword">that</span> all messages <span class="hljs-keyword">before</span> <span class="hljs-keyword">the</span> checkpoint  
+* are guaranteed <span class="hljs-keyword">to</span> be flushed <span class="hljs-keyword">to</span> disks  
+*  
+* If an unexpected <span class="hljs-keyword">error</span> <span class="hljs-keyword">is</span> thrown <span class="hljs-keyword">in</span> this function, <span class="hljs-keyword">it</span> will be propagated <span class="hljs-keyword">to</span> KafkaApis <span class="hljs-keyword">where</span>  
+* <span class="hljs-keyword">the</span> <span class="hljs-keyword">error</span> message will be <span class="hljs-keyword">set</span> <span class="hljs-keyword">on</span> each partition <span class="hljs-keyword">since</span> we do <span class="hljs-keyword">not</span> know which partition caused <span class="hljs-keyword">it</span>. Otherwise,  
+* <span class="hljs-literal">return</span> <span class="hljs-keyword">the</span> <span class="hljs-keyword">set</span> <span class="hljs-keyword">of</span> partitions <span class="hljs-keyword">that</span> are made follower due <span class="hljs-keyword">to</span> this method  
+*/
+</code></pre></div>
+<p>makeFollowers主要的steps<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ul>
+<li>
+<p>partitionsToMakeFollower 里面包含的是Leader发生改变的partition</p>
+</li>
+<li>
+<p>接下来removeFetcherForPartitions会从fetcher线程中移除对partition的同步<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>为了保证从新Leader中从正确的位置开始同步</p>
+</li>
+<li>
+<p>completeDelayedFetchOrProduceRequests<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>完成那些之前异步的Fetch操作</p>
+</li>
+<li>
+<p>之后会将同步的信息包装成Map[TopicPartition, InitialFetchState]<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>里面包含的信息如下代码<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>之后将此信息放进Fetcher线程中进行同步</p>
+</li>
+</ul>
+<div class="highlight"><pre class="code"><code><span class="hljs-keyword">val</span> partitionsToMakeFollowerWithLeaderAndOffset = partitionsToMakeFollower.map &#123; partition =&gt;
+  <span class="hljs-keyword">val</span> leaderNode = partition.leaderReplicaIdOpt.flatMap(leaderId =&gt; metadataCache.
+    getAliveBrokerNode(leaderId, config.interBrokerListenerName)).getOrElse(<span class="hljs-type">Node</span>.noNode())
+  <span class="hljs-keyword">val</span> leader = <span class="hljs-keyword">new</span> <span class="hljs-type">BrokerEndPoint</span>(leaderNode.id(), leaderNode.host(), leaderNode.port())
+  <span class="hljs-keyword">val</span> log = partition.localLogOrException
+  <span class="hljs-keyword">val</span> fetchOffset = initialFetchOffset(log)
+  partition.topicPartition -&gt; <span class="hljs-type">InitialFetchState</span>(topicIds(partition.topic), leader, partition.getLeaderEpoch, fetchOffset)
+&#125;.toMap
+</code></pre></div>
+<h2 id="fetch-线程同步">Fetch 线程同步</h2>
+<p>  replica线程在启动后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就会进行同步操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>ReplicaFetcherThread会调用doWork()<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<div class="highlight"><pre class="code"><code><span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">doWork</span></span>(): <span class="hljs-type">Unit</span> = &#123;  
+	maybeTruncate()  
+	maybeFetch()
+	completeDelayedFetchRequests()  
+&#125;
+</code></pre></div>
+<h3 id="1-maybetruncate()">1. maybeTruncate()</h3>
+<p>  maybeTruncate会将Leader Offset改变的follower进行高水位或者LeaderEpoch进行重新平衡<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>先不深入LeaderEpoch</p>
+<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">private</span> def <span class="hljs-title">maybeTruncate</span><span class="hljs-params">()</span>: Unit </span>= &#123;
+  val (partitionsWithEpochs, partitionsWithoutEpochs) =
+    fetchTruncatingPartitions()
+  <span class="hljs-keyword">if</span> (partitionsWithEpochs.nonEmpty) &#123;
+    truncateToEpochEndOffsets(partitionsWithEpochs)
+  &#125;
+  <span class="hljs-keyword">if</span> (partitionsWithoutEpochs.nonEmpty) &#123;
+    truncateToHighWatermark(partitionsWithoutEpochs)
+  &#125;
+&#125;
+
+
+<span class="hljs-keyword">private</span>[server] <span class="hljs-function">def <span class="hljs-title">truncateToHighWatermark</span><span class="hljs-params">(partitions: Set[TopicPartition])</span>: Unit </span>= inLock(partitionMapLock) &#123;
+  val fetchOffsets = mutable.HashMap.empty[TopicPartition, OffsetTruncationState]
+
+  <span class="hljs-keyword">for</span> (tp &lt;- partitions) &#123;
+    val partitionState = partitionStates.stateValue(tp)
+    <span class="hljs-keyword">if</span> (partitionState != <span class="hljs-keyword">null</span>) &#123;
+      val highWatermark = partitionState.fetchOffset
+      val truncationState = OffsetTruncationState(highWatermark, truncationCompleted = <span class="hljs-keyword">true</span>)
+
+      info(s<span class="hljs-string">&quot;Truncating partition $tp with $truncationState due to local high watermark $highWatermark&quot;</span>)
+      <span class="hljs-keyword">if</span> (doTruncate(tp, truncationState))
+        fetchOffsets.put(tp, truncationState)
+    &#125;
+  &#125;
+
+  updateFetchOffsetAndMaybeMarkTruncationComplete(fetchOffsets)
+&#125;
+
+</code></pre></div>
+<p>  truncateToHighWatermark会将partitionsWithoutEpochs中所有处isTruncating状态的local partition’s offset更新成新Leader Partition高水位的offset,因为有些处于Truncating的partition可能Log end offset已经大于新Leader的高水位<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>此时进行截断<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从新Leader的高水位开始进行同步</p>
+<h3 id="2-maybefetch">2. maybeFetch</h3>
+<div class="highlight"><pre class="code"><code><span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">maybeFetch</span></span>(): <span class="hljs-type">Unit</span> = &#123;
+  <span class="hljs-keyword">val</span> fetchRequestOpt = inLock(partitionMapLock) &#123;
+    <span class="hljs-keyword">val</span> <span class="hljs-type">ResultWithPartitions</span>(fetchRequestOpt, partitionsWithError) = leader.buildFetch(partitionStates.partitionStateMap.asScala)
+
+    handlePartitionsWithErrors(partitionsWithError, <span class="hljs-string">&quot;maybeFetch&quot;</span>)
+
+    <span class="hljs-keyword">if</span> (fetchRequestOpt.isEmpty) &#123;
+      trace(<span class="hljs-string">s&quot;There are no active partitions. Back off for <span class="hljs-subst">$fetchBackOffMs</span> ms before sending a fetch request&quot;</span>)
+      partitionMapCond.await(fetchBackOffMs, <span class="hljs-type">TimeUnit</span>.<span class="hljs-type">MILLISECONDS</span>)
+    &#125;
+
+    fetchRequestOpt
+  &#125;
+
+  fetchRequestOpt.foreach &#123; <span class="hljs-keyword">case</span> <span class="hljs-type">ReplicaFetch</span>(sessionPartitions, fetchRequest) =&gt;
+    processFetchRequest(sessionPartitions, fetchRequest)
+  &#125;
+&#125;
+</code></pre></div>
+<p>maybeFetch主要是组装fetchRequest:</p>
+<div class="highlight"><pre class="code"><code><span class="hljs-keyword">new</span> <span class="hljs-type">FetchRequest</span>.<span class="hljs-type">PartitionData</span>(
+            fetchState.topicId.getOrElse(<span class="hljs-type">Uuid</span>.<span class="hljs-type">ZERO_UUID</span>),
+            fetchState.fetchOffset, <span class="hljs-comment">//logAppendInfo.lastOffset + 1</span>
+            logStartOffset,
+            fetchSize,
+            <span class="hljs-type">Optional</span>.of(fetchState.currentLeaderEpoch),
+            lastFetchedEpoch)
+
+</code></pre></div>
+<p>  然后发送请求到Leader所在的Broker<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>之后进行follower副本offset的更新<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>processFetchRequest中将fetchRequest放入sender线程中进行请求</p>
+<div class="highlight"><pre class="code"><code><span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">processFetchRequest</span></span>(sessionPartitions: util.<span class="hljs-type">Map</span>[<span class="hljs-type">TopicPartition</span>, <span class="hljs-type">FetchRequest</span>.<span class="hljs-type">PartitionData</span>],
+                                fetchRequest: <span class="hljs-type">FetchRequest</span>.<span class="hljs-type">Builder</span>): <span class="hljs-type">Unit</span> = &#123;
+  <span class="hljs-keyword">val</span> partitionsWithError = mutable.<span class="hljs-type">Set</span>[<span class="hljs-type">TopicPartition</span>]()
+  <span class="hljs-keyword">val</span> divergingEndOffsets = mutable.<span class="hljs-type">Map</span>.empty[<span class="hljs-type">TopicPartition</span>, <span class="hljs-type">EpochEndOffset</span>]
+  <span class="hljs-keyword">var</span> responseData: <span class="hljs-type">Map</span>[<span class="hljs-type">TopicPartition</span>, <span class="hljs-type">FetchData</span>] = <span class="hljs-type">Map</span>.empty
+
+  <span class="hljs-keyword">try</span> &#123;
+    trace(<span class="hljs-string">s&quot;Sending fetch request <span class="hljs-subst">$fetchRequest</span>&quot;</span>)
+    responseData = leader.fetch(fetchRequest)
+  &#125; <span class="hljs-keyword">catch</span> &#123;
+    ...
+  &#125;
+  fetcherStats.requestRate.mark()
+
+  <span class="hljs-keyword">if</span> (responseData.nonEmpty) &#123;
+    <span class="hljs-comment">// process fetched data</span>
+    inLock(partitionMapLock) &#123;
+      responseData.forKeyValue &#123; (topicPartition, partitionData) =&gt;
+        <span class="hljs-type">Option</span>(partitionStates.stateValue(topicPartition)).foreach &#123; currentFetchState =&gt;
+          <span class="hljs-comment">// It&#x27;s possible that a partition is removed and re-added or truncated when there is a pending fetch request.</span>
+          <span class="hljs-comment">// In this case, we only want to process the fetch response if the partition state is ready for fetch and</span>
+          <span class="hljs-comment">// the current offset is the same as the offset requested.</span>
+          <span class="hljs-keyword">val</span> fetchPartitionData = sessionPartitions.get(topicPartition)
+          <span class="hljs-keyword">if</span> (fetchPartitionData != <span class="hljs-literal">null</span> &amp;&amp; fetchPartitionData.fetchOffset == currentFetchState.fetchOffset &amp;&amp; currentFetchState.isReadyForFetch) &#123;
+            <span class="hljs-type">Errors</span>.forCode(partitionData.errorCode) <span class="hljs-keyword">match</span> &#123;
+              <span class="hljs-keyword">case</span> <span class="hljs-type">Errors</span>.<span class="hljs-type">NONE</span> =&gt;
+                <span class="hljs-keyword">try</span> &#123;
+                  <span class="hljs-keyword">if</span> (leader.isTruncationOnFetchSupported &amp;&amp; <span class="hljs-type">FetchResponse</span>.isDivergingEpoch(partitionData)) &#123;
+                    ...
+                  &#125; <span class="hljs-keyword">else</span> &#123;
+                    <span class="hljs-comment">// Once we hand off the partition data to the subclass, we can&#x27;t mess with it any more in this thread</span>
+                    <span class="hljs-keyword">val</span> logAppendInfoOpt = processPartitionData(
+                      topicPartition,
+                      currentFetchState.fetchOffset,
+                      partitionData
+                    )
+
+                    logAppendInfoOpt.foreach &#123; logAppendInfo =&gt;
+                      <span class="hljs-keyword">val</span> validBytes = logAppendInfo.validBytes
+                      <span class="hljs-keyword">val</span> nextOffset = <span class="hljs-keyword">if</span> (validBytes &gt; <span class="hljs-number">0</span>) logAppendInfo.lastOffset + <span class="hljs-number">1</span> <span class="hljs-keyword">else</span> currentFetchState.fetchOffset
+                      <span class="hljs-keyword">val</span> lag = <span class="hljs-type">Math</span>.max(<span class="hljs-number">0</span>L, partitionData.highWatermark - nextOffset)
+                      fetcherLagStats.getAndMaybePut(topicPartition).lag = lag
+
+                      <span class="hljs-comment">// ReplicaDirAlterThread may have removed topicPartition from the partitionStates after processing the partition data</span>
+                      <span class="hljs-keyword">if</span> ((validBytes &gt; <span class="hljs-number">0</span> || currentFetchState.lag.isEmpty) &amp;&amp; partitionStates.contains(topicPartition)) &#123;
+                        <span class="hljs-comment">// Update partitionStates only if there is no exception during processPartitionData</span>
+                        <span class="hljs-keyword">val</span> newFetchState = <span class="hljs-type">PartitionFetchState</span>(currentFetchState.topicId, nextOffset, <span class="hljs-type">Some</span>(lag),
+                          currentFetchState.currentLeaderEpoch, state = <span class="hljs-type">Fetching</span>,
+                          logAppendInfo.lastLeaderEpoch.asScala)
+                        partitionStates.updateAndMoveToEnd(topicPartition, newFetchState)
+                        <span class="hljs-keyword">if</span> (validBytes &gt; <span class="hljs-number">0</span>) fetcherStats.byteRate.mark(validBytes)
+                      &#125;
+                    &#125;
+                  &#125;
+                &#125;
+
+            &#125;
+	...
+    &#125;
+</code></pre></div>
+<p>当response返回了数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>调用processPartitionData更新follower的log end offset,其中processPartitionData会进行partition.append操作;当写完本地log后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>更新partitionState.updateAndMoveToEnd<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span></p>
+<div class="highlight"><pre class="code"><code><span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">processPartitionData</span></span>(topicPartition: <span class="hljs-type">TopicPartition</span>,
+                                  fetchOffset: <span class="hljs-type">Long</span>,
+                                  partitionData: <span class="hljs-type">FetchData</span>): <span class="hljs-type">Option</span>[<span class="hljs-type">LogAppendInfo</span>] = &#123;
+  <span class="hljs-keyword">val</span> logTrace = isTraceEnabled
+  <span class="hljs-keyword">val</span> partition = replicaMgr.getPartitionOrException(topicPartition)
+  <span class="hljs-keyword">val</span> log = partition.localLogOrException
+  <span class="hljs-keyword">val</span> records = toMemoryRecords(<span class="hljs-type">FetchResponse</span>.recordsOrFail(partitionData))
+
+  maybeWarnIfOversizedRecords(records, topicPartition)
+
+  <span class="hljs-keyword">if</span> (fetchOffset != log.logEndOffset)
+    <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-type">IllegalStateException</span>(<span class="hljs-string">&quot;Offset mismatch for partition %s: fetched offset = %d, log end offset = %d.&quot;</span>.format(
+      topicPartition, fetchOffset, log.logEndOffset))
+
+  <span class="hljs-keyword">if</span> (logTrace)
+    trace(<span class="hljs-string">&quot;Follower has replica log end offset %d for partition %s. Received %d bytes of messages and leader hw %d&quot;</span>
+      .format(log.logEndOffset, topicPartition, records.sizeInBytes, partitionData.highWatermark))
+
+  <span class="hljs-comment">// Append the leader&#x27;s messages to the log  </span>
+  <span class="hljs-keyword">val</span> logAppendInfo = partition.appendRecordsToFollowerOrFutureReplica(records, isFuture = <span class="hljs-literal">false</span>)
+
+  <span class="hljs-keyword">if</span> (logTrace)
+    trace(<span class="hljs-string">&quot;Follower has replica log end offset %d after appending %d bytes of messages for partition %s&quot;</span>
+      .format(log.logEndOffset, records.sizeInBytes, topicPartition))
+  <span class="hljs-keyword">val</span> leaderLogStartOffset = partitionData.logStartOffset
+
+  <span class="hljs-comment">// For the follower replica, we do not need to keep its segment base offset and physical position.  </span>
+  <span class="hljs-comment">// These values will be computed upon becoming leader or handling a preferred read replica fetch.  </span>
+  <span class="hljs-keyword">var</span> maybeUpdateHighWatermarkMessage = <span class="hljs-string">s&quot;but did not update replica high watermark&quot;</span>
+  log.maybeUpdateHighWatermark(partitionData.highWatermark).foreach &#123; newHighWatermark =&gt;
+    maybeUpdateHighWatermarkMessage = <span class="hljs-string">s&quot;and updated replica high watermark to <span class="hljs-subst">$newHighWatermark</span>&quot;</span>
+    partitionsWithNewHighWatermark += topicPartition
+  &#125;
+
+  log.maybeIncrementLogStartOffset(leaderLogStartOffset, <span class="hljs-type">LogStartOffsetIncrementReason</span>.<span class="hljs-type">LeaderOffsetIncremented</span>)
+  <span class="hljs-keyword">if</span> (logTrace)
+    trace(<span class="hljs-string">s&quot;Follower received high watermark <span class="hljs-subst">$&#123;partitionData.highWatermark&#125;</span> from the leader &quot;</span> +
+      <span class="hljs-string">s&quot;<span class="hljs-subst">$maybeUpdateHighWatermarkMessage</span> for partition <span class="hljs-subst">$topicPartition</span>&quot;</span>)
+
+  <span class="hljs-comment">// Traffic from both in-sync and out of sync replicas are accounted for in replication quota to ensure total replication  </span>
+  <span class="hljs-comment">// traffic doesn&#x27;t exceed quota.  </span>
+  <span class="hljs-keyword">if</span> (quota.isThrottled(topicPartition))
+    quota.record(records.sizeInBytes)
+
+  <span class="hljs-keyword">if</span> (partition.isReassigning &amp;&amp; partition.isAddingLocalReplica)
+    brokerTopicStats.updateReassignmentBytesIn(records.sizeInBytes)
+
+  brokerTopicStats.updateReplicationBytesIn(records.sizeInBytes)
+
+  logAppendInfo
+&#125;
+</code></pre></div>
+<ul>
+<li>maybeUpdateHighWatermark
+<ul>
+<li>如果leader的partition高水位发生改变<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就更新follower的高水位</li>
+</ul>
+</li>
+<li>maybeIncrementLogStartOffset
+<ul>
+<li>如果leader的logStartOffset更新了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也需要更新本地副本的logStartOffset<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></li>
+</ul>
+</li>
+</ul>
+<h3 id="3-completedelayedfetchrequests">3. completeDelayedFetchRequests</h3>
+<div class="highlight"><pre class="code"><code><span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">completeDelayedFetchRequests</span></span>(): <span class="hljs-type">Unit</span> = &#123;  
+	<span class="hljs-keyword">if</span> (partitionsWithNewHighWatermark.nonEmpty) &#123;  
+			replicaMgr.completeDelayedFetchRequests(
+				partitionsWithNewHighWatermark.toSeq)  
+	partitionsWithNewHighWatermark.clear()  
+&#125;  
+&#125;
+
+
+<span class="hljs-keyword">private</span>[server] <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">completeDelayedFetchRequests</span></span>(topicPartitions: <span class="hljs-type">Seq</span>[<span class="hljs-type">TopicPartition</span>]): <span class="hljs-type">Unit</span> = &#123;  
+	topicPartitions.foreach(tp =&gt; delayedFetchPurgatory.checkAndComplete(<span class="hljs-type">TopicPartitionOperationKey</span>(tp)))  
+&#125;
+</code></pre></div>
+<p>  刚开始还有个疑问<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>为什么follower中还有completeDelayedFetchRequests操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>刚看了<a target="_blank" rel="noopener" href="https://cwiki.apache.org/confluence/display/KAFKA/KIP-392%3A+Allow+consumers+to+fetch+from+closest+replica#KIP392:Allowconsumerstofetchfromclosestreplica-ConsumerAPI">KIP-392</a>,其中描述了避免跨机房从Leader中获取消息外<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Kafka支持从就近的Replica中获取消息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而就会存在consumer fetch request from follower<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>于是就会存在delayedFetch操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而当follower的高水位更新后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>避免因replica.fetch.wait.max.ms超时才响应<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而是在更新高水位后就立即尝试响应</p>
+<ul>
+<li>
+<h3 id="handlefetchrequest">HandleFetchRequest</h3>
+</li>
+</ul>
+<p>  当Broker server收到fetchRequest后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>KafkaApis会将其mapping到handleFetchRequest的方法中来处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>下面来详细介绍其处理方式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<div class="highlight"><pre class="code"><code>  
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">handleFetchRequest</span></span>(request: <span class="hljs-type">RequestChannel</span>.<span class="hljs-type">Request</span>): <span class="hljs-type">Unit</span> = &#123;
+  <span class="hljs-keyword">val</span> versionId = request.header.apiVersion
+  <span class="hljs-keyword">val</span> clientId = request.header.clientId
+  <span class="hljs-keyword">val</span> fetchRequest = request.body[<span class="hljs-type">FetchRequest</span>]
+  <span class="hljs-keyword">val</span> topicNames =
+    <span class="hljs-keyword">if</span> (fetchRequest.version() &gt;= <span class="hljs-number">13</span>)
+      metadataCache.topicIdsToNames()
+    <span class="hljs-keyword">else</span>
+      <span class="hljs-type">Collections</span>.emptyMap[<span class="hljs-type">Uuid</span>, <span class="hljs-type">String</span>]()
+
+  <span class="hljs-keyword">val</span> fetchData = fetchRequest.fetchData(topicNames)
+  <span class="hljs-keyword">val</span> forgottenTopics = fetchRequest.forgottenTopics(topicNames)
+
+  <span class="hljs-keyword">val</span> fetchContext = fetchManager.newContext(
+    fetchRequest.version,
+    fetchRequest.metadata,
+    fetchRequest.isFromFollower,
+    fetchData,
+    forgottenTopics,
+    topicNames)
+
+  <span class="hljs-keyword">val</span> erroneous = mutable.<span class="hljs-type">ArrayBuffer</span>[(<span class="hljs-type">TopicIdPartition</span>, <span class="hljs-type">FetchResponseData</span>.<span class="hljs-type">PartitionData</span>)]()
+  <span class="hljs-keyword">val</span> interesting = mutable.<span class="hljs-type">ArrayBuffer</span>[(<span class="hljs-type">TopicIdPartition</span>, <span class="hljs-type">FetchRequest</span>.<span class="hljs-type">PartitionData</span>)]()
+  <span class="hljs-keyword">if</span> (fetchRequest.isFromFollower) &#123;
+    <span class="hljs-comment">// The follower must have ClusterAction on ClusterResource in order to fetch partition data.</span>
+    <span class="hljs-keyword">if</span> (authHelper.authorize(request.context, <span class="hljs-type">CLUSTER_ACTION</span>, <span class="hljs-type">CLUSTER</span>, <span class="hljs-type">CLUSTER_NAME</span>)) &#123;
+      fetchContext.foreachPartition &#123; (topicIdPartition, data) =&gt;
+        interesting += topicIdPartition -&gt; data
+      &#125;
+    &#125;
+    ...
+  &#125; <span class="hljs-keyword">else</span> &#123;
+    ...
+  &#125;
+
+
+  <span class="hljs-comment">// the callback for process a fetch response, invoked before throttling</span>
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">processResponseCallback</span></span>(responsePartitionData: <span class="hljs-type">Seq</span>[(<span class="hljs-type">TopicIdPartition</span>, <span class="hljs-type">FetchPartitionData</span>)]): <span class="hljs-type">Unit</span> = &#123;
+    <span class="hljs-keyword">val</span> partitions = <span class="hljs-keyword">new</span> util.<span class="hljs-type">LinkedHashMap</span>[<span class="hljs-type">TopicIdPartition</span>, <span class="hljs-type">FetchResponseData</span>.<span class="hljs-type">PartitionData</span>]
+    <span class="hljs-keyword">val</span> reassigningPartitions = mutable.<span class="hljs-type">Set</span>[<span class="hljs-type">TopicIdPartition</span>]()
+    responsePartitionData.foreach &#123; <span class="hljs-keyword">case</span> (tp, data) =&gt;
+      <span class="hljs-keyword">val</span> abortedTransactions = data.abortedTransactions.orElse(<span class="hljs-literal">null</span>)
+      <span class="hljs-keyword">val</span> lastStableOffset: <span class="hljs-type">Long</span> = data.lastStableOffset.orElse(<span class="hljs-type">FetchResponse</span>.<span class="hljs-type">INVALID_LAST_STABLE_OFFSET</span>)
+      <span class="hljs-keyword">if</span> (data.isReassignmentFetch) reassigningPartitions.add(tp)
+      <span class="hljs-keyword">val</span> partitionData = <span class="hljs-keyword">new</span> <span class="hljs-type">FetchResponseData</span>.<span class="hljs-type">PartitionData</span>()
+        .setPartitionIndex(tp.partition)
+        .setErrorCode(maybeDownConvertStorageError(data.error).code)
+        .setHighWatermark(data.highWatermark)
+        .setLastStableOffset(lastStableOffset)
+        .setLogStartOffset(data.logStartOffset)
+        .setAbortedTransactions(abortedTransactions)
+        .setRecords(data.records)
+        .setPreferredReadReplica(data.preferredReadReplica.orElse(<span class="hljs-type">FetchResponse</span>.<span class="hljs-type">INVALID_PREFERRED_REPLICA_ID</span>))
+      data.divergingEpoch.ifPresent(partitionData.setDivergingEpoch(_))
+      partitions.put(tp, partitionData)
+    &#125;
+    erroneous.foreach &#123; <span class="hljs-keyword">case</span> (tp, data) =&gt; partitions.put(tp, data) &#125;
+
+
+    <span class="hljs-comment">// Prepare fetch response from converted data</span>
+    <span class="hljs-keyword">val</span> response =
+      <span class="hljs-type">FetchResponse</span>.of(unconvertedFetchResponse.error, throttleTimeMs, unconvertedFetchResponse.sessionId, convertedData)
+    <span class="hljs-comment">// record the bytes out metrics only when the response is being sent</span>
+    response.data.responses.forEach &#123; topicResponse =&gt;
+      topicResponse.partitions.forEach &#123; data =&gt;
+        <span class="hljs-comment">// If the topic name was not known, we will have no bytes out.</span>
+        <span class="hljs-keyword">if</span> (topicResponse.topic != <span class="hljs-literal">null</span>) &#123;
+          <span class="hljs-keyword">val</span> tp = <span class="hljs-keyword">new</span> <span class="hljs-type">TopicIdPartition</span>(topicResponse.topicId, <span class="hljs-keyword">new</span> <span class="hljs-type">TopicPartition</span>(topicResponse.topic, data.partitionIndex))
+          brokerTopicStats.updateBytesOut(tp.topic, fetchRequest.isFromFollower, reassigningPartitions.contains(tp), <span class="hljs-type">FetchResponse</span>.recordsSize(data))
+        &#125;
+      &#125;
+    &#125;
+    response
+  &#125;
+
+  <span class="hljs-keyword">if</span> (fetchRequest.isFromFollower) &#123;
+    <span class="hljs-comment">// We&#x27;ve already evaluated against the quota and are good to go. Just need to record it now.</span>
+    unconvertedFetchResponse = fetchContext.updateAndGenerateResponseData(partitions)
+    <span class="hljs-keyword">val</span> responseSize = <span class="hljs-type">KafkaApis</span>.sizeOfThrottledPartitions(versionId, unconvertedFetchResponse, quotas.leader)
+    quotas.leader.record(responseSize)
+    <span class="hljs-keyword">val</span> responsePartitionsSize = unconvertedFetchResponse.data().responses().stream().mapToInt(_.partitions().size()).sum()
+    trace(<span class="hljs-string">s&quot;Sending Fetch response with partitions.size=<span class="hljs-subst">$responsePartitionsSize</span>, &quot;</span> +
+      <span class="hljs-string">s&quot;metadata=<span class="hljs-subst">$&#123;unconvertedFetchResponse.sessionId&#125;</span>&quot;</span>)
+    requestHelper.sendResponseExemptThrottle(request, createResponse(<span class="hljs-number">0</span>), <span class="hljs-type">Some</span>(updateConversionStats))
+  &#125; <span class="hljs-keyword">else</span> &#123;
+    ...
+  &#125;
+&#125;
+
+<span class="hljs-keyword">if</span> (interesting.isEmpty) &#123;
+  processResponseCallback(<span class="hljs-type">Seq</span>.empty)
+&#125; <span class="hljs-keyword">else</span> &#123;
+  <span class="hljs-comment">// for fetch from consumer, cap fetchMaxBytes to the maximum bytes that could be fetched without being throttled given</span>
+  <span class="hljs-comment">// no bytes were recorded in the recent quota window</span>
+  <span class="hljs-comment">// trying to fetch more bytes would result in a guaranteed throttling potentially blocking consumer progress</span>
+  <span class="hljs-keyword">val</span> maxQuotaWindowBytes = <span class="hljs-keyword">if</span> (fetchRequest.isFromFollower)
+    <span class="hljs-type">Int</span>.<span class="hljs-type">MaxValue</span>
+  <span class="hljs-keyword">else</span>
+    quotas.fetch.getMaxValueInQuotaWindow(request.session, clientId).toInt
+
+  <span class="hljs-keyword">val</span> fetchMaxBytes = <span class="hljs-type">Math</span>.min(<span class="hljs-type">Math</span>.min(fetchRequest.maxBytes, config.fetchMaxBytes), maxQuotaWindowBytes)
+  <span class="hljs-keyword">val</span> fetchMinBytes = <span class="hljs-type">Math</span>.min(fetchRequest.minBytes, fetchMaxBytes)
+
+  <span class="hljs-keyword">val</span> clientMetadata: <span class="hljs-type">Optional</span>[<span class="hljs-type">ClientMetadata</span>] = <span class="hljs-keyword">if</span> (versionId &gt;= <span class="hljs-number">11</span>) &#123;
+    <span class="hljs-comment">// Fetch API version 11 added preferred replica logic</span>
+    <span class="hljs-type">Optional</span>.of(<span class="hljs-keyword">new</span> <span class="hljs-type">DefaultClientMetadata</span>(
+      fetchRequest.rackId,
+      clientId,
+      request.context.clientAddress,
+      request.context.principal,
+      request.context.listenerName.value))
+  &#125; <span class="hljs-keyword">else</span> &#123;
+    <span class="hljs-type">Optional</span>.empty()
+  &#125;
+
+  <span class="hljs-keyword">val</span> params = <span class="hljs-keyword">new</span> <span class="hljs-type">FetchParams</span>(
+    versionId,
+    fetchRequest.replicaId,
+    fetchRequest.replicaEpoch,
+    fetchRequest.maxWait,
+    fetchMinBytes,
+    fetchMaxBytes,
+    <span class="hljs-type">FetchIsolation</span>.of(fetchRequest),
+    clientMetadata
+  )
+
+  <span class="hljs-comment">// call the replica manager to fetch messages from the local replica</span>
+  replicaManager.fetchMessages(
+    params = params,
+    fetchInfos = interesting,
+    quota = replicationQuota(fetchRequest),
+    responseCallback = processResponseCallback,
+  )
+&#125;
+&#125;
+</code></pre></div>
+<p>其主要就是调用replicaManager.fetchMessages<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ol>
+<li>ReplicaManager 处理 Fetch 请求看起来比较清晰<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>先是readFromLog<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>将topicIdPartition请求的logReadResult读取出来</li>
+</ol>
+<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">readFromLog</span></span>(
+                 params: <span class="hljs-type">FetchParams</span>,
+                 readPartitionInfo: <span class="hljs-type">Seq</span>[(<span class="hljs-type">TopicIdPartition</span>, <span class="hljs-type">PartitionData</span>)],
+                 quota: <span class="hljs-type">ReplicaQuota</span>,
+                 readFromPurgatory: <span class="hljs-type">Boolean</span>): <span class="hljs-type">Seq</span>[(<span class="hljs-type">TopicIdPartition</span>, <span class="hljs-type">LogReadResult</span>)] = &#123;
+  <span class="hljs-keyword">val</span> traceEnabled = isTraceEnabled
+      ...
+  <span class="hljs-keyword">var</span> limitBytes = params.maxBytes
+  <span class="hljs-keyword">val</span> result = <span class="hljs-keyword">new</span> mutable.<span class="hljs-type">ArrayBuffer</span>[(<span class="hljs-type">TopicIdPartition</span>, <span class="hljs-type">LogReadResult</span>)]
+  <span class="hljs-keyword">var</span> minOneMessage = !params.hardMaxBytesLimit
+  readPartitionInfo.foreach &#123; <span class="hljs-keyword">case</span> (tp, fetchInfo) =&gt;
+    <span class="hljs-keyword">val</span> readResult = read(tp, fetchInfo, limitBytes, minOneMessage)
+    <span class="hljs-keyword">val</span> recordBatchSize = readResult.info.records.sizeInBytes
+    <span class="hljs-comment">// Once we read from a non-empty partition, we stop ignoring request and partition level size limits  </span>
+    <span class="hljs-keyword">if</span> (recordBatchSize &gt; <span class="hljs-number">0</span>)
+      minOneMessage = <span class="hljs-literal">false</span>
+    limitBytes = math.max(<span class="hljs-number">0</span>, limitBytes - recordBatchSize)
+    result += (tp -&gt; readResult)
+  &#125;
+  result
+&#125;
+</code></pre></div>
+<p>  核心是在read里面,先是getPartition<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后根据fetchInfo从相应的partition中fetchRecords</p>
+<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">read</span></span>(tp: <span class="hljs-type">TopicIdPartition</span>, fetchInfo: <span class="hljs-type">PartitionData</span>, limitBytes: <span class="hljs-type">Int</span>, minOneMessage: <span class="hljs-type">Boolean</span>): <span class="hljs-type">LogReadResult</span> = &#123;
+  <span class="hljs-keyword">val</span> offset = fetchInfo.fetchOffset
+  <span class="hljs-keyword">val</span> partitionFetchSize = fetchInfo.maxBytes
+  <span class="hljs-keyword">val</span> followerLogStartOffset = fetchInfo.logStartOffset
+
+  <span class="hljs-keyword">val</span> adjustedMaxBytes = math.min(fetchInfo.maxBytes, limitBytes)
+  <span class="hljs-keyword">var</span> log: <span class="hljs-type">UnifiedLog</span> = <span class="hljs-literal">null</span>
+  <span class="hljs-keyword">var</span> partition: <span class="hljs-type">Partition</span> = <span class="hljs-literal">null</span>
+  <span class="hljs-keyword">val</span> fetchTimeMs = time.milliseconds
+  <span class="hljs-keyword">try</span> &#123;
+
+    partition = getPartitionOrException(tp.topicPartition)
+
+    <span class="hljs-comment">// Check if topic ID from the fetch request/session matches the ID in the log  </span>
+    <span class="hljs-keyword">val</span> topicId = <span class="hljs-keyword">if</span> (tp.topicId == <span class="hljs-type">Uuid</span>.<span class="hljs-type">ZERO_UUID</span>) <span class="hljs-type">None</span> <span class="hljs-keyword">else</span> <span class="hljs-type">Some</span>(tp.topicId)
+    <span class="hljs-keyword">if</span> (!hasConsistentTopicId(topicId, partition.topicId))
+      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-type">InconsistentTopicIdException</span>(<span class="hljs-string">&quot;Topic ID in the fetch session did not match the topic ID in the log.&quot;</span>)
+
+    log = partition.localLogWithEpochOrThrow(
+      fetchInfo.currentLeaderEpoch, params.fetchOnlyLeader())
+
+    <span class="hljs-comment">// Try the read first, this tells us whether we need all of adjustedFetchSize for this partition  </span>
+    <span class="hljs-keyword">val</span> readInfo: <span class="hljs-type">LogReadInfo</span> = partition.fetchRecords(
+      fetchParams = params,
+      fetchPartitionData = fetchInfo,
+      fetchTimeMs = fetchTimeMs,
+      maxBytes = adjustedMaxBytes,
+      minOneMessage = minOneMessage,
+      updateFetchState = !readFromPurgatory)
+
+    <span class="hljs-keyword">val</span> fetchDataInfo = checkFetchDataInfo(partition, readInfo.fetchedData)
+
+    <span class="hljs-type">LogReadResult</span>(info = fetchDataInfo,
+      divergingEpoch = readInfo.divergingEpoch.asScala,
+      highWatermark = readInfo.highWatermark,
+      leaderLogStartOffset = readInfo.logStartOffset,
+      leaderLogEndOffset = readInfo.logEndOffset,
+      followerLogStartOffset = followerLogStartOffset,
+      fetchTimeMs = fetchTimeMs,
+      lastStableOffset = <span class="hljs-type">Some</span>(readInfo.lastStableOffset),
+      preferredReadReplica = preferredReadReplica,
+      exception = <span class="hljs-type">None</span>
+    )
+  &#125;
+
+&#125;
+</code></pre></div>
+<p><strong>fetchRecords</strong>会先readFromLocalLog,然后执行updateFollowerFetchState</p>
+<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">fetchRecords</span></span>(
+                  fetchParams: <span class="hljs-type">FetchParams</span>,
+                  fetchPartitionData: <span class="hljs-type">FetchRequest</span>.<span class="hljs-type">PartitionData</span>,
+                  fetchTimeMs: <span class="hljs-type">Long</span>,
+                  maxBytes: <span class="hljs-type">Int</span>,
+                  minOneMessage: <span class="hljs-type">Boolean</span>,
+                  updateFetchState: <span class="hljs-type">Boolean</span>
+                ): <span class="hljs-type">LogReadInfo</span> = &#123;
+  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">readFromLocalLog</span></span>(log: <span class="hljs-type">UnifiedLog</span>): <span class="hljs-type">LogReadInfo</span> = &#123;
+    readRecords(
+      log,
+      fetchPartitionData.lastFetchedEpoch,
+      fetchPartitionData.fetchOffset,
+      fetchPartitionData.currentLeaderEpoch,
+      maxBytes,
+      fetchParams.isolation,
+      minOneMessage
+    )
+  &#125;
+
+  <span class="hljs-keyword">if</span> (fetchParams.isFromFollower) &#123;
+    <span class="hljs-comment">// Check that the request is from a valid replica before doing the read  </span>
+    <span class="hljs-keyword">val</span> (replica, logReadInfo) = inReadLock(leaderIsrUpdateLock) &#123;
+      <span class="hljs-keyword">val</span> localLog = localLogWithEpochOrThrow(
+        fetchPartitionData.currentLeaderEpoch,
+        fetchParams.fetchOnlyLeader
+      )
+      <span class="hljs-keyword">val</span> replica = followerReplicaOrThrow(
+        fetchParams.replicaId,
+        fetchPartitionData
+      )
+      <span class="hljs-keyword">val</span> logReadInfo = readFromLocalLog(localLog)
+      (replica, logReadInfo)
+    &#125;
+
+    <span class="hljs-keyword">if</span> (updateFetchState &amp;&amp; !logReadInfo.divergingEpoch.isPresent) &#123;
+      updateFollowerFetchState(
+        replica,
+        followerFetchOffsetMetadata = logReadInfo.fetchedData.fetchOffsetMetadata,
+        followerStartOffset = fetchPartitionData.logStartOffset,
+        followerFetchTimeMs = fetchTimeMs,
+        leaderEndOffset = logReadInfo.logEndOffset,
+        fetchParams.replicaEpoch
+      )
+    &#125;
+
+    logReadInfo
+  &#125;
+</code></pre></div>
+<p>  readFromLocalLog先不介绍日志层<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>我们看获取到logReadInfo以后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>执行了哪些更新操作</p>
+<div class="highlight"><pre class="code"><code>updateFollowerFetchState(
+  replica, <span class="hljs-comment">// 根据replicaId和fetchData获取相应的remoteReplica</span>
+  followerFetchOffsetMetadata =
+    logReadInfo.fetchedData.fetchOffsetMetadata,
+  followerStartOffset = fetchPartitionData.logStartOffset,
+  followerFetchTimeMs = fetchTimeMs,
+  leaderEndOffset = logReadInfo.logEndOffset,
+  fetchParams.replicaEpoch
+)
+
+<span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">updateFollowerFetchState</span></span>(
+                              replica: <span class="hljs-type">Replica</span>,
+                              followerFetchOffsetMetadata: <span class="hljs-type">LogOffsetMetadata</span>,
+                              followerStartOffset: <span class="hljs-type">Long</span>,
+                              followerFetchTimeMs: <span class="hljs-type">Long</span>,
+                              leaderEndOffset: <span class="hljs-type">Long</span>,
+                              brokerEpoch: <span class="hljs-type">Long</span>
+                            ): <span class="hljs-type">Unit</span> = &#123;
+  <span class="hljs-comment">// No need to calculate low watermark if there is no delayed DeleteRecordsRequest  </span>
+  <span class="hljs-keyword">val</span> oldLeaderLW = <span class="hljs-keyword">if</span> (delayedOperations.numDelayedDelete &gt; <span class="hljs-number">0</span>) lowWatermarkIfLeader <span class="hljs-keyword">else</span> <span class="hljs-number">-1</span>L
+  <span class="hljs-keyword">val</span> prevFollowerEndOffset = replica.stateSnapshot.logEndOffset
+  replica.updateFetchState(
+    followerFetchOffsetMetadata,
+    followerStartOffset,
+    followerFetchTimeMs,
+    leaderEndOffset,
+    brokerEpoch
+  )
+
+  <span class="hljs-keyword">val</span> newLeaderLW = <span class="hljs-keyword">if</span> (delayedOperations.numDelayedDelete &gt; <span class="hljs-number">0</span>) lowWatermarkIfLeader <span class="hljs-keyword">else</span> <span class="hljs-number">-1</span>L
+  <span class="hljs-comment">// check if the LW of the partition has incremented  </span>
+  <span class="hljs-comment">// since the replica&#x27;s logStartOffset may have incremented  </span>
+  <span class="hljs-keyword">val</span> leaderLWIncremented = newLeaderLW &gt; oldLeaderLW
+
+  <span class="hljs-comment">// Check if this in-sync replica needs to be added to the ISR.  </span>
+  maybeExpandIsr(replica)
+
+  <span class="hljs-comment">// check if the HW of the partition can now be incremented  </span>
+  <span class="hljs-comment">// since the replica may already be in the ISR and its LEO has just incremented  </span>
+  <span class="hljs-keyword">val</span> leaderHWIncremented = <span class="hljs-keyword">if</span> (prevFollowerEndOffset != replica.stateSnapshot.logEndOffset) &#123;
+    <span class="hljs-comment">// the leader log may be updated by ReplicaAlterLogDirsThread so the following method must be in lock of  </span>
+    <span class="hljs-comment">// leaderIsrUpdateLock to prevent adding new hw to invalid log.  </span>
+    inReadLock(leaderIsrUpdateLock) &#123;
+      leaderLogIfLocal.exists(leaderLog =&gt; maybeIncrementLeaderHW(leaderLog, followerFetchTimeMs))
+    &#125;
+  &#125; <span class="hljs-keyword">else</span> &#123;
+    <span class="hljs-literal">false</span>
+  &#125;
+
+  <span class="hljs-comment">// some delayed operations may be unblocked after HW or LW changed  </span>
+  <span class="hljs-keyword">if</span> (leaderLWIncremented || leaderHWIncremented)
+    tryCompleteDelayedRequests()
+
+  debug(<span class="hljs-string">s&quot;Recorded replica <span class="hljs-subst">$&#123;replica.brokerId&#125;</span> log end offset (LEO) position &quot;</span> +
+    <span class="hljs-string">s&quot;<span class="hljs-subst">$&#123;followerFetchOffsetMetadata.messageOffset&#125;</span> and log start offset <span class="hljs-subst">$followerStartOffset</span>.&quot;</span>)
+&#125;
+
+</code></pre></div>
+<ul>
+<li>replica执行updateFetchState<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>更新follower Replica的offset信息</li>
+<li>maybeExpandIsr判断如果replica的offset已经追赶上leader的endOffset<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就提示可能要更新Isr集合</li>
+</ul>
+<p>注释解释了当 LEO &gt;= HW &amp;&amp; followerEndOffset &gt;= leaderEpochStartOffsetOpt ,就可以加入ISR</p>
+<div class="highlight"><pre class="code"><code>  <span class="hljs-comment">/**
+   * Check and maybe expand the ISR of the partition.
+   * A replica will be added to ISR if its LEO &gt;= current hw of the partition and it is caught up to
+   * an offset within the current leader epoch. A replica must be caught up to the current leader
+   * epoch before it can join ISR, because otherwise, if there is committed data between current
+   * leader&#x27;s HW and LEO, the replica may become the leader before it fetches the committed data
+   * and the data will be lost.
+   *
+   * Technically, a replica shouldn&#x27;t be in ISR if it hasn&#x27;t caught up for longer than replicaLagTimeMaxMs,
+   * even if its log end offset is &gt;= HW. However, to be consistent with how the follower determines
+   * whether a replica is in-sync, we only check HW.
+   *
+   * This function can be triggered when a replica&#x27;s LEO has incremented.
+   */</span>
+<span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">maybeExpandIsr</span></span>(followerReplica: <span class="hljs-type">Replica</span>): <span class="hljs-type">Unit</span> = &#123;
+  <span class="hljs-keyword">val</span> needsIsrUpdate = !partitionState.isInflight &amp;&amp; canAddReplicaToIsr(followerReplica.brokerId) &amp;&amp; inReadLock(leaderIsrUpdateLock) &#123;
+    needsExpandIsr(followerReplica)
+  &#125;
+  <span class="hljs-keyword">if</span> (needsIsrUpdate) &#123;
+    <span class="hljs-keyword">val</span> alterIsrUpdateOpt = inWriteLock(leaderIsrUpdateLock) &#123;
+      <span class="hljs-comment">// check if this replica needs to be added to the ISR  </span>
+      partitionState <span class="hljs-keyword">match</span> &#123;
+        <span class="hljs-keyword">case</span> currentState: <span class="hljs-type">CommittedPartitionState</span> <span class="hljs-keyword">if</span> needsExpandIsr(followerReplica) =&gt;
+          <span class="hljs-type">Some</span>(prepareIsrExpand(currentState, followerReplica.brokerId))
+        <span class="hljs-keyword">case</span> _ =&gt;
+          <span class="hljs-type">None</span>
+      &#125;
+    &#125;
+    <span class="hljs-comment">// Send the AlterPartition request outside of the LeaderAndIsr lock since the completion logic  </span>
+    <span class="hljs-comment">// may increment the high watermark (and consequently complete delayed operations).  </span>
+    alterIsrUpdateOpt.foreach(submitAlterPartition)
+  &#125;
+&#125;
+
+<span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">needsExpandIsr</span></span>(followerReplica: <span class="hljs-type">Replica</span>): <span class="hljs-type">Boolean</span> = &#123;
+  canAddReplicaToIsr(followerReplica.brokerId) &amp;&amp; isFollowerInSync(followerReplica)
+&#125;
+
+<span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">canAddReplicaToIsr</span></span>(followerReplicaId: <span class="hljs-type">Int</span>): <span class="hljs-type">Boolean</span> = &#123;
+  <span class="hljs-keyword">val</span> current = partitionState
+  !current.isInflight &amp;&amp;
+    !current.isr.contains(followerReplicaId) &amp;&amp;
+    isReplicaIsrEligible(followerReplicaId)
+&#125;
+
+<span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">isFollowerInSync</span></span>(followerReplica: <span class="hljs-type">Replica</span>): <span class="hljs-type">Boolean</span> = &#123;
+  leaderLogIfLocal.exists &#123; leaderLog =&gt;
+    <span class="hljs-keyword">val</span> followerEndOffset = followerReplica.stateSnapshot.logEndOffset
+    followerEndOffset &gt;= leaderLog.highWatermark &amp;&amp; leaderEpochStartOffsetOpt.exists(followerEndOffset &gt;= _)
+  &#125;
+&#125;
+</code></pre></div>
+<ul>
+<li>maybeIncrementLeaderHW会判断所有的replica的最小logEndOffset值<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>或者Isr集合有变化时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>来判断是是否更新高水位</li>
+</ul>
+<div class="highlight"><pre class="code"><code>  <span class="hljs-comment">/**
+   * Check and maybe increment the high watermark of the partition;
+   * this function can be triggered when
+   *
+   * 1. Partition ISR changed
+   * 2. Any replica&#x27;s LEO changed
+   *
+   * The HW is determined by the smallest log end offset among all replicas that are in sync; or are considered caught-up
+   * and are allowed to join the ISR. This way, if a replica is considered caught-up, but its log end offset is smaller
+   * than HW, we will wait for this replica to catch up to the HW before advancing the HW. This helps the situation when
+   * the ISR only includes the leader replica and a follower tries to catch up. If we don&#x27;t wait for the follower when
+   * advancing the HW, the follower&#x27;s log end offset may keep falling behind the HW (determined by the leader&#x27;s log end
+   * offset) and therefore will never be added to ISR.
+   *
+   * With the addition of AlterPartition, we also consider newly added replicas as part of the ISR when advancing
+   * the HW. These replicas have not yet been committed to the ISR by the controller, so we could revert to the previously
+   * committed ISR. However, adding additional replicas to the ISR makes it more restrictive and therefore safe. We call
+   * this set the &quot;maximal&quot; ISR. See KIP-497 for more details
+   *
+   * Note There is no need to acquire the leaderIsrUpdate lock here since all callers of this private API acquire that lock
+   *
+   * @return true if the HW was incremented, and false otherwise.
+   */</span>
+
+<span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">maybeIncrementLeaderHW</span></span>(leaderLog: <span class="hljs-type">UnifiedLog</span>, currentTimeMs: <span class="hljs-type">Long</span> = time.milliseconds): <span class="hljs-type">Boolean</span> = &#123;
+  <span class="hljs-comment">// maybeIncrementLeaderHW is in the hot path, the following code is written to  </span>
+  <span class="hljs-comment">// avoid unnecessary collection generation  </span>
+  <span class="hljs-keyword">val</span> leaderLogEndOffset = leaderLog.logEndOffsetMetadata
+  <span class="hljs-keyword">var</span> newHighWatermark = leaderLogEndOffset
+  remoteReplicasMap.values.foreach &#123; replica =&gt;
+    <span class="hljs-keyword">val</span> replicaState = replica.stateSnapshot
+
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">shouldWaitForReplicaToJoinIsr</span></span>: <span class="hljs-type">Boolean</span> = &#123;
+      replicaState.isCaughtUp(leaderLogEndOffset.messageOffset, currentTimeMs, replicaLagTimeMaxMs) &amp;&amp;
+        isReplicaIsrEligible(replica.brokerId)
+    &#125;
+
+    <span class="hljs-comment">// Note here we are using the &quot;maximal&quot;, see explanation above  </span>
+    <span class="hljs-keyword">if</span> (replicaState.logEndOffsetMetadata.messageOffset &lt; newHighWatermark.messageOffset &amp;&amp;
+      (partitionState.maximalIsr.contains(replica.brokerId) || shouldWaitForReplicaToJoinIsr)
+    ) &#123;
+      newHighWatermark = replicaState.logEndOffsetMetadata
+    &#125;
+  &#125;
+
+  leaderLog.maybeIncrementHighWatermark(newHighWatermark) <span class="hljs-keyword">match</span> &#123;
+    <span class="hljs-keyword">case</span> <span class="hljs-type">Some</span>(oldHighWatermark) =&gt;
+      debug(<span class="hljs-string">s&quot;High watermark updated from <span class="hljs-subst">$oldHighWatermark</span> to <span class="hljs-subst">$newHighWatermark</span>&quot;</span>)
+      <span class="hljs-literal">true</span>
+
+    <span class="hljs-keyword">case</span> <span class="hljs-type">None</span> =&gt;
+      <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">logEndOffsetString</span></span>: ((<span class="hljs-type">Int</span>, <span class="hljs-type">LogOffsetMetadata</span>)) =&gt; <span class="hljs-type">String</span> = &#123;
+        <span class="hljs-keyword">case</span> (brokerId, logEndOffsetMetadata) =&gt; <span class="hljs-string">s&quot;replica <span class="hljs-subst">$brokerId</span>: <span class="hljs-subst">$logEndOffsetMetadata</span>&quot;</span>
+      &#125;
+
+      
+      <span class="hljs-literal">false</span>
+  &#125;
+&#125;
+
+
+<span class="hljs-comment">// 调用maybeIncrementLeaderHW之前&lt;span class=&quot;bd-box&quot;&gt;&lt;h-char class=&quot;bd bd-beg&quot;&gt;&lt;h-inner&gt;，&lt;/h-inner&gt;&lt;/h-char&gt;&lt;/span&gt;会update caughtUpTime</span>
+      <span class="hljs-keyword">val</span> lastCaughtUpTime = <span class="hljs-keyword">if</span> (followerFetchOffsetMetadata.messageOffset &gt;= leaderEndOffset) &#123;
+        math.max(currentReplicaState.lastCaughtUpTimeMs, followerFetchTimeMs)
+      &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (followerFetchOffsetMetadata.messageOffset &gt;= currentReplicaState.lastFetchLeaderLogEndOffset) &#123;
+        math.max(currentReplicaState.lastCaughtUpTimeMs, currentReplicaState.lastFetchTimeMs)
+      &#125; <span class="hljs-keyword">else</span> &#123;
+        currentReplicaState.lastCaughtUpTimeMs
+      &#125;
+</code></pre></div>
+<ul>
+<li>如果leader的低水位(所有replica的最小startLogOffset)或者高水位有变化<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就tryCompleteDelayedRequests</li>
+</ul>
+<ol start="2">
+<li>当处理完remote replica的所有更新后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果满足以下条件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就立即返回<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></li>
+</ol>
+<div class="highlight"><pre class="code"><code><span class="hljs-comment">// Respond immediately if no remote fetches are required and any of the below conditions is true  </span>
+<span class="hljs-comment">// 1) fetch request does not want to wait  </span>
+<span class="hljs-comment">// 2) fetch request does not require any data  </span>
+<span class="hljs-comment">// 3) has enough data to respond  </span>
+<span class="hljs-comment">// 4) some error happens while reading data  </span>
+<span class="hljs-comment">// 5) we found a diverging epoch  </span>
+<span class="hljs-comment">// 6) has a preferred read replica</span>
+</code></pre></div>
+<ol start="3">
+<li>否则就new DelayedFetch<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>将其放进延迟队列中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>异步等待请求数据完成再发送</li>
+<li>在调用结束后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会执行一次所有的DelayOperation</li>
+</ol>
+<h4 id="异常情况&lt;span-class=&quot;bd-box&quot;&gt;&lt;h-char class=&quot;bd bd-beg&quot;&gt;&lt;h-inner&gt;：&lt;/h-inner&gt;&lt;/h-char&gt;&lt;/span&gt;">异常情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></h4>
+<p>  当Follower出现OFFSET_OUT_OF_RANGE异常时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则需要根据情况来进行重新fetch<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>下面是Kafka解释出现OUT_OF_RANGE的case<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<ol>
+<li>当ISR集合中的Replica都下线了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么Follower变成了Leader<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>不久后old Leader又复活变成了Follower从新的Leader上进行同步<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>发现old Leader的logEndOffset&gt;newLeaderEndOffset,此时会将old leader的log进行截断<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从新Leader的EndOffset后开始同步</li>
+</ol>
+<div class="highlight"><pre class="code"><code>
+ <span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">fetchOffsetAndTruncate</span></span>(topicPartition: <span class="hljs-type">TopicPartition</span>, topicId: <span class="hljs-type">Option</span>[<span class="hljs-type">Uuid</span>], currentLeaderEpoch: <span class="hljs-type">Int</span>): <span class="hljs-type">PartitionFetchState</span> = &#123;
+  <span class="hljs-keyword">val</span> replicaEndOffset = logEndOffset(topicPartition)
+
+  <span class="hljs-comment">/**
+   * Unclean leader election: A follower goes down, in the meanwhile the leader keeps appending messages. The follower comes back up
+   * and before it has completely caught up with the leader&#x27;s logs, all replicas in the ISR go down. The follower is now uncleanly
+   * elected as the new leader, and it starts appending messages from the client. The old leader comes back up, becomes a follower
+   * and it may discover that the current leader&#x27;s end offset is behind its own end offset.
+   *
+   * In such a case, truncate the current follower&#x27;s log to the current leader&#x27;s end offset and continue fetching.
+   *
+   * There is a potential for a mismatch between the logs of the two replicas here. We don&#x27;t fix this mismatch as of now.
+   */</span>
+  <span class="hljs-keyword">val</span> offsetAndEpoch = leader.fetchLatestOffset(topicPartition, currentLeaderEpoch)
+  <span class="hljs-keyword">val</span> leaderEndOffset = offsetAndEpoch.offset
+  <span class="hljs-keyword">if</span> (leaderEndOffset &lt; replicaEndOffset) &#123;
+    warn(<span class="hljs-string">s&quot;Reset fetch offset for partition <span class="hljs-subst">$topicPartition</span> from <span class="hljs-subst">$replicaEndOffset</span> to current &quot;</span> +
+      <span class="hljs-string">s&quot;leader&#x27;s latest offset <span class="hljs-subst">$leaderEndOffset</span>&quot;</span>)
+    truncate(topicPartition, <span class="hljs-type">OffsetTruncationState</span>(leaderEndOffset, truncationCompleted = <span class="hljs-literal">true</span>))
+
+    fetcherLagStats.getAndMaybePut(topicPartition).lag = <span class="hljs-number">0</span>
+    <span class="hljs-type">PartitionFetchState</span>(topicId, leaderEndOffset, <span class="hljs-type">Some</span>(<span class="hljs-number">0</span>), currentLeaderEpoch,
+      state = <span class="hljs-type">Fetching</span>, lastFetchedEpoch = latestEpoch(topicPartition))
+  &#125; <span class="hljs-keyword">else</span> &#123;
+    ...
+  &#125;
+</code></pre></div>
+<ol start="2">
+<li>Follower的logEndOffset&lt; Leader logStartOffset,则清空Follower的Offset<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从Leader logStartOffset开始同步</li>
+</ol>
+<div class="highlight"><pre class="code"><code><span class="hljs-keyword">val</span> offsetAndEpoch = leader.fetchEarliestOffset(topicPartition, currentLeaderEpoch)
+<span class="hljs-keyword">val</span> leaderStartOffset = offsetAndEpoch.offset
+<span class="hljs-keyword">val</span> offsetToFetch = <span class="hljs-type">Math</span>.max(leaderStartOffset, replicaEndOffset)
+<span class="hljs-comment">// Only truncate log when current leader&#x27;s log start offset is greater than follower&#x27;s log end offset.  </span>
+<span class="hljs-keyword">if</span> (leaderStartOffset &gt; replicaEndOffset) &#123;
+  warn(<span class="hljs-string">s&quot;Truncate fully and reset fetch offset for partition <span class="hljs-subst">$topicPartition</span> from <span class="hljs-subst">$replicaEndOffset</span> to the &quot;</span> +
+    <span class="hljs-string">s&quot;current leader&#x27;s start offset <span class="hljs-subst">$leaderStartOffset</span> because the local replica&#x27;s end offset is smaller than the &quot;</span> +
+    <span class="hljs-string">s&quot;current leader&#x27;s start offsets.&quot;</span>)
+  truncateFullyAndStartAt(topicPartition, leaderStartOffset)
+&#125; <span class="hljs-keyword">else</span> &#123;
+  info(<span class="hljs-string">s&quot;Reset fetch offset for partition <span class="hljs-subst">$topicPartition</span> from <span class="hljs-subst">$replicaEndOffset</span> to &quot;</span> +
+    <span class="hljs-string">s&quot;the current local replica&#x27;s end offset <span class="hljs-subst">$offsetToFetch</span>&quot;</span>)
+&#125;
+
+<span class="hljs-keyword">val</span> initialLag = leaderEndOffset - offsetToFetch
+fetcherLagStats.getAndMaybePut(topicPartition).lag = initialLag
+<span class="hljs-type">PartitionFetchState</span>(topicId, offsetToFetch, <span class="hljs-type">Some</span>(initialLag), currentLeaderEpoch,
+  state = <span class="hljs-type">Fetching</span>, lastFetchedEpoch = latestEpoch(topicPartition))
+</code></pre></div>
+<p>下面总结一下fetch的流程<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<p><img src="IMG-20231127232715169.png" alt=""></p>
+<ol>
+<li>Follower副本发送FetchRequest<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从对应分区中获取消息</li>
+<li>当请求到对应Partition的Broker中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会从日志存储中读取数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>更新remote<br>
+replica offset<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>检测是否需要更新ISR集合<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>HW等</li>
+<li>之后ReplicaManager为FetchRequest生成DelayedFetch对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>交由<br>
+delayedFetchPurgatory管理</li>
+<li>准备FetchResponse返回给客户端</li>
+<li>执行一次DelayOperation<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>比如看DelayProduce是否已经完成</li>
+<li>客户端收到response后更新本地的partition的数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>HW<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>LEO</li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="../Kafka-replica-producer/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Kafka-Producer
+        
+      </div>
+    </a>
+  
+  
+    <a href="../../../10/15/netty_write/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          Netty write 流程
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2023 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="../../../../archives" class="mobile-nav-link">Home</a>
+  
+    <a href="../../../../archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="../../../../about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="../../../../js/clipboard.min.js"></script>
+<script src="../../../../js/jquery-1.4.3.min.js"></script>
+
+<script src="../../../../fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="../../../../js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="../../../../mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+</body>
+</html>

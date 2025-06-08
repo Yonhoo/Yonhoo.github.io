@@ -75,175 +75,175 @@
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <h2 id="1-channelpipline 传播事件">1. ChannelPipline 传播事件</h2>
-<p>  每一个Channel都会分配一个新的ChannelPipline<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所有的出入站事件都会流经ChannelPipline来进行处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<p>  其中处理每一个事件的主要是ChannelHandler<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>例如ChannelOutboundHandler<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>ChannelInboundHandler分别用来处理出入站事件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>通过调用ChannelHandlerContext实现<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它将被转发给同一超类型的下一个ChannelHandler进行处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+        <h2 id="1-ChannelPipline-传播事件">1. ChannelPipline 传播事件</h2>
+<p>  每一个Channel都会分配一个新的ChannelPipline，所有的出入站事件都会流经ChannelPipline来进行处理。</p>
+<p>  其中处理每一个事件的主要是ChannelHandler，例如ChannelOutboundHandler、ChannelInboundHandler分别用来处理出入站事件。通过调用ChannelHandlerContext实现，它将被转发给同一超类型的下一个ChannelHandler进行处理。</p>
 <span id="more"></span>
-<p>  ChannelHandlerContext代表了ChannelHandler和ChannelPipline之间的关联<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每当有ChannelHandler添加到ChannelPipline中时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>都会创建ChannelHandlerContext<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>ChannelHandlerContext的主要功能是管理它所关联的ChannelHandler和在同一个ChannelPipline中的其他ChannelHandler之间的交互<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  ChannelHandlerContext代表了ChannelHandler和ChannelPipline之间的关联，每当有ChannelHandler添加到ChannelPipline中时，都会创建ChannelHandlerContext。ChannelHandlerContext的主要功能是管理它所关联的ChannelHandler和在同一个ChannelPipline中的其他ChannelHandler之间的交互。</p>
 <p><img src="channel_flow.png" alt=""></p>
-<p>  channel的入站事件会从第一个HeadContext的channelHandler一直向后传播<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而channel的出站事件会从最后的tailContext的channelHandler向前传播<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一直到HeadContext<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<p>  通常ChannelPipline中的每一个ChannelHandler都是通过它的EventLoop(I/O线程)来处理传递给它的事件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>netty也可以通过channelPipline的addLast方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>传递一个自定义的EventExecutorGroup来代替channel本身的I/O线程<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>在出站时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>最后的HeadContext使用的channel本身的I/O线程<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  channel的入站事件会从第一个HeadContext的channelHandler一直向后传播，而channel的出站事件会从最后的tailContext的channelHandler向前传播，一直到HeadContext。</p>
+<p>  通常ChannelPipline中的每一个ChannelHandler都是通过它的EventLoop(I/O线程)来处理传递给它的事件，netty也可以通过channelPipline的addLast方法，传递一个自定义的EventExecutorGroup来代替channel本身的I/O线程。在出站时，最后的HeadContext使用的channel本身的I/O线程。</p>
 <h2 id="2-写事件">2. 写事件</h2>
-<p>  netty是一个异步网络I/O框架<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当调用完写事件后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>netty会直接返回一个ChannelFuture<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当数据被写入到底层的socket后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>netty会通过ChannelFutureListner告知我们写入结果<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">connection</span>.getChannel().writeAndFlush(rpcMessage)
-        .addListener(<span class="hljs-built_in">new</span> FutureListener&lt;<span class="hljs-type">Void</span>&gt;() &#123;
-            <span class="hljs-built_in">public</span> <span class="hljs-type">void</span> operationComplete(Future&lt;<span class="hljs-type">Void</span>&gt; f) throws <span class="hljs-keyword">Exception</span> &#123;
-                <span class="hljs-keyword">if</span> (f.isSuccess()) &#123;
-                    <span class="hljs-keyword">log</span>.<span class="hljs-keyword">info</span>(&quot;channel write message success&quot;);
-                &#125; <span class="hljs-keyword">else</span> &#123;
-                    <span class="hljs-keyword">log</span>.error(&quot;write message error:&quot;, f.cause());
+<p>  netty是一个异步网络I/O框架，当调用完写事件后，netty会直接返回一个ChannelFuture，当数据被写入到底层的socket后，netty会通过ChannelFutureListner告知我们写入结果：</p>
+<pre><code>connection.getChannel().writeAndFlush(rpcMessage)
+        .addListener(new FutureListener&lt;Void&gt;() &#123;
+            public void operationComplete(Future&lt;Void&gt; f) throws Exception &#123;
+                if (f.isSuccess()) &#123;
+                    log.info(&quot;channel write message success&quot;);
+                &#125; else &#123;
+                    log.error(&quot;write message error:&quot;, f.cause());
                 &#125;
 
             &#125;
         &#125;);
-</code></pre></div>
-<p>写事件会在ChannelOutboundHandler中向前传播<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">private</span> void write(Object msg, boolean flush, ChannelPromise promise) &#123;
-    <span class="hljs-module-access"><span class="hljs-module"><span class="hljs-identifier">ObjectUtil</span>.</span></span>check<span class="hljs-constructor">NotNull(<span class="hljs-params">msg</span>, <span class="hljs-string">&quot;msg&quot;</span>)</span>;
+</code></pre>
+<p>写事件会在ChannelOutboundHandler中向前传播：</p>
+<pre><code>private void write(Object msg, boolean flush, ChannelPromise promise) &#123;
+    ObjectUtil.checkNotNull(msg, &quot;msg&quot;);
 
     ......
 
-    AbstractChannelHandlerContext next = this.find<span class="hljs-constructor">ContextOutbound(<span class="hljs-params">flush</span> ? 98304 : &#x27;耀&#x27;)</span>;
+    AbstractChannelHandlerContext next = this.findContextOutbound(flush ? 98304 : '耀');
     Object m = this.pipeline.touch(msg, next);
-    EventExecutor executor = next.executor<span class="hljs-literal">()</span>;
-    <span class="hljs-keyword">if</span> (executor.<span class="hljs-keyword">in</span><span class="hljs-constructor">EventLoop()</span>) &#123;
-        <span class="hljs-keyword">if</span> (flush) &#123;
-            next.invoke<span class="hljs-constructor">WriteAndFlush(<span class="hljs-params">m</span>, <span class="hljs-params">promise</span>)</span>;
-        &#125; <span class="hljs-keyword">else</span> &#123;
-            next.invoke<span class="hljs-constructor">Write(<span class="hljs-params">m</span>, <span class="hljs-params">promise</span>)</span>;
+    EventExecutor executor = next.executor();
+    if (executor.inEventLoop()) &#123;
+        if (flush) &#123;
+            next.invokeWriteAndFlush(m, promise);
+        &#125; else &#123;
+            next.invokeWrite(m, promise);
         &#125;
-    &#125; <span class="hljs-keyword">else</span> &#123;
-        WriteTask task = <span class="hljs-module-access"><span class="hljs-module"><span class="hljs-identifier">AbstractChannelHandlerContext</span>.</span><span class="hljs-module"><span class="hljs-identifier">WriteTask</span>.</span></span><span class="hljs-keyword">new</span><span class="hljs-constructor">Instance(<span class="hljs-params">next</span>, <span class="hljs-params">m</span>, <span class="hljs-params">promise</span>, <span class="hljs-params">flush</span>)</span>;
-        <span class="hljs-keyword">if</span> (!safe<span class="hljs-constructor">Execute(<span class="hljs-params">executor</span>, <span class="hljs-params">task</span>, <span class="hljs-params">promise</span>, <span class="hljs-params">m</span>, !<span class="hljs-params">flush</span>)</span>) &#123;
-            task.cancel<span class="hljs-literal">()</span>;
+    &#125; else &#123;
+        WriteTask task = AbstractChannelHandlerContext.WriteTask.newInstance(next, m, promise, flush);
+        if (!safeExecute(executor, task, promise, m, !flush)) &#123;
+            task.cancel();
         &#125;
     &#125;
 
 &#125;
-</code></pre></div>
-<p>  通过this.findContextOutbound拿到下一个ChannelHandlerContext<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>调用next.invokeWrite<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果是调用的是writeAndFlush<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则会调用next.invokeWriteAndFlush<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+</code></pre>
+<p>  通过this.findContextOutbound拿到下一个ChannelHandlerContext，调用next.invokeWrite，如果是调用的是writeAndFlush，则会调用next.invokeWriteAndFlush。<br>
 最终会来到HeadContext,调用outboundBuffer来addMessage</p>
-<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">void</span> <span class="hljs-title">write</span><span class="hljs-params">(Object msg, ChannelPromise promise)</span> </span>&#123;
-    <span class="hljs-keyword">this</span>.<span class="hljs-built_in">assertEventLoop</span>();
-    ChannelOutboundBuffer outboundBuffer = <span class="hljs-keyword">this</span>.outboundBuffer;
+<pre><code>public final void write(Object msg, ChannelPromise promise) &#123;
+    this.assertEventLoop();
+    ChannelOutboundBuffer outboundBuffer = this.outboundBuffer;
     
     ....
-        <span class="hljs-keyword">int</span> size;
-        <span class="hljs-keyword">try</span> &#123;
-            msg = AbstractChannel.<span class="hljs-keyword">this</span>.<span class="hljs-built_in">filterOutboundMessage</span>(msg);
-            <span class="hljs-comment">// 估计待写数据大小</span>
-            size = AbstractChannel.<span class="hljs-keyword">this</span>.pipeline.<span class="hljs-built_in">estimatorHandle</span>().<span class="hljs-built_in">size</span>(msg);
-            <span class="hljs-keyword">if</span> (size &lt; <span class="hljs-number">0</span>) &#123;
-                size = <span class="hljs-number">0</span>;
+        int size;
+        try &#123;
+            msg = AbstractChannel.this.filterOutboundMessage(msg);
+            // 估计待写数据大小
+            size = AbstractChannel.this.pipeline.estimatorHandle().size(msg);
+            if (size &lt; 0) &#123;
+                size = 0;
             &#125;
-        &#125; <span class="hljs-built_in"><span class="hljs-keyword">catch</span></span> (Throwable var15) &#123;
-            <span class="hljs-keyword">try</span> &#123;
-                ReferenceCountUtil.<span class="hljs-built_in">release</span>(msg);
+        &#125; catch (Throwable var15) &#123;
+            try &#123;
+                ReferenceCountUtil.release(msg);
             &#125; finally &#123;
-                <span class="hljs-keyword">this</span>.<span class="hljs-built_in">safeSetFailure</span>(promise, var15);
+                this.safeSetFailure(promise, var15);
             &#125;
 
-            <span class="hljs-keyword">return</span>;
+            return;
         &#125;
 
-        outboundBuffer.<span class="hljs-built_in">addMessage</span>(msg, size, promise);
+        outboundBuffer.addMessage(msg, size, promise);
     
 &#125;
-</code></pre></div>
-<p>  由于netty是异步网络框架<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>对于write事件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并不会直接写进socket中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而是添加到待发送数据缓冲队列ChannelOutboundBuffer中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>之后通过flush操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>将队列中所有的msg写进socket中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<p>  这里的filterOutboundMessage是为了检查写入类型<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>过滤不是bytebuf或者FileRegion类型的msg<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时对非堆外内存进行转换<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>转换为堆外内存<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>提升性能<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">protected</span> final <span class="hljs-built_in">Object</span> <span class="hljs-function"><span class="hljs-title">filterOutboundMessage</span>(<span class="hljs-params"><span class="hljs-built_in">Object</span> msg</span>)</span> &#123;
-    <span class="hljs-keyword">if</span> (msg <span class="hljs-keyword">instanceof</span> ByteBuf) &#123;
+</code></pre>
+<p>  由于netty是异步网络框架，对于write事件，并不会直接写进socket中，而是添加到待发送数据缓冲队列ChannelOutboundBuffer中，之后通过flush操作，将队列中所有的msg写进socket中。</p>
+<p>  这里的filterOutboundMessage是为了检查写入类型，过滤不是bytebuf或者FileRegion类型的msg，同时对非堆外内存进行转换，转换为堆外内存，提升性能。</p>
+<pre><code>protected final Object filterOutboundMessage(Object msg) &#123;
+    if (msg instanceof ByteBuf) &#123;
         ByteBuf buf = (ByteBuf)msg;
-        <span class="hljs-keyword">return</span> buf.isDirect() ? msg : <span class="hljs-built_in">this</span>.newDirectBuffer(buf);
-    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (msg <span class="hljs-keyword">instanceof</span> FileRegion) &#123;
-        <span class="hljs-keyword">return</span> msg;
-    &#125; <span class="hljs-keyword">else</span> &#123;
-        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> UnsupportedOperationException(<span class="hljs-string">&quot;unsupported message type: &quot;</span> + StringUtil.simpleClassName(msg) + EXPECTED_TYPES);
+        return buf.isDirect() ? msg : this.newDirectBuffer(buf);
+    &#125; else if (msg instanceof FileRegion) &#123;
+        return msg;
+    &#125; else &#123;
+        throw new UnsupportedOperationException(&quot;unsupported message type: &quot; + StringUtil.simpleClassName(msg) + EXPECTED_TYPES);
     &#125;
 &#125;
-</code></pre></div>
-<h2 id="3-待缓冲数据队列--channeloutboundbuffer">3. 待缓冲数据队列--ChannelOutboundBuffer</h2>
-<p>ChannelOutboundBuffer是一个单链表结构的缓冲队列<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>其队列类型为Entry<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>其作用就是缓存待写入socket的数据信息<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>其中包含的属性有unflushedEntry<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>tailEntry<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>flushedEntry等</p>
+</code></pre>
+<h2 id="3-待缓冲数据队列-ChannelOutboundBuffer">3. 待缓冲数据队列--ChannelOutboundBuffer</h2>
+<p>ChannelOutboundBuffer是一个单链表结构的缓冲队列，其队列类型为Entry。其作用就是缓存待写入socket的数据信息，其中包含的属性有unflushedEntry、tailEntry、flushedEntry等</p>
 <ul>
 <li>
-<p>unflushedEntry <span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 代表只是通过write方法添加到了Entry链表的消息节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>它是链表里第一个等待刷新的节点</p>
+<p>unflushedEntry ： 代表只是通过write方法添加到了Entry链表的消息节点。它是链表里第一个等待刷新的节点</p>
 </li>
 <li>
-<p>tailEntry <span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> Entry链表的最后一个节点</p>
+<p>tailEntry ： Entry链表的最后一个节点</p>
 </li>
 <li>
-<p>flushedEntry <span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span> 代表被flush方法标记为已刷新的消息节点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>即可以认为该Entry马上或者已经被发到网络了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>它指向的是链表里第一个要被刷新出去的节点</p>
+<p>flushedEntry ： 代表被flush方法标记为已刷新的消息节点，即可以认为该Entry马上或者已经被发到网络了，它指向的是链表里第一个要被刷新出去的节点</p>
 </li>
 </ul>
-<p> 调用addMessage方法之前<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>三个指针的样子<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+<p> 调用addMessage方法之前，三个指针的样子：</p>
 <p><img src="add_message1.png" alt=""><br>
-当添加第一个msg后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+当添加第一个msg后：</p>
 <p><img src="add_message2.png" alt=""><br>
-添加第二个msg<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+添加第二个msg：</p>
 <p><img src="add_message3.png" alt=""><br>
-以此类推<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+以此类推：</p>
 <p><img src="add_message4.png" alt=""></p>
-<p>  直到达到了ChannelOutboundBuffer的高水位线<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>才会停止添加<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>设置channel为不可写<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>直到恢复到低水位<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title">incrementPendingOutboundBytes</span><span class="hljs-params">(<span class="hljs-keyword">long</span> size, <span class="hljs-keyword">boolean</span> invokeLater)</span> </span>&#123;
-    <span class="hljs-keyword">if</span> (size != <span class="hljs-number">0L</span>) &#123;
-        <span class="hljs-keyword">long</span> newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.<span class="hljs-built_in">addAndGet</span>(<span class="hljs-keyword">this</span>, size);
-        <span class="hljs-keyword">if</span> (newWriteBufferSize &gt; (<span class="hljs-keyword">long</span>)<span class="hljs-keyword">this</span>.channel.<span class="hljs-built_in">config</span>().<span class="hljs-built_in">getWriteBufferHighWaterMark</span>()) &#123;
-            <span class="hljs-keyword">this</span>.<span class="hljs-built_in">setUnwritable</span>(invokeLater);
+<p>  直到达到了ChannelOutboundBuffer的高水位线，才会停止添加，设置channel为不可写，直到恢复到低水位。</p>
+<pre><code>private void incrementPendingOutboundBytes(long size, boolean invokeLater) &#123;
+    if (size != 0L) &#123;
+        long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, size);
+        if (newWriteBufferSize &gt; (long)this.channel.config().getWriteBufferHighWaterMark()) &#123;
+            this.setUnwritable(invokeLater);
         &#125;
 
     &#125;
 &#125;
-</code></pre></div>
+</code></pre>
 <h2 id="4-flush">4. flush</h2>
-<p>  我们看到<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>write只会将待写入数据放进ChannelOutboundBuffer<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>其实并不会真正的写进socket中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而flush操作会依次向前传播<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>最后在headContext中flush所有unflushedEntry<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> void flush() &#123;
-    <span class="hljs-keyword">this</span>.assertEventLoop();
-    ChannelOutboundBuffer outboundBuffer = <span class="hljs-keyword">this</span>.outboundBuffer;
-    <span class="hljs-keyword">if</span> (outboundBuffer != <span class="hljs-literal">null</span>) &#123;
+<p>  我们看到，write只会将待写入数据放进ChannelOutboundBuffer，其实并不会真正的写进socket中，而flush操作会依次向前传播，最后在headContext中flush所有unflushedEntry。</p>
+<pre><code>public final void flush() &#123;
+    this.assertEventLoop();
+    ChannelOutboundBuffer outboundBuffer = this.outboundBuffer;
+    if (outboundBuffer != null) &#123;
         outboundBuffer.addFlush();
-        <span class="hljs-keyword">this</span>.flush0();
+        this.flush0();
     &#125;
 &#125;
-</code></pre></div>
-<p>addFlush操作会将所有unflushedEntry标记为flushedEntry<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后进行flush<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">public</span> void addFlush() &#123;
-    Entry entry = <span class="hljs-keyword">this</span>.unflushedEntry;
-    <span class="hljs-keyword">if</span> (entry != <span class="hljs-literal">null</span>) &#123;
-        <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.flushedEntry == <span class="hljs-literal">null</span>) &#123;
-            <span class="hljs-keyword">this</span>.flushedEntry = entry;
+</code></pre>
+<p>addFlush操作会将所有unflushedEntry标记为flushedEntry，然后进行flush。</p>
+<pre><code>public void addFlush() &#123;
+    Entry entry = this.unflushedEntry;
+    if (entry != null) &#123;
+        if (this.flushedEntry == null) &#123;
+            this.flushedEntry = entry;
         &#125;
 
-        <span class="hljs-keyword">do</span> &#123;
-            ++<span class="hljs-keyword">this</span>.flushed;
-            <span class="hljs-keyword">if</span> (!entry.promise.setUncancellable()) &#123;
+        do &#123;
+            ++this.flushed;
+            if (!entry.promise.setUncancellable()) &#123;
                 int pending = entry.cancel();
-                <span class="hljs-keyword">this</span>.decrementPendingOutboundBytes((long)pending, <span class="hljs-literal">false</span>, <span class="hljs-literal">true</span>);
+                this.decrementPendingOutboundBytes((long)pending, false, true);
             &#125;
 
             entry = entry.next;
-        &#125; <span class="hljs-keyword">while</span>(entry != <span class="hljs-literal">null</span>);
+        &#125; while(entry != null);
 
-        <span class="hljs-keyword">this</span>.unflushedEntry = <span class="hljs-literal">null</span>;
+        this.unflushedEntry = null;
     &#125;
 
 &#125;
-</code></pre></div>
+</code></pre>
 <p><img src="add_message5.png" alt=""></p>
-<p>  所有待写入socket的entry会从flushedEntry开始<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>unflushedEntry指向null<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时所有entry都变成不可取消的状态<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
+<p>  所有待写入socket的entry会从flushedEntry开始，unflushedEntry指向null，同时所有entry都变成不可取消的状态。<br>
 接下来就是真正的开始write数据到底层的socket了</p>
-<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title">flush0</span><span class="hljs-params">()</span> </span>&#123;
-    <span class="hljs-keyword">if</span> (!<span class="hljs-keyword">this</span>.inFlush0) &#123;
-        ChannelOutboundBuffer outboundBuffer = <span class="hljs-keyword">this</span>.outboundBuffer;
-        <span class="hljs-keyword">if</span> (outboundBuffer != null &amp;&amp; !outboundBuffer.<span class="hljs-built_in">isEmpty</span>()) &#123;
-            <span class="hljs-keyword">this</span>.inFlush0 = <span class="hljs-literal">true</span>;
-            <span class="hljs-keyword">if</span> (AbstractChannel.<span class="hljs-keyword">this</span>.<span class="hljs-built_in">isActive</span>()) &#123;
-                <span class="hljs-keyword">try</span> &#123;
-                    AbstractChannel.<span class="hljs-keyword">this</span>.<span class="hljs-built_in">doWrite</span>(outboundBuffer);
-                &#125; <span class="hljs-built_in"><span class="hljs-keyword">catch</span></span> (Throwable var10) &#123;
-                    <span class="hljs-keyword">this</span>.<span class="hljs-built_in">handleWriteError</span>(var10);
+<pre><code>protected void flush0() &#123;
+    if (!this.inFlush0) &#123;
+        ChannelOutboundBuffer outboundBuffer = this.outboundBuffer;
+        if (outboundBuffer != null &amp;&amp; !outboundBuffer.isEmpty()) &#123;
+            this.inFlush0 = true;
+            if (AbstractChannel.this.isActive()) &#123;
+                try &#123;
+                    AbstractChannel.this.doWrite(outboundBuffer);
+                &#125; catch (Throwable var10) &#123;
+                    this.handleWriteError(var10);
                 &#125; finally &#123;
-                    <span class="hljs-keyword">this</span>.inFlush0 = <span class="hljs-literal">false</span>;
+                    this.inFlush0 = false;
                 &#125;
 
             &#125; 
@@ -252,85 +252,85 @@
     &#125;
 &#125;
 
-<span class="hljs-function"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title">doWrite</span><span class="hljs-params">(ChannelOutboundBuffer in)</span> throws Exception </span>&#123;
-    java.nio.channels.SocketChannel ch = <span class="hljs-keyword">this</span>.<span class="hljs-built_in">javaChannel</span>();
-    <span class="hljs-keyword">int</span> writeSpinCount = <span class="hljs-keyword">this</span>.<span class="hljs-built_in">config</span>().<span class="hljs-built_in">getWriteSpinCount</span>();
+protected void doWrite(ChannelOutboundBuffer in) throws Exception &#123;
+    java.nio.channels.SocketChannel ch = this.javaChannel();
+    int writeSpinCount = this.config().getWriteSpinCount();
 
-    <span class="hljs-keyword">do</span> &#123;
-        <span class="hljs-keyword">if</span> (in.<span class="hljs-built_in">isEmpty</span>()) &#123;
-            <span class="hljs-keyword">this</span>.<span class="hljs-built_in">clearOpWrite</span>();
-            <span class="hljs-keyword">return</span>;
+    do &#123;
+        if (in.isEmpty()) &#123;
+            this.clearOpWrite();
+            return;
         &#125;
 
-        <span class="hljs-keyword">int</span> maxBytesPerGatheringWrite = ((NioSocketChannelConfig)<span class="hljs-keyword">this</span>.config).<span class="hljs-built_in">getMaxBytesPerGatheringWrite</span>();
-        ByteBuffer[] nioBuffers = in.<span class="hljs-built_in">nioBuffers</span>(<span class="hljs-number">1024</span>, (<span class="hljs-keyword">long</span>)maxBytesPerGatheringWrite);
-        <span class="hljs-keyword">int</span> nioBufferCnt = in.<span class="hljs-built_in">nioBufferCount</span>();
-        <span class="hljs-built_in"><span class="hljs-keyword">switch</span></span> (nioBufferCnt) &#123;
-            <span class="hljs-keyword">case</span> <span class="hljs-number">0</span>:
-                writeSpinCount -= <span class="hljs-keyword">this</span>.<span class="hljs-built_in">doWrite0</span>(in);
-                <span class="hljs-keyword">break</span>;
-            <span class="hljs-keyword">case</span> <span class="hljs-number">1</span>:
-                ByteBuffer buffer = nioBuffers[<span class="hljs-number">0</span>];
-                <span class="hljs-keyword">int</span> attemptedBytes = buffer.<span class="hljs-built_in">remaining</span>();
-                <span class="hljs-keyword">int</span> localWrittenBytes = ch.<span class="hljs-built_in">write</span>(buffer);
-                <span class="hljs-keyword">if</span> (localWrittenBytes &lt;= <span class="hljs-number">0</span>) &#123;
-                    <span class="hljs-keyword">this</span>.<span class="hljs-built_in">incompleteWrite</span>(<span class="hljs-literal">true</span>);
-                    <span class="hljs-keyword">return</span>;
+        int maxBytesPerGatheringWrite = ((NioSocketChannelConfig)this.config).getMaxBytesPerGatheringWrite();
+        ByteBuffer[] nioBuffers = in.nioBuffers(1024, (long)maxBytesPerGatheringWrite);
+        int nioBufferCnt = in.nioBufferCount();
+        switch (nioBufferCnt) &#123;
+            case 0:
+                writeSpinCount -= this.doWrite0(in);
+                break;
+            case 1:
+                ByteBuffer buffer = nioBuffers[0];
+                int attemptedBytes = buffer.remaining();
+                int localWrittenBytes = ch.write(buffer);
+                if (localWrittenBytes &lt;= 0) &#123;
+                    this.incompleteWrite(true);
+                    return;
                 &#125;
 
-                <span class="hljs-keyword">this</span>.<span class="hljs-built_in">adjustMaxBytesPerGatheringWrite</span>(attemptedBytes, localWrittenBytes, maxBytesPerGatheringWrite);
-                in.<span class="hljs-built_in">removeBytes</span>((<span class="hljs-keyword">long</span>)localWrittenBytes);
+                this.adjustMaxBytesPerGatheringWrite(attemptedBytes, localWrittenBytes, maxBytesPerGatheringWrite);
+                in.removeBytes((long)localWrittenBytes);
                 --writeSpinCount;
-                <span class="hljs-keyword">break</span>;
-            <span class="hljs-keyword">default</span>:
-                <span class="hljs-keyword">long</span> attemptedBytes = in.<span class="hljs-built_in">nioBufferSize</span>();
-                <span class="hljs-keyword">long</span> localWrittenBytes = ch.<span class="hljs-built_in">write</span>(nioBuffers, <span class="hljs-number">0</span>, nioBufferCnt);
-                <span class="hljs-keyword">if</span> (localWrittenBytes &lt;= <span class="hljs-number">0L</span>) &#123;
-                    <span class="hljs-keyword">this</span>.<span class="hljs-built_in">incompleteWrite</span>(<span class="hljs-literal">true</span>);
-                    <span class="hljs-keyword">return</span>;
+                break;
+            default:
+                long attemptedBytes = in.nioBufferSize();
+                long localWrittenBytes = ch.write(nioBuffers, 0, nioBufferCnt);
+                if (localWrittenBytes &lt;= 0L) &#123;
+                    this.incompleteWrite(true);
+                    return;
                 &#125;
 
-                <span class="hljs-keyword">this</span>.<span class="hljs-built_in">adjustMaxBytesPerGatheringWrite</span>((<span class="hljs-keyword">int</span>)attemptedBytes, (<span class="hljs-keyword">int</span>)localWrittenBytes, maxBytesPerGatheringWrite);
-                in.<span class="hljs-built_in">removeBytes</span>(localWrittenBytes);
+                this.adjustMaxBytesPerGatheringWrite((int)attemptedBytes, (int)localWrittenBytes, maxBytesPerGatheringWrite);
+                in.removeBytes(localWrittenBytes);
                 --writeSpinCount;
         &#125;
-    &#125; <span class="hljs-keyword">while</span>(writeSpinCount &gt; <span class="hljs-number">0</span>);
+    &#125; while(writeSpinCount &gt; 0);
 
-    <span class="hljs-keyword">this</span>.<span class="hljs-built_in">incompleteWrite</span>(writeSpinCount &lt; <span class="hljs-number">0</span>);
-</code></pre></div>
-<p>  写一直发生在这个do while里面<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>writeSpinCount表示最大写的次数<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>默认是16次<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span>通过调用nioBuffers方法<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从flushedEntry开始<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>将bytebuf转换成JDK的ByteBuffer数组<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>每写完一个ByteBuffer<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>都会进行remove操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后write下一个entry<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<p>  这里注意两点<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+    this.incompleteWrite(writeSpinCount &lt; 0);
+</code></pre>
+<p>  写一直发生在这个do while里面，writeSpinCount表示最大写的次数，默认是16次；通过调用nioBuffers方法，从flushedEntry开始，将bytebuf转换成JDK的ByteBuffer数组。每写完一个ByteBuffer，都会进行remove操作，然后write下一个entry。</p>
+<p>  这里注意两点：</p>
 <ol>
 <li>maxBytesPerGatheringWrite</li>
 </ol>
-<p>  每次写入数据的大小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>都是适应调整的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>maxBytesPerGatheringWrite 决定每次 write 可以从 channelOutboundBuffer 中最多发送数据<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>初始值为 SO_SNDBUF大小 * 2 = 293976 = 146988 &lt;&lt; 1<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">private</span> void adjust<span class="hljs-constructor">MaxBytesPerGatheringWrite(<span class="hljs-params">int</span> <span class="hljs-params">attempted</span>, <span class="hljs-params">int</span> <span class="hljs-params">written</span>, <span class="hljs-params">int</span> <span class="hljs-params">oldMaxBytesPerGatheringWrite</span>)</span> &#123;
-    <span class="hljs-keyword">if</span> (attempted<span class="hljs-operator"> == </span>written) &#123;
-        <span class="hljs-keyword">if</span> (attempted &lt;&lt; <span class="hljs-number">1</span> &gt; oldMaxBytesPerGatheringWrite) &#123;
-            ((NioSocketChannelConfig)this.config).set<span class="hljs-constructor">MaxBytesPerGatheringWrite(<span class="hljs-params">attempted</span> &lt;&lt; 1)</span>;
+<p>  每次写入数据的大小，都是适应调整的。maxBytesPerGatheringWrite 决定每次 write 可以从 channelOutboundBuffer 中最多发送数据，初始值为 SO_SNDBUF大小 * 2 = 293976 = 146988 &lt;&lt; 1。</p>
+<pre><code>private void adjustMaxBytesPerGatheringWrite(int attempted, int written, int oldMaxBytesPerGatheringWrite) &#123;
+    if (attempted == written) &#123;
+        if (attempted &lt;&lt; 1 &gt; oldMaxBytesPerGatheringWrite) &#123;
+            ((NioSocketChannelConfig)this.config).setMaxBytesPerGatheringWrite(attempted &lt;&lt; 1);
         &#125;
-    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (attempted &gt; <span class="hljs-number">4096</span><span class="hljs-operator"> &amp;&amp; </span>written &lt; attempted &gt;&gt;&gt; <span class="hljs-number">1</span>) &#123;
-        ((NioSocketChannelConfig)this.config).set<span class="hljs-constructor">MaxBytesPerGatheringWrite(<span class="hljs-params">attempted</span> &gt;&gt;&gt; 1)</span>;
+    &#125; else if (attempted &gt; 4096 &amp;&amp; written &lt; attempted &gt;&gt;&gt; 1) &#123;
+        ((NioSocketChannelConfig)this.config).setMaxBytesPerGatheringWrite(attempted &gt;&gt;&gt; 1);
     &#125;
 
 &#125;
-</code></pre></div>
-<p>  如果这次尝试写入量attempted与真实写入量written一样<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且真实写入量的2倍大于最大可写入量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>netty会扩大下次写入量为这次写入量的2倍written * 2<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span> 如果真实写入量的2倍小于这次最大可写入量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则表示需求也不是很大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就不会进行扩容<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>而真实写入量小于尝试写入的一半<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则会缩小下次最大写入量为attempted的1/2<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>当然有最小值的限制<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+</code></pre>
+<p>  如果这次尝试写入量attempted与真实写入量written一样，并且真实写入量的2倍大于最大可写入量，netty会扩大下次写入量为这次写入量的2倍written * 2， 如果真实写入量的2倍小于这次最大可写入量，则表示需求也不是很大，就不会进行扩容。而真实写入量小于尝试写入的一半，则会缩小下次最大写入量为attempted的1/2。当然有最小值的限制。</p>
 <ol start="2">
 <li>writeSpinCount</li>
 </ol>
-<p>  默认一次写入最多循环16次<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>第一种情况是<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果超过16次<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且数据没有写完<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则会强制退出channel的write<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>添加到IO线程的task中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>让其他的channel去执行任务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果是未超过16次<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但是socket写满了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则会停止写入<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>注册写事件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>等待socket可写为止<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> void incompleteWrite(boolean setOpWrite) &#123;
-    <span class="hljs-keyword">if</span> (setOpWrite) &#123;
-        <span class="hljs-keyword">this</span>.setOpWrite();
-    &#125; <span class="hljs-keyword">else</span> &#123;
-        <span class="hljs-keyword">this</span>.clearOpWrite();
-        <span class="hljs-keyword">this</span>.eventLoop().execute(<span class="hljs-keyword">this</span>.flushTask);
+<p>  默认一次写入最多循环16次，第一种情况是，如果超过16次，并且数据没有写完，则会强制退出channel的write，添加到IO线程的task中，让其他的channel去执行任务，如果是未超过16次，但是socket写满了，则会停止写入，注册写事件，等待socket可写为止。</p>
+<pre><code>protected final void incompleteWrite(boolean setOpWrite) &#123;
+    if (setOpWrite) &#123;
+        this.setOpWrite();
+    &#125; else &#123;
+        this.clearOpWrite();
+        this.eventLoop().execute(this.flushTask);
     &#125;
 
 &#125;
-</code></pre></div>
-<p>  channel的写事件会向前传播<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>进行write和flush<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>依次添加进待刷新队列<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后是执行flush操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在flush操作时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也会根据写入量动态进行放缩来调整写入量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时也不会一直让一个耗时的entry一直进行写入<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果超过writeSpinCount次数<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则会添加进futuretask<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>进行下次写入<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>要么是socket写满了<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>等待可写为止<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>当最终写入socket后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会通过channelPromise<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>进行异步通知<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+</code></pre>
+<p>  channel的写事件会向前传播，进行write和flush，依次添加进待刷新队列，然后是执行flush操作，在flush操作时，也会根据写入量动态进行放缩来调整写入量，同时也不会一直让一个耗时的entry一直进行写入，如果超过writeSpinCount次数，则会添加进futuretask，进行下次写入，要么是socket写满了，等待可写为止。当最终写入socket后，会通过channelPromise，进行异步通知。</p>
 
       
     </div>

@@ -73,9 +73,9 @@
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <p>  本文简单介绍当Broker接受到producerRequest的时候<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>ReplicaManager是如何处理的本地写入和WaitForFollowerFetch</p>
+        <p>  本文简单介绍当Broker接受到producerRequest的时候，ReplicaManager是如何处理的本地写入和WaitForFollowerFetch</p>
 <span id="more"></span>
-<p>  每个Partition都有两个管理对象ReplicaManager 和 LogManger<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>ReplicaManager的作用是管理这台 broker 上的所有副本<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>replica<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>在 Kafka 中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个副本<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>replica<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span>都会跟日志实例<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Log 对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span>一一对应<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一个副本会对应一个 Log 对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+<p>  每个Partition都有两个管理对象ReplicaManager 和 LogManger，ReplicaManager的作用是管理这台 broker 上的所有副本（replica）。在 Kafka 中，每个副本（replica）都会跟日志实例（Log 对象）一一对应，一个副本会对应一个 Log 对象。</p>
 <table>
 <thead>
 <tr>
@@ -86,34 +86,34 @@
 </thead>
 <tbody>
 <tr>
-<td>日志管理器<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>LogManager<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span></td>
-<td>日志<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Log<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span></td>
-<td>日志分段<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>LogSegment<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span></td>
+<td>日志管理器（LogManager）</td>
+<td>日志（Log）</td>
+<td>日志分段（LogSegment）</td>
 </tr>
 <tr>
-<td>副本管理器<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>ReplicaManager<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span></td>
-<td>分区<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Partition<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span></td>
-<td>副本<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>Replica<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span></td>
+<td>副本管理器（ReplicaManager）</td>
+<td>分区（Partition）</td>
+<td>副本（Replica）</td>
 </tr>
 </tbody>
 </table>
-<p>  生产者的ack是可以配置的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当acks=0时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>生产者发送数据后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就不会等待服务器的响应<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当acks=1时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>生产者只需要等待Leader Partition的响应<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>当acks=all时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就会等待配置的isr集合中所有副本的返回<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而通过利用acks=all和isr动态集合来确保数据一致性问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span>当Leader节点失效后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>由于保证了所有ISR集合中所有副本的log end offset都是一致的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而可以从ISR集合中选举新的Leader<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<p>  KafkaApis是Kafka服务器处理请求的入口类,负责将KafkaRequestHandler传递过来的请求分发到不同的handle*()处理方法中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这一节主要是关注producer的请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">case</span> ApiKeys.PRODUCE =&gt; handleProduceRequest(request, requestLocal)
-</code></pre></div>
-<p>  handleProduceRequest中前面是验证request<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>定义sendResponseCallback<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>processingStatsCallback<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>其主要是为了记录metrics<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>之后就是主要的replicaManager.appendRecords:</p>
-<div class="highlight"><pre class="code"><code>replicaManager.appendRecords(  
-	<span class="hljs-attr">timeout</span> = produceRequest.timeout.toLong,  
-	<span class="hljs-attr">requiredAcks</span> = produceRequest.acks,  
-	<span class="hljs-attr">internalTopicsAllowed</span> = internalTopicsAllowed,  
-	<span class="hljs-attr">origin</span> = AppendOrigin.CLIENT,  
-	<span class="hljs-attr">entriesPerPartition</span> = authorizedRequestInfo,  
-	<span class="hljs-attr">requestLocal</span> = requestLocal,  
-	<span class="hljs-attr">responseCallback</span> = sendResponseCallback,  
-	<span class="hljs-attr">recordConversionStatsCallback</span> = processingStatsCallback,  
-	<span class="hljs-attr">transactionalId</span> = produceRequest.transactionalId(),  
-	<span class="hljs-attr">transactionStatePartition</span> = transactionStatePartition)
-</code></pre></div>
+<p>  生产者的ack是可以配置的，当acks=0时，生产者发送数据后，就不会等待服务器的响应，当acks=1时，生产者只需要等待Leader Partition的响应，当acks=all时，就会等待配置的isr集合中所有副本的返回，从而通过利用acks=all和isr动态集合来确保数据一致性问题：当Leader节点失效后，由于保证了所有ISR集合中所有副本的log end offset都是一致的，从而可以从ISR集合中选举新的Leader。</p>
+<p>  KafkaApis是Kafka服务器处理请求的入口类,负责将KafkaRequestHandler传递过来的请求分发到不同的handle*()处理方法中，这一节主要是关注producer的请求：</p>
+<pre><code class="language-java">case ApiKeys.PRODUCE =&gt; handleProduceRequest(request, requestLocal)
+</code></pre>
+<p>  handleProduceRequest中前面是验证request，定义sendResponseCallback，processingStatsCallback，其主要是为了记录metrics，之后就是主要的replicaManager.appendRecords:</p>
+<pre><code>replicaManager.appendRecords(  
+	timeout = produceRequest.timeout.toLong,  
+	requiredAcks = produceRequest.acks,  
+	internalTopicsAllowed = internalTopicsAllowed,  
+	origin = AppendOrigin.CLIENT,  
+	entriesPerPartition = authorizedRequestInfo,  
+	requestLocal = requestLocal,  
+	responseCallback = sendResponseCallback,  
+	recordConversionStatsCallback = processingStatsCallback,  
+	transactionalId = produceRequest.transactionalId(),  
+	transactionStatePartition = transactionStatePartition)
+</code></pre>
 <ol>
 <li>appendEntries:
 <ul>
@@ -129,86 +129,86 @@
 </ul>
 </li>
 </ol>
-<p>  先对leaderIsrUpdateLock用读锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>避免这个时候更新Isr集合<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>造成副本Replica同步与Isr集合不一致的问题<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个Partition中都有一个log的对象<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为是appendToLeader<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要先判断log是不是LeaderLog<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后check此时partitionState的isr.size&gt;=leaderLog.config.minInSyncReplicas<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果满足就appendAsLeader<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>具体log中是如何写进本地磁盘的先不深入<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-function">def <span class="hljs-title">appendRecordsToLeader</span><span class="hljs-params">(records: MemoryRecords, origin: AppendOrigin, requiredAcks: Int,
-        requestLocal: RequestLocal, verificationGuard: Object = <span class="hljs-keyword">null</span>)</span>: LogAppendInfo </span>= &#123;
+<p>  先对leaderIsrUpdateLock用读锁，避免这个时候更新Isr集合，造成副本Replica同步与Isr集合不一致的问题，每个Partition中都有一个log的对象，因为是appendToLeader，需要先判断log是不是LeaderLog，然后check此时partitionState的isr.size&gt;=leaderLog.config.minInSyncReplicas，如果满足就appendAsLeader，具体log中是如何写进本地磁盘的先不深入。</p>
+<pre><code class="language-java">def appendRecordsToLeader(records: MemoryRecords, origin: AppendOrigin, requiredAcks: Int,
+        requestLocal: RequestLocal, verificationGuard: Object = null): LogAppendInfo = &#123;
         val (info, leaderHWIncremented) = inReadLock(leaderIsrUpdateLock) &#123;
-        <span class="hljs-comment">// leaderLogIfLocal 这个变量是在 LeaderAndIsr 的构造函数中初始化的  </span>
+        // leaderLogIfLocal 这个变量是在 LeaderAndIsr 的构造函数中初始化的  
         leaderLogIfLocal match &#123;
-        <span class="hljs-function"><span class="hljs-keyword">case</span> <span class="hljs-title">Some</span><span class="hljs-params">(leaderLog)</span> </span>=&gt;
+        case Some(leaderLog) =&gt;
         val minIsr = leaderLog.config.minInSyncReplicas
         val inSyncSize = partitionState.isr.size
 
-        <span class="hljs-comment">// Avoid writing to leader if there are not enough insync replicas to make it safe  </span>
-        <span class="hljs-keyword">if</span> (inSyncSize &lt; minIsr &amp;&amp; requiredAcks == -<span class="hljs-number">1</span>) &#123;
-        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> NotEnoughReplicasException(s<span class="hljs-string">&quot;The size of the current ISR $&#123;partitionState.isr&#125; &quot;</span> +
-        s<span class="hljs-string">&quot;is insufficient to satisfy the min.isr requirement of $minIsr for partition $topicPartition&quot;</span>)
+        // Avoid writing to leader if there are not enough insync replicas to make it safe  
+        if (inSyncSize &lt; minIsr &amp;&amp; requiredAcks == -1) &#123;
+        throw new NotEnoughReplicasException(s&quot;The size of the current ISR $&#123;partitionState.isr&#125; &quot; +
+        s&quot;is insufficient to satisfy the min.isr requirement of $minIsr for partition $topicPartition&quot;)
         &#125;
 
-        val info = leaderLog.appendAsLeader(records, leaderEpoch = <span class="hljs-keyword">this</span>.leaderEpoch, origin,
+        val info = leaderLog.appendAsLeader(records, leaderEpoch = this.leaderEpoch, origin,
         interBrokerProtocolVersion, requestLocal, verificationGuard)
 
-        <span class="hljs-comment">// we may need to increment high watermark since ISR could be down to 1  </span>
+        // we may need to increment high watermark since ISR could be down to 1  
         (info, maybeIncrementLeaderHW(leaderLog))
 
-        <span class="hljs-keyword">case</span> None =&gt;
-        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> NotLeaderOrFollowerException(<span class="hljs-string">&quot;Leader not local for partition %s on broker %d&quot;</span>
+        case None =&gt;
+        throw new NotLeaderOrFollowerException(&quot;Leader not local for partition %s on broker %d&quot;
         .format(topicPartition, localBrokerId))
         &#125;
         &#125;
 
-        info.copy(<span class="hljs-keyword">if</span> (leaderHWIncremented) LeaderHwChange.INCREASED <span class="hljs-keyword">else</span> LeaderHwChange.SAME)
+        info.copy(if (leaderHWIncremented) LeaderHwChange.INCREASED else LeaderHwChange.SAME)
         &#125;
-</code></pre></div>
+</code></pre>
 <ol start="2">
 <li>delayedProduceRequestRequired</li>
 </ol>
-<p>  检查requiredAcks,如果是-1<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则要等Isr集合中所有的副本都同步完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这次的request才算是发送成功<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>构建DelayedProduce的request<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>然后调用delayedProducePurgatory.tryCompleteElseWatch(delayedProduce, producerRequestKeys)请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>异步的等待leader的其他副本同步完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">val</span> produceMetadata = <span class="hljs-constructor">ProduceMetadata(<span class="hljs-params">requiredAcks</span>, <span class="hljs-params">produceStatus</span>)</span>  
-<span class="hljs-keyword">val</span> delayedProduce = <span class="hljs-keyword">new</span> <span class="hljs-constructor">DelayedProduce(<span class="hljs-params">timeout</span>, <span class="hljs-params">produceMetadata</span>, <span class="hljs-params">this</span>, <span class="hljs-params">responseCallback</span>, <span class="hljs-params">delayedProduceLock</span>)</span>
-</code></pre></div>
-<p>  其中delayedProduce封装的是每个TopicPartition对应的写入Leader副本的lastOffset + 1的记录<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>其他还有responseCallback</p>
-<div class="highlight"><pre class="code"><code>def produceStatusResult(appendResult: Map[TopicPartition, LogAppendResult], useCustomMessage: <span class="hljs-type">Boolean</span>): Map[TopicPartition, ProducePartitionStatus] = &#123;
-  appendResult.map &#123; <span class="hljs-keyword">case</span> (topicPartition, result) =&gt;
+<p>  检查requiredAcks,如果是-1，则要等Isr集合中所有的副本都同步完成，这次的request才算是发送成功。构建DelayedProduce的request，然后调用delayedProducePurgatory.tryCompleteElseWatch(delayedProduce, producerRequestKeys)请求，异步的等待leader的其他副本同步完成。</p>
+<pre><code>val produceMetadata = ProduceMetadata(requiredAcks, produceStatus)  
+val delayedProduce = new DelayedProduce(timeout, produceMetadata, this, responseCallback, delayedProduceLock)
+</code></pre>
+<p>  其中delayedProduce封装的是每个TopicPartition对应的写入Leader副本的lastOffset + 1的记录，其他还有responseCallback</p>
+<pre><code>def produceStatusResult(appendResult: Map[TopicPartition, LogAppendResult], useCustomMessage: Boolean): Map[TopicPartition, ProducePartitionStatus] = &#123;
+  appendResult.map &#123; case (topicPartition, result) =&gt;
     topicPartition -&gt; ProducePartitionStatus(
-      result.<span class="hljs-keyword">info</span>.lastOffset + <span class="hljs-number">1</span>, // required <span class="hljs-keyword">offset</span>  
-      <span class="hljs-built_in">new</span> PartitionResponse(
+      result.info.lastOffset + 1, // required offset  
+      new PartitionResponse(
         result.error,
-        result.<span class="hljs-keyword">info</span>.firstOffset.map[Long](_.messageOffset)
-          .orElse(<span class="hljs-number">-1</span>L),
-        result.<span class="hljs-keyword">info</span>.lastOffset,
-        result.<span class="hljs-keyword">info</span>.logAppendTime,
-        result.<span class="hljs-keyword">info</span>.logStartOffset,
-        result.<span class="hljs-keyword">info</span>.recordErrors,
-        <span class="hljs-keyword">if</span> (useCustomMessage) result.<span class="hljs-keyword">exception</span>.<span class="hljs-keyword">get</span>.getMessage <span class="hljs-keyword">else</span> result.<span class="hljs-keyword">info</span>.errorMessage
+        result.info.firstOffset.map[Long](_.messageOffset)
+          .orElse(-1L),
+        result.info.lastOffset,
+        result.info.logAppendTime,
+        result.info.logStartOffset,
+        result.info.recordErrors,
+        if (useCustomMessage) result.exception.get.getMessage else result.info.errorMessage
       )
     ) // response status  
   &#125;
 &#125;
-</code></pre></div>
-<p>  producerRequestKeys指的是如果其他副本还没有同步完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就将这些topPartition加入到Watchers中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>等异步完成的时候再移除<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-<h2 id="delayedoperation">DelayedOperation</h2>
-<p>  DelayedOperationPurgatory是用来管理延迟操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>通过时间轮来完成定时任务或者异步任务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>DelayedOperation有四个实现类<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>分别表示四类不同的延迟操作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也对应了四种不同的请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>我们先从replicaManager调用的地方开始<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code>delayedProducePurgatory.tryCompleteElseWatch(delayedProduce, producerRequestKeys)
-</code></pre></div>
-<p>  tryCompleteElseWatch如其名字所示<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>先check有没有complete<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>否则将topPartition加入到Watchers中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>；</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">if</span> (operation.safeTryCompleteOrElse &#123;
+</code></pre>
+<p>  producerRequestKeys指的是如果其他副本还没有同步完成，就将这些topPartition加入到Watchers中，等异步完成的时候再移除。</p>
+<h2 id="DelayedOperation">DelayedOperation</h2>
+<p>  DelayedOperationPurgatory是用来管理延迟操作，通过时间轮来完成定时任务或者异步任务。DelayedOperation有四个实现类，分别表示四类不同的延迟操作，也对应了四种不同的请求，我们先从replicaManager调用的地方开始：</p>
+<pre><code class="language-Scala">delayedProducePurgatory.tryCompleteElseWatch(delayedProduce, producerRequestKeys)
+</code></pre>
+<p>  tryCompleteElseWatch如其名字所示，先check有没有complete，否则将topPartition加入到Watchers中；</p>
+<pre><code class="language-scala">if (operation.safeTryCompleteOrElse &#123;
   watchKeys.foreach(key =&gt; watchForOperation(key, operation))
-  <span class="hljs-keyword">if</span> (watchKeys.nonEmpty) estimatedTotalOperations.incrementAndGet()
-&#125;) <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>
-</code></pre></div>
-<p>  在调用safeTryCompleteOrElse时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>会先抢占锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>这里的lock是自旋锁lockOpt.getOrElse(new ReentrantLock)</p>
-<div class="highlight"><pre class="code"><code>def safe<span class="hljs-constructor">TryCompleteOrElse(<span class="hljs-params">f</span>: =&gt; Unit)</span>: Boolean = <span class="hljs-keyword">in</span><span class="hljs-constructor">Lock(<span class="hljs-params">lock</span>)</span> &#123;  
-	<span class="hljs-keyword">if</span> (<span class="hljs-keyword">try</span><span class="hljs-constructor">Complete()</span>) <span class="hljs-literal">true</span>  
-	<span class="hljs-keyword">else</span> &#123;  
+  if (watchKeys.nonEmpty) estimatedTotalOperations.incrementAndGet()
+&#125;) return true
+</code></pre>
+<p>  在调用safeTryCompleteOrElse时，会先抢占锁，这里的lock是自旋锁lockOpt.getOrElse(new ReentrantLock)</p>
+<pre><code>def safeTryCompleteOrElse(f: =&gt; Unit): Boolean = inLock(lock) &#123;  
+	if (tryComplete()) true  
+	else &#123;  
 		f  
-		<span class="hljs-comment">// last completion check  </span>
-		<span class="hljs-keyword">try</span><span class="hljs-constructor">Complete()</span>  
+		// last completion check  
+		tryComplete()  
 	&#125;  
 &#125;
-</code></pre></div>
-<p>tryComplete()满足的条件在源码的注释中有写道<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-comment">/**  
+</code></pre>
+<p>tryComplete()满足的条件在源码的注释中有写道：</p>
+<pre><code class="language-scala">/**  
 * The delayed produce operation can be completed if every partition  
 * it produces to is satisfied by one of the following:  
 *  
@@ -218,113 +218,113 @@
 * C.1 - If there was a local error thrown while checking if at least requiredAcks  
 * replicas have caught up to this operation: set an error in response  
 * C.2 - Otherwise, set the response with no error.  
-*/</span>
-</code></pre></div>
-<p>如果满足其中任何一个条件<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>就进行forceComplete<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">tryComplete</span></span>(): <span class="hljs-type">Boolean</span> = &#123;  
-<span class="hljs-comment">// check for each partition if it still has pending acks  </span>
+*/
+</code></pre>
+<p>如果满足其中任何一个条件，就进行forceComplete：</p>
+<pre><code class="language-scala">def tryComplete(): Boolean = &#123;  
+// check for each partition if it still has pending acks  
 	produceMetadata.produceStatus.forKeyValue &#123; (topicPartition, status) =&gt;  
 
-<span class="hljs-comment">// skip those partitions that have already been satisfied  </span>
-	<span class="hljs-keyword">if</span> (status.acksPending) &#123;  
-		<span class="hljs-keyword">val</span> (hasEnough, error) = 
-			replicaManager.getPartitionOrError(topicPartition) <span class="hljs-keyword">match</span> &#123;  
-		<span class="hljs-keyword">case</span> <span class="hljs-type">Left</span>(err) =&gt;  
-			<span class="hljs-comment">// Case A  </span>
-			(<span class="hljs-literal">false</span>, err)  
+// skip those partitions that have already been satisfied  
+	if (status.acksPending) &#123;  
+		val (hasEnough, error) = 
+			replicaManager.getPartitionOrError(topicPartition) match &#123;  
+		case Left(err) =&gt;  
+			// Case A  
+			(false, err)  
   
-		<span class="hljs-keyword">case</span> <span class="hljs-type">Right</span>(partition) =&gt;  
+		case Right(partition) =&gt;  
 			partition.checkEnoughReplicasReachOffset(
 					status.requiredOffset)  
 			&#125;  
   
-		<span class="hljs-comment">// Case B || C.1 || C.2  </span>
-		<span class="hljs-keyword">if</span> (error != <span class="hljs-type">Errors</span>.<span class="hljs-type">NONE</span> || hasEnough) &#123;  
-			status.acksPending = <span class="hljs-literal">false</span>  
+		// Case B || C.1 || C.2  
+		if (error != Errors.NONE || hasEnough) &#123;  
+			status.acksPending = false  
 			status.responseStatus.error = error  
 			&#125;  
 		&#125;  
 	&#125;  
   
-	<span class="hljs-comment">// check if every partition has satisfied </span>
-	<span class="hljs-comment">//at least one of case A, B or C  </span>
-	<span class="hljs-keyword">if</span> (!produceMetadata.produceStatus.values.exists(_.acksPending))
+	// check if every partition has satisfied 
+	//at least one of case A, B or C  
+	if (!produceMetadata.produceStatus.values.exists(_.acksPending))
 		forceComplete()  
-	<span class="hljs-keyword">else</span>  
-		<span class="hljs-literal">false</span>  
+	else  
+		false  
 &#125;
 
-</code></pre></div>
-<p>getPartitionOrError是为了判断此broker是不是该副本的leader<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>以及此partition是不是还属于此Topic<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
-<div class="highlight"><pre class="code"><code>  <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">getPartitionOrError</span></span>(topicPartition: <span class="hljs-type">TopicPartition</span>): <span class="hljs-type">Either</span>[<span class="hljs-type">Errors</span>, <span class="hljs-type">Partition</span>] = &#123;
-    getPartition(topicPartition) <span class="hljs-keyword">match</span> &#123;
-      <span class="hljs-keyword">case</span> <span class="hljs-type">HostedPartition</span>.<span class="hljs-type">Online</span>(partition) =&gt;
-        <span class="hljs-type">Right</span>(partition)
+</code></pre>
+<p>getPartitionOrError是为了判断此broker是不是该副本的leader，以及此partition是不是还属于此Topic：</p>
+<pre><code class="language-scala">  def getPartitionOrError(topicPartition: TopicPartition): Either[Errors, Partition] = &#123;
+    getPartition(topicPartition) match &#123;
+      case HostedPartition.Online(partition) =&gt;
+        Right(partition)
 
-      <span class="hljs-keyword">case</span> <span class="hljs-type">HostedPartition</span>.<span class="hljs-type">Offline</span> =&gt;
-        <span class="hljs-type">Left</span>(<span class="hljs-type">Errors</span>.<span class="hljs-type">KAFKA_STORAGE_ERROR</span>)
+      case HostedPartition.Offline =&gt;
+        Left(Errors.KAFKA_STORAGE_ERROR)
 
-      <span class="hljs-keyword">case</span> <span class="hljs-type">HostedPartition</span>.<span class="hljs-type">None</span> <span class="hljs-keyword">if</span> metadataCache.contains(topicPartition) =&gt;
-        <span class="hljs-comment">// The topic exists, but this broker is no longer a replica of it, so we return NOT_LEADER_OR_FOLLOWER which</span>
-        <span class="hljs-comment">// forces clients to refresh metadata to find the new location. This can happen, for example,</span>
-        <span class="hljs-comment">// during a partition reassignment if a produce request from the client is sent to a broker after</span>
-        <span class="hljs-comment">// the local replica has been deleted.</span>
-        <span class="hljs-type">Left</span>(<span class="hljs-type">Errors</span>.<span class="hljs-type">NOT_LEADER_OR_FOLLOWER</span>)
+      case HostedPartition.None if metadataCache.contains(topicPartition) =&gt;
+        // The topic exists, but this broker is no longer a replica of it, so we return NOT_LEADER_OR_FOLLOWER which
+        // forces clients to refresh metadata to find the new location. This can happen, for example,
+        // during a partition reassignment if a produce request from the client is sent to a broker after
+        // the local replica has been deleted.
+        Left(Errors.NOT_LEADER_OR_FOLLOWER)
 
-      <span class="hljs-keyword">case</span> <span class="hljs-type">HostedPartition</span>.<span class="hljs-type">None</span> =&gt;
-        <span class="hljs-type">Left</span>(<span class="hljs-type">Errors</span>.<span class="hljs-type">UNKNOWN_TOPIC_OR_PARTITION</span>)
+      case HostedPartition.None =&gt;
+        Left(Errors.UNKNOWN_TOPIC_OR_PARTITION)
     &#125;
   &#125;
-</code></pre></div>
-<p>  checkEnoughReplicasReachOffset这个方法比较重要<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>主要是了检查ISR集合的offset是否已经到了Leader这次写入请求的offset,主要的check条件是leaderLog.highWatermark &gt;= requiredOffset</p>
-<div class="highlight"><pre class="code"><code><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">checkEnoughReplicasReachOffset</span></span>(requiredOffset: <span class="hljs-type">Long</span>): (<span class="hljs-type">Boolean</span>, <span class="hljs-type">Errors</span>) = &#123;
-  leaderLogIfLocal <span class="hljs-keyword">match</span> &#123;
-    <span class="hljs-keyword">case</span> <span class="hljs-type">Some</span>(leaderLog) =&gt;
-      <span class="hljs-comment">// keep the current immutable replica list reference  </span>
-      <span class="hljs-keyword">val</span> curMaximalIsr = partitionState.maximalIsr
+</code></pre>
+<p>  checkEnoughReplicasReachOffset这个方法比较重要，主要是了检查ISR集合的offset是否已经到了Leader这次写入请求的offset,主要的check条件是leaderLog.highWatermark &gt;= requiredOffset</p>
+<pre><code class="language-scala">def checkEnoughReplicasReachOffset(requiredOffset: Long): (Boolean, Errors) = &#123;
+  leaderLogIfLocal match &#123;
+    case Some(leaderLog) =&gt;
+      // keep the current immutable replica list reference  
+      val curMaximalIsr = partitionState.maximalIsr
 
-      <span class="hljs-keyword">if</span> (isTraceEnabled) &#123;
-        <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">logEndOffsetString</span></span>: ((<span class="hljs-type">Int</span>, <span class="hljs-type">Long</span>)) =&gt; <span class="hljs-type">String</span> = &#123;
-          <span class="hljs-keyword">case</span> (brokerId, logEndOffset) =&gt; <span class="hljs-string">s&quot;broker <span class="hljs-subst">$brokerId</span>: <span class="hljs-subst">$logEndOffset</span>&quot;</span>
+      if (isTraceEnabled) &#123;
+        def logEndOffsetString: ((Int, Long)) =&gt; String = &#123;
+          case (brokerId, logEndOffset) =&gt; s&quot;broker $brokerId: $logEndOffset&quot;
         &#125;
 
-        <span class="hljs-keyword">val</span> curInSyncReplicaObjects = (curMaximalIsr - localBrokerId).flatMap(getReplica)
-        <span class="hljs-keyword">val</span> replicaInfo = curInSyncReplicaObjects.map(replica =&gt; (replica.brokerId, replica.stateSnapshot.logEndOffset))
-        <span class="hljs-keyword">val</span> localLogInfo = (localBrokerId, localLogOrException.logEndOffset)
-        <span class="hljs-keyword">val</span> (ackedReplicas, awaitingReplicas) = (replicaInfo + localLogInfo).partition &#123;
+        val curInSyncReplicaObjects = (curMaximalIsr - localBrokerId).flatMap(getReplica)
+        val replicaInfo = curInSyncReplicaObjects.map(replica =&gt; (replica.brokerId, replica.stateSnapshot.logEndOffset))
+        val localLogInfo = (localBrokerId, localLogOrException.logEndOffset)
+        val (ackedReplicas, awaitingReplicas) = (replicaInfo + localLogInfo).partition &#123;
           _._2 &gt;= requiredOffset
         &#125;
 
-        trace(<span class="hljs-string">s&quot;Progress awaiting ISR acks for offset <span class="hljs-subst">$requiredOffset</span>: &quot;</span> +
-          <span class="hljs-string">s&quot;acked: <span class="hljs-subst">$&#123;ackedReplicas.map(logEndOffsetString)&#125;</span>, &quot;</span> +
-          <span class="hljs-string">s&quot;awaiting <span class="hljs-subst">$&#123;awaitingReplicas.map(logEndOffsetString)&#125;</span>&quot;</span>)
+        trace(s&quot;Progress awaiting ISR acks for offset $requiredOffset: &quot; +
+          s&quot;acked: $&#123;ackedReplicas.map(logEndOffsetString)&#125;, &quot; +
+          s&quot;awaiting $&#123;awaitingReplicas.map(logEndOffsetString)&#125;&quot;)
       &#125;
 
-      <span class="hljs-keyword">val</span> minIsr = leaderLog.config.minInSyncReplicas
-      <span class="hljs-keyword">if</span> (leaderLog.highWatermark &gt;= requiredOffset) &#123;
-        <span class="hljs-comment">/*  
+      val minIsr = leaderLog.config.minInSyncReplicas
+      if (leaderLog.highWatermark &gt;= requiredOffset) &#123;
+        /*  
         * The topic may be configured not to accept messages if there are not enough replicas in ISR  
         * in this scenario the request was already appended locally and then added to the purgatory before the ISR was shrunk  
-        */</span>
-        <span class="hljs-keyword">if</span> (minIsr &lt;= curMaximalIsr.size)
-          (<span class="hljs-literal">true</span>, <span class="hljs-type">Errors</span>.<span class="hljs-type">NONE</span>)
-        <span class="hljs-keyword">else</span>
-          (<span class="hljs-literal">true</span>, <span class="hljs-type">Errors</span>.<span class="hljs-type">NOT_ENOUGH_REPLICAS_AFTER_APPEND</span>)
-      &#125; <span class="hljs-keyword">else</span>
-        (<span class="hljs-literal">false</span>, <span class="hljs-type">Errors</span>.<span class="hljs-type">NONE</span>)
-    <span class="hljs-keyword">case</span> <span class="hljs-type">None</span> =&gt;
-      (<span class="hljs-literal">false</span>, <span class="hljs-type">Errors</span>.<span class="hljs-type">NOT_LEADER_OR_FOLLOWER</span>)
+        */
+        if (minIsr &lt;= curMaximalIsr.size)
+          (true, Errors.NONE)
+        else
+          (true, Errors.NOT_ENOUGH_REPLICAS_AFTER_APPEND)
+      &#125; else
+        (false, Errors.NONE)
+    case None =&gt;
+      (false, Errors.NOT_LEADER_OR_FOLLOWER)
   &#125;
 &#125;
-</code></pre></div>
-<p>  如果满足leaderLog.highWatermark &gt;= requiredOffset<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>则complete这次的DelayOperation<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>取消timeout任务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>调response的callback</p>
-<div class="highlight"><pre class="code"><code><span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">onComplete</span></span>(): <span class="hljs-type">Unit</span> = &#123;
-  <span class="hljs-keyword">val</span> responseStatus = produceMetadata.produceStatus.map &#123; <span class="hljs-keyword">case</span> (k, status) =&gt; k -&gt; status.responseStatus &#125;
+</code></pre>
+<p>  如果满足leaderLog.highWatermark &gt;= requiredOffset，则complete这次的DelayOperation，取消timeout任务，调response的callback</p>
+<pre><code class="language-scala">override def onComplete(): Unit = &#123;
+  val responseStatus = produceMetadata.produceStatus.map &#123; case (k, status) =&gt; k -&gt; status.responseStatus &#125;
   responseCallback(responseStatus)
 &#125;
-</code></pre></div>
-<p>  上面介绍的tryComplete成功的情况<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>如果此时Leader的高水位并没有达到requiredOffset<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就会将topicPartition加入到Watchers中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么之后watchers就会等副本的fetch完成来进行更新<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
-<p>Broker Server HandleProducerRequest 的diagram如下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>：</h-inner></h-char></span></p>
+</code></pre>
+<p>  上面介绍的tryComplete成功的情况，如果此时Leader的高水位并没有达到requiredOffset，那么就会将topicPartition加入到Watchers中，那么之后watchers就会等副本的fetch完成来进行更新：</p>
+<p>Broker Server HandleProducerRequest 的diagram如下：</p>
 <p><img src="IMG-20231126183832276.png" alt=""></p>
 
       

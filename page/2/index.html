@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   
   
-  <title>Archives: 2024 | Yonhoo</title>
+  <title>Yonhoo</title>
   <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
   <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
   <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
@@ -52,59 +52,65 @@
       <div id="content" class="outer">
         <section id="main">
   
-  
+    <article id="post-GCWithTroubleShoot" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="../../2023/04/09/GCWithTroubleShoot/" class="article-date">
+  <time class="dt-published" datetime="2023-04-09T05:44:01.000Z" itemprop="datePublished">2023-04-09</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
     
     
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="" class="archive-year">2024</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      
+      <header class="article-header">
+        
   
     <h1 itemprop="name">
-      <a class="archive-article-title" href="../../2024/02/20/Kafka-replica-server/">Kafka-replica-server</a>
+      <a class="p-name article-title" href="../../2023/04/09/GCWithTroubleShoot/">垃圾回收与检查工具</a>
     </h1>
   
 
-      <div class="archive-article-line"></div>
-      <a href="../../2024/02/20/Kafka-replica-server/" class="archive-article-date">
-  <time class="dt-published" datetime="2024-02-20T04:38:35.015Z" itemprop="datePublished">2024-02-20</time>
-</a>
-    </header>
-  </div>
-</article>
-  
+      </header>
     
     
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
+    <div class="e-content article-entry" itemprop="articleBody">
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="../../2024/01/03/classLoader/">ClassLoader</a>
-    </h1>
-  
-
-      <div class="archive-article-line"></div>
-      <a href="../../2024/01/03/classLoader/" class="archive-article-date">
-  <time class="dt-published" datetime="2024-01-03T15:11:23.424Z" itemprop="datePublished">2024-01-03</time>
-</a>
-    </header>
+        <h2 id="java内存区域">java内存区域</h2>
+<p>  运行时数据区域<br>
+<img src="runtime_region.png" alt=""></p>
+<ol>
+<li>程序计数器</li>
+</ol>
+<p>  当前线程私有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是当前线程所执行的字节码的行号指示器</p>
+<ol start="3">
+<li>java虚拟机栈</li>
+</ol>
+<p>  当前线程私有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个方法被执行时的栈帧<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>用于储存局部变量表<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>操作数栈<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>动态连接<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>方法出口等信息动态连接作用就是为了将这些方法符号引用转换为调用方法的直接引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为有的对象调用方法时动态生成的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所以在编译器不能确定要执行的符号<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而需要在运行时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>去方法区动态的找<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+        
+          <p class="article-more-link">
+            <a href="../../2023/04/09/GCWithTroubleShoot/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
   </div>
+  
 </article>
-  
-  
-    </div></section>
+
+
+
   
 
+
+  <nav id="page-nav">
+    
+    <a class="extend prev" rel="prev" href="../../">&laquo; Prev</a><a class="page-number" href="../../">1</a><span class="page-number current">2</span>
+  </nav>
 
 </section>
         

@@ -249,7 +249,7 @@
 &#125;
 
 </code></pre></div>
-<p>  truncateToHighWatermark会将partitionsWithoutEpochs中所有处isTruncating状态的local partition’s offset更新成新Leader Partition高水位的offset,因为有些处于Truncating的partition可能Log end offset已经大于新Leader的高水位<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>此时进行截断<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从新Leader的高水位开始进行同步</p>
+<p>  truncateToHighWatermark会将partitionsWithoutEpochs中所有处isTruncating状态的local partition's offset更新成新Leader Partition高水位的offset,因为有些处于Truncating的partition可能Log end offset已经大于新Leader的高水位<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>此时进行截断<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从新Leader的高水位开始进行同步</p>
 <h3 id="2-maybefetch">2. maybeFetch</h3>
 <div class="highlight"><pre class="code"><code><span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">maybeFetch</span></span>(): <span class="hljs-type">Unit</span> = &#123;
   <span class="hljs-keyword">val</span> fetchRequestOpt = inLock(partitionMapLock) &#123;
@@ -1008,7 +1008,7 @@ delayedFetchPurgatory管理</li>
   <div class="outer">
     <div id="footer-info" class="inner">
       
-      &copy; 2024 epic<br>
+      &copy; 2025 epic<br>
       Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
       
     </div>

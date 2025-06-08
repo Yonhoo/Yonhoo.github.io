@@ -52,6 +52,50 @@
       <div id="content" class="outer">
         <section id="main">
   
+    <article id="post-monstache" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="2025/06/08/monstache/" class="article-date">
+  <time class="dt-published" datetime="2025-06-08T15:08:21.335Z" itemprop="datePublished">2025-06-08</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="2025/06/08/monstache/">monstache 同步 es 学习</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p><img src="monstache_process.jpg" alt=""><br>
+  最近在做一个 mongoDB 的存储数据到 es 中进行检索的工作<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也是通过此文学习一下 monstache 是如何做同步<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>以及管理可用性和一致性的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>同时学习 golang 相关的 chan 的生命周期</p>
+        
+          <p class="article-more-link">
+            <a href="2025/06/08/monstache/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
     <article id="post-Kafka-replica-server" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
     <a href="2024/02/20/Kafka-replica-server/" class="article-date">
@@ -205,7 +249,7 @@
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <p>  如今在维护各个微服务下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>考虑到最多的就是分布式系统的可用性–CAP<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就像数据密集型服务描述的那样<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要考虑分布式系统下数据复制<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>数据分区<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>分布式事务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>本节通过看kafka的多分区复制方式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>来学习数据复制中需要考虑到的通用处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+        <p>  如今在维护各个微服务下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>考虑到最多的就是分布式系统的可用性--CAP<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就像数据密集型服务描述的那样<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要考虑分布式系统下数据复制<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>数据分区<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>分布式事务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>本节通过看kafka的多分区复制方式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>来学习数据复制中需要考虑到的通用处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
         
           <p class="article-more-link">
             <a href="2023/11/25/Kafka-replica-producer/#more">Read More</a>
@@ -448,60 +492,12 @@
 
 
   
-    <article id="post-GCWithTroubleShoot" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
-  <div class="article-meta">
-    <a href="2023/04/09/GCWithTroubleShoot/" class="article-date">
-  <time class="dt-published" datetime="2023-04-09T05:44:01.000Z" itemprop="datePublished">2023-04-09</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="p-name article-title" href="2023/04/09/GCWithTroubleShoot/">垃圾回收与检查工具</a>
-    </h1>
-  
-
-      </header>
-    
-    
-    <div class="e-content article-entry" itemprop="articleBody">
-      
-        <h2 id="java内存区域">java内存区域</h2>
-<p>  运行时数据区域<br>
-<img src="runtime_region.png" alt=""></p>
-<ol>
-<li>程序计数器</li>
-</ol>
-<p>  当前线程私有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>是当前线程所执行的字节码的行号指示器</p>
-<ol start="3">
-<li>java虚拟机栈</li>
-</ol>
-<p>  当前线程私有<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>每个方法被执行时的栈帧<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>用于储存局部变量表<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>操作数栈<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>动态连接<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>方法出口等信息动态连接作用就是为了将这些方法符号引用转换为调用方法的直接引用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为有的对象调用方法时动态生成的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所以在编译器不能确定要执行的符号<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而需要在运行时<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>去方法区动态的找<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
-        
-          <p class="article-more-link">
-            <a href="2023/04/09/GCWithTroubleShoot/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      
-      
-      
-    </footer>
-  </div>
-  
-</article>
 
 
-
-  
-
+  <nav id="page-nav">
+    
+    <span class="page-number current">1</span><a class="page-number" href="page/2/">2</a><a class="extend next" rel="next" href="page/2/">Next &raquo;</a>
+  </nav>
 
 </section>
         
@@ -511,7 +507,7 @@
   <div class="outer">
     <div id="footer-info" class="inner">
       
-      &copy; 2024 epic<br>
+      &copy; 2025 epic<br>
       Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
       
     </div>

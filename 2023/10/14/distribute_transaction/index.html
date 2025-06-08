@@ -116,20 +116,20 @@
 </blockquote>
 <p><img src="image_1696854563129_0.png" alt=""></p>
 <h3 id="xa事务模式-(二阶段提交)">XA事务模式 (二阶段提交)</h3>
-<p>  XA定义了(全局)事务管理器™和(局部)资源管理器(RM)之间的接口<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>本地的数据库如mysql在XA中扮演的是RM角色</p>
+<p>  XA定义了(全局)事务管理器(TM)和(局部)资源管理器(RM)之间的接口<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span>本地的数据库如mysql在XA中扮演的是RM角色</p>
 <ul>
 <li>
 <h4 id="第一阶段">第一阶段</h4>
 <ul>
-<li>应用程序先向全局事务管理器™注册开启全局事务</li>
+<li>应用程序先向全局事务管理器(TM)注册开启全局事务</li>
 <li>prepare
 <ul>
 <li>应用程序开始调用参与者</li>
-<li>参与者先注册子事务记录到全局事务管理器™</li>
+<li>参与者先注册子事务记录到全局事务管理器(TM)</li>
 <li>本地开始进行update</li>
 </ul>
 </li>
-<li>当所有参与者完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>上报全局事务管理器™所有参与者已经完成prepare<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>本地事务还未提交<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span><br>
+<li>当所有参与者完成<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>上报全局事务管理器(TM)所有参与者已经完成prepare<span class="bd-box"><h-char class="bd bd-end"><h-inner>（</h-inner></h-char></span>本地事务还未提交<span class="bd-box"><h-char class="bd bd-beg"><h-inner>）</h-inner></h-char></span><br>
 <img src="image_1697208520472_0.png" alt=""></li>
 </ul>
 </li>
@@ -395,7 +395,7 @@
   <div class="outer">
     <div id="footer-info" class="inner">
       
-      &copy; 2024 epic<br>
+      &copy; 2025 epic<br>
       Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
       
     </div>

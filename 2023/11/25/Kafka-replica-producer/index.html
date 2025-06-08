@@ -13,7 +13,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
   
-  <meta name="description" content="  如今在维护各个微服务下，考虑到最多的就是分布式系统的可用性–CAP，那么就像数据密集型服务描述的那样，需要考虑分布式系统下数据复制、数据分区、分布式事务，本节通过看kafka的多分区复制方式，来学习数据复制中需要考虑到的通用处理。">
+  <meta name="description" content="  如今在维护各个微服务下，考虑到最多的就是分布式系统的可用性--CAP，那么就像数据密集型服务描述的那样，需要考虑分布式系统下数据复制、数据分区、分布式事务，本节通过看kafka的多分区复制方式，来学习数据复制中需要考虑到的通用处理。">
   
   
   
@@ -73,7 +73,7 @@
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <p>  如今在维护各个微服务下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>考虑到最多的就是分布式系统的可用性–CAP<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就像数据密集型服务描述的那样<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要考虑分布式系统下数据复制<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>数据分区<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>分布式事务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>本节通过看kafka的多分区复制方式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>来学习数据复制中需要考虑到的通用处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
+        <p>  如今在维护各个微服务下<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>考虑到最多的就是分布式系统的可用性--CAP<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就像数据密集型服务描述的那样<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要考虑分布式系统下数据复制<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>数据分区<span class="bd-box"><h-char class="bd bd-beg"><h-inner>、</h-inner></h-char></span>分布式事务<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>本节通过看kafka的多分区复制方式<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>来学习数据复制中需要考虑到的通用处理<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span></p>
 <span id="more"></span>
 <ul>
 <li>
@@ -401,10 +401,8 @@
 <li>再次对Deque加锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>分配一个新的ProducerBatch<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>将record添加进去<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并将ProducerBatch append到deque的尾部</li>
 </ol>
 <ul>
-<li>这里在两次append方法中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>分别都对deque进行加锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为这个Deque是非线程安全的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>为什么要分成两次小粒<br>
-度的加锁呢<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且为什么使用队列<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且在队列内部的元素也是一个List of Records:</li>
-<li>考虑现在有两个线程都会send reuqest<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>假设只有一次大粒度加锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>线程1发送的消息比较大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要向<br>
-BufferPool申请新空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而此时BufferPool空间不足<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>线程1在BufferPool上等待<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>此时它依然持有对应Deque的锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>线程2发送的消息较小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Deque最后一个ProducerBatch剩余空间够用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但是由于线程1未释放Deque的锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所以需要一起等待<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>若有多个小msg的线程存在<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就会造成为了等待IO而阻塞其他请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而降低了吞吐量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而现在kafka的设计是<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在tryAppend和最后new append中占有锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在中间的allocate buffer中是不占有锁的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一个很好的设计<span class="bd-box"><h-char class="bd bd-beg"><h-inner>！</h-inner></h-char></span></li>
+<li>这里在两次append方法中<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>分别都对deque进行加锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>因为这个Deque是非线程安全的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>为什么要分成两次小粒度的加锁呢<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且为什么使用队列<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>并且在队列内部的元素也是一个List of Records:</li>
+<li>考虑现在有两个线程都会send reuqest<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>假设只有一次大粒度加锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>线程1发送的消息比较大<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>需要向BufferPool申请新空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而此时BufferPool空间不足<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>线程1在BufferPool上等待<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>此时它依然持有对应Deque的锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>线程2发送的消息较小<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>Deque最后一个ProducerBatch剩余空间够用<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>但是由于线程1未释放Deque的锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>所以需要一起等待<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>若有多个小msg的线程存在<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>那么就会造成为了等待IO而阻塞其他请求<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>从而降低了吞吐量<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>而现在kafka的设计是<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在tryAppend和最后new append中占有锁<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>在中间的allocate buffer中是不占有锁的<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>一个很好的设计<span class="bd-box"><h-char class="bd bd-beg"><h-inner>！</h-inner></h-char></span></li>
 <li>并且第二次加锁后重试<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>也防止了多个线程并发向BufferPool申请空间后<span class="bd-box"><h-char class="bd bd-beg"><h-inner>，</h-inner></h-char></span>造成内部碎片<span class="bd-box"><h-char class="bd bd-beg"><h-inner>。</h-inner></h-char></span><br>
 <img src="IMG-20231104234331114.png" alt=""></li>
 </ul>
@@ -568,7 +566,7 @@ BufferPool申请新空间<span class="bd-box"><h-char class="bd bd-beg"><h-inner
   <div class="outer">
     <div id="footer-info" class="inner">
       
-      &copy; 2024 epic<br>
+      &copy; 2025 epic<br>
       Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
       
     </div>

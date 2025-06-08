@@ -31,4 +31,5 @@ hexo.extend.filter.register(
     });
     return data;
   },
+  10000 // 应该在完成其他渲染后执行，因此将优先级设大一点
 );

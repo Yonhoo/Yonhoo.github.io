@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SEO Meta Tags -->
+  
+  <meta name="description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Keywords -->
+  
+  <meta name="keywords" content="programming, database, mongodb, elasticsearch, monstache, tech blog, development, tutorial">
+  
+  
+  <!-- Author -->
+  <meta name="author" content="epic">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Yonhoo">
+  <meta property="og:url" content="https://Yonhoo.github.io/index.html">
+  <meta property="og:site_name" content="Yonhoo">
+  
+  <meta property="og:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Yonhoo">
+  
+  <meta name="twitter:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://Yonhoo.github.io/index.html">
+  
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+  
+    <link rel="alternate" href="/atom.xml" title="Yonhoo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+  <!-- 额外的favicon格式支持 -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="/" id="logo">Yonhoo</a>
+  </h1>
+  
+    <h2 id="subtitle-wrap">
+      <a href="/" id="subtitle">Tech Blog &amp; Personal Journey</a>
+    </h2>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main">
+  
+    <article id="post-ddd-evolution" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/ddd-domain-driven-design-guide/" class="article-date">
+  <time class="dt-published" datetime="2025-08-09T09:10:16.000Z" itemprop="datePublished">2025-08-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E8%BD%AF%E4%BB%B6%E6%9E%B6%E6%9E%84/">软件架构</a>►<a class="article-category-link" href="/categories/%E8%BD%AF%E4%BB%B6%E6%9E%B6%E6%9E%84/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/">设计模式</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/ddd-domain-driven-design-guide/">领域驱动设计 DDD 实践指南</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h1 id="领域驱动设计">领域驱动设计</h1>
+<p><strong>领域驱动设计</strong>(Domain Driven Design)是一种软件设计方法，已经存在了近20年，在过去十年中，随着微服务和相关技术的激增，受到了巨大的关注。DDD更注重软件开发的逻辑、语义和结构方面(倾向于业务端)，而不是应用规范的实现方式，虽然它也提供了几种良好的设计模式。DDD是处理复杂软件的理想方法，但对于小型、独立项目来说可能会很冗长。</p>
+        
+          <p class="article-more-link">
+            <a href="/ddd-domain-driven-design-guide/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/DDD/" rel="tag">DDD</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E4%B8%9A%E5%8A%A1%E5%BB%BA%E6%A8%A1/" rel="tag">业务建模</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag">设计模式</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E8%BD%AF%E4%BB%B6%E6%9E%B6%E6%9E%84/" rel="tag">软件架构</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%A2%86%E5%9F%9F%E9%A9%B1%E5%8A%A8%E8%AE%BE%E8%AE%A1/" rel="tag">领域驱动设计</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-monstache" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/monstache-elasticsearch-sync-tutorial/" class="article-date">
+  <time class="dt-published" datetime="2025-06-08T02:00:00.000Z" itemprop="datePublished">2025-06-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a>►<a class="article-category-link" href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/%E6%8A%80%E6%9C%AF%E6%95%99%E7%A8%8B/">技术教程</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/monstache-elasticsearch-sync-tutorial/">monstache 同步 es 学习</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <img src="/monstache-elasticsearch-sync-tutorial/monstache_process.jpg" class="">
+<p>  最近在做一个 mongoDB 的存储数据到 es 中进行检索的工作，也是通过此文学习一下 monstache 是如何做同步，以及管理可用性和一致性的，同时学习 golang 相关的 chan 的生命周期</p>
+        
+          <p class="article-more-link">
+            <a href="/monstache-elasticsearch-sync-tutorial/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Elasticsearch/" rel="tag">Elasticsearch</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MongoDB/" rel="tag">MongoDB</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/golang/" rel="tag">golang</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/monstache/" rel="tag">monstache</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E/" rel="tag">搜索引擎</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5/" rel="tag">数据同步</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-classLoader" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2024/01/03/classLoader/" class="article-date">
+  <time class="dt-published" datetime="2024-01-02T16:00:00.000Z" itemprop="datePublished">2024-01-03</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Java/">Java</a>►<a class="article-category-link" href="/categories/Java/JVM/">JVM</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2024/01/03/classLoader/">ClassLoader</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h3 id="类加载机制">类加载机制</h3>
+<p>  在编译成的Class文件最终都要加载到虚拟机中才能被运行和使用，Java虚拟机把描述类的数据从Class文件加载到内存，并对数据进行校验、转换解析和初始化，最终形成可以被虚拟机直接使用的Java类型，这个过程被称作虚拟机的类加载机制。</p>
+        
+          <p class="article-more-link">
+            <a href="/2024/01/03/classLoader/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ClassLoader/" rel="tag">ClassLoader</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JVM%E5%8E%9F%E7%90%86/" rel="tag">JVM原理</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E7%B1%BB%E5%8A%A0%E8%BD%BD/" rel="tag">类加载</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-Kafka-fetch" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/11/27/Kafka-fetch/" class="article-date">
+  <time class="dt-published" datetime="2023-11-26T16:00:00.000Z" itemprop="datePublished">2023-11-27</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2023/11/27/Kafka-fetch/">Kafka-Fetch</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  每个Broker上都有一个ReplicaManager，它管理每个Partition的数据同步逻辑，因为每个Partition都会存在副本，从而在Broker中的TopicPartition可能是Leader或者Follower。</p>
+<p>  当它是Leader时，就需要处理来自Producer的请求，写入log数据，同时等ISR集合同步完成，如果是Follower，就需要同步来自Leader的log数据，保持数据同步。</p>
+<p>  在ReplicaManager中，就会开启同步Follower线程来FetchMessage。在ReplicaManager中会调用makeFollowers来处理同步Leader数据的逻辑。</p>
+        
+          <p class="article-more-link">
+            <a href="/2023/11/27/Kafka-fetch/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Consumer/" rel="tag">Consumer</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kafka/" rel="tag">Kafka</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%B6%88%E6%81%AF%E6%B6%88%E8%B4%B9/" rel="tag">消息消费</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-Kafka-replica-server" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/11/26/Kafka-replica-server/" class="article-date">
+  <time class="dt-published" datetime="2023-11-25T16:00:00.000Z" itemprop="datePublished">2023-11-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2023/11/26/Kafka-replica-server/">Kafka-replica-server</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  本文简单介绍当Broker接受到producerRequest的时候，ReplicaManager是如何处理的本地写入和WaitForFollowerFetch</p>
+        
+          <p class="article-more-link">
+            <a href="/2023/11/26/Kafka-replica-server/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kafka/" rel="tag">Kafka</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%89%AF%E6%9C%AC%E6%9C%BA%E5%88%B6/" rel="tag">副本机制</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%AB%98%E5%8F%AF%E7%94%A8/" rel="tag">高可用</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-Kafka-concept" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/11/25/Kafka-concept/" class="article-date">
+  <time class="dt-published" datetime="2023-11-24T16:00:00.000Z" itemprop="datePublished">2023-11-25</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2023/11/25/Kafka-concept/">Kafka-Concept</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  关于Kafka的文章，主要是为了学习在分布式系统下，非常重要的部分如数据复制，数据分区的真正实践，同时对于消息队列的使用并不是很多，从而通过学习Kafka相关内容来进行深入，当然没有大型项目关于Kafka的深入实践，很难结合业务场景来调优最佳实践和更加深刻的认知，但还是希望通过这种方式来进行入门，了解万变不离其宗的分布式系统下的复杂性。</p>
+        
+          <p class="article-more-link">
+            <a href="/2023/11/25/Kafka-concept/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kafka/" rel="tag">Kafka</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" rel="tag">消息队列</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-Kafka-replica-producer" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/11/25/Kafka-replica-producer/" class="article-date">
+  <time class="dt-published" datetime="2023-11-24T16:00:00.000Z" itemprop="datePublished">2023-11-25</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2023/11/25/Kafka-replica-producer/">Kafka-Producer</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  如今在维护各个微服务下，考虑到最多的就是分布式系统的可用性--CAP，那么就像数据密集型服务描述的那样，需要考虑分布式系统下数据复制、数据分区、分布式事务，本节通过看kafka的多分区复制方式，来学习数据复制中需要考虑到的通用处理。</p>
+        
+          <p class="article-more-link">
+            <a href="/2023/11/25/Kafka-replica-producer/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kafka/" rel="tag">Kafka</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Producer/" rel="tag">Producer</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81/" rel="tag">消息发送</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-netty_write" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/10/15/netty_write/" class="article-date">
+  <time class="dt-published" datetime="2023-10-14T16:00:00.000Z" itemprop="datePublished">2023-10-15</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Java/">Java</a>►<a class="article-category-link" href="/categories/Java/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/">网络编程</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2023/10/15/netty_write/">Netty write 流程</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h2 id="1-channelpipline 传播事件">1. ChannelPipline 传播事件</h2>
+<p>  每一个Channel都会分配一个新的ChannelPipline，所有的出入站事件都会流经ChannelPipline来进行处理。</p>
+<p>  其中处理每一个事件的主要是ChannelHandler，例如ChannelOutboundHandler、ChannelInboundHandler分别用来处理出入站事件。通过调用ChannelHandlerContext实现，它将被转发给同一超类型的下一个ChannelHandler进行处理。</p>
+        
+          <p class="article-more-link">
+            <a href="/2023/10/15/netty_write/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/NIO/" rel="tag">NIO</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Netty/" rel="tag">Netty</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" rel="tag">异步编程</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-distribute_transaction" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/10/14/distribute_transaction/" class="article-date">
+  <time class="dt-published" datetime="2023-10-13T16:00:00.000Z" itemprop="datePublished">2023-10-14</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E4%BA%8B%E5%8A%A1/">事务</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2023/10/14/distribute_transaction/">分布式事务</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  在如今的项目实践中，存在多个微服务之间互相通信，对于一个外卖服务，涉及到订单支付，优惠券扣减，餐厅下单，外卖配送等，在微服务设计下，就需要保证多个系统之间的数据一致性，这个时候就需要考虑到分布式事务来处理一致性问题。</p>
+        
+          <p class="article-more-link">
+            <a href="/2023/10/14/distribute_transaction/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" rel="tag">分布式事务</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7/" rel="tag">数据一致性</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+    <article id="post-zookeeper_utilize" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/05/20/zookeeper_utilize/" class="article-date">
+  <time class="dt-published" datetime="2023-05-19T16:00:00.000Z" itemprop="datePublished">2023-05-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E4%B8%AD%E9%97%B4%E4%BB%B6/">中间件</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2023/05/20/zookeeper_utilize/">Zookeeper 简介与使用场景</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <img src="/2023/05/20/zookeeper_utilize/zookeeper.png" class="" width="300">  
+<p>  Zookeeper的视图结构和标准的Unix文件系统非常类似，但没有引入传统文件系统中目录和文件等相关概念，而是使用了其特有的“数据节点”概念，我们称之为ZNode。ZNode是Zookeeper中数据的最小单元，每个ZNode上都可以保存数据，同时还可以挂载子节点，因此构成了一个层次化的命名空间，我们称之为树。</p>
+        
+          <p class="article-more-link">
+            <a href="/2023/05/20/zookeeper_utilize/#more">Read More</a>
+          </p>
+        
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Zookeeper/" rel="tag">Zookeeper</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83/" rel="tag">分布式协调</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" rel="tag">配置管理</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
+
+
+  <nav id="page-nav">
+    
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/">Next &raquo;</a>
+  </nav>
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2025 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="/js/clipboard.min.js"></script>
+<script src="/js/jquery-1.4.3.min.js"></script>
+
+<script src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="/mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+  
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
+</body>
+</html>

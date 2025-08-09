@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /js/
+Disallow: /css/
+Disallow: /fonts/
+Disallow: /fancybox/
+Allow: /
+Sitemap: https://Yonhoo.github.io/sitemap.xml

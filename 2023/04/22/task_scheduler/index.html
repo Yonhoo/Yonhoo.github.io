@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>任务调度 | Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SEO Meta Tags -->
+  
+  <meta name="description" content="
+任务场景
+  在支付宝中，如果你在蚂蚁森林里面种植了一颗树苗，它会根据用户每天使用支付宝的各种场景：地铁出行，线下支付等来生成相应的能量，每天早上，支付宝会通知每个用户收取能量，以便他们能够种植更多的树苗。
+">
+  
+  
+  <!-- Keywords -->
+  
+  <meta name="keywords" content="programming, database, mongodb, elasticsearch, monstache, tech blog, development, tutorial">
+  
+  
+  <!-- Author -->
+  <meta name="author" content="epic">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="任务调度 | Yonhoo">
+  <meta property="og:url" content="https://Yonhoo.github.io/2023/04/22/task_scheduler/">
+  <meta property="og:site_name" content="Yonhoo">
+  
+  <meta property="og:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="任务调度 | Yonhoo">
+  
+  <meta name="twitter:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://Yonhoo.github.io/2023/04/22/task_scheduler/">
+  
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+  
+    <link rel="alternate" href="/atom.xml" title="Yonhoo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+  <!-- 额外的favicon格式支持 -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="/" id="logo">Yonhoo</a>
+  </h1>
+  
+    <h2 id="subtitle-wrap">
+      <a href="/" id="subtitle">Tech Blog &amp; Personal Journey</a>
+    </h2>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-task_scheduler" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/04/22/task_scheduler/" class="article-date">
+  <time class="dt-published" datetime="2023-04-21T16:00:00.000Z" itemprop="datePublished">2023-04-22</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6/">任务调度</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      任务调度
+    </h1>
+  
+
+      </header>
+    
+    
+<!-- 鼠标悬停触发区域 -->
+<div class="toc-hover-trigger"></div>
+
+<!-- 左侧边栏TOC -->
+<div id="sidebar-toc" class="sidebar-toc">
+    <div class="toc-toggle" id="toc-toggle">
+        <i class="fa fa-list"></i>
+        <span>目录</span>
+    </div>
+    <div class="toc-content" id="toc-content">
+        <div class="toc-header">
+            <h3 class="toc-title">Table Of Contents</h3>
+        </div>
+        <div class="toc-body">
+            <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#spring-scheduler%20%E5%87%A0%E7%A7%8D%E4%BD%BF%E7%94%A8%E6%96%B9%E5%BC%8F"><span class="toc-number">1.</span> <span class="toc-text">spring scheduler 几种使用方式</span></a></li></ol>
+        </div>
+    </div>
+</div>
+
+<!-- TOC遮罩层 -->
+<div id="toc-overlay" class="toc-overlay"></div>
+
+<!-- TOC JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocContent = document.getElementById('toc-content');
+    const tocOverlay = document.getElementById('toc-overlay');
+    const sidebarToc = document.getElementById('sidebar-toc');
+    const tocLinks = tocContent.querySelectorAll('.toc-link');
+    
+    // 切换TOC显示状态
+    function toggleToc() {
+        sidebarToc.classList.toggle('active');
+        tocOverlay.classList.toggle('active');
+        document.body.classList.toggle('toc-open');
+    }
+    
+    // 关闭TOC
+    function closeToc() {
+        sidebarToc.classList.remove('active');
+        tocOverlay.classList.remove('active');
+        document.body.classList.remove('toc-open');
+    }
+    
+    // 事件监听
+    tocToggle.addEventListener('click', toggleToc);
+    tocOverlay.addEventListener('click', closeToc);
+    
+    // TOC链接点击后自动关闭（移动端）
+    tocLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(closeToc, 300); // 延迟关闭，让滚动完成
+            }
+        });
+    });
+    
+    // 键盘ESC关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeToc();
+        }
+    });
+    
+    // 窗口大小变化时的处理
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeToc();
+        }
+    });
+    
+    // 滚动监听，高亮当前章节
+    let headings = [];
+    tocLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                headings.push({
+                    link: link,
+                    target: target,
+                    offset: target.offsetTop
+                });
+            }
+        }
+    });
+    
+    function updateActiveHeading() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        let activeHeading = null;
+        
+        // 找到当前可视区域内的标题
+        for (let i = headings.length - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (scrollTop >= heading.offset - 100) {
+                activeHeading = heading;
+                break;
+            }
+        }
+        
+        // 更新高亮状态
+        tocLinks.forEach(link => link.classList.remove('active'));
+        if (activeHeading) {
+            activeHeading.link.classList.add('active');
+            
+            // 滚动TOC到当前项
+            const tocBody = document.querySelector('.toc-body');
+            if (tocBody && sidebarToc.classList.contains('active')) {
+                const linkTop = activeHeading.link.offsetTop;
+                const tocBodyHeight = tocBody.offsetHeight;
+                const linkHeight = activeHeading.link.offsetHeight;
+                
+                if (linkTop < tocBody.scrollTop || linkTop > tocBody.scrollTop + tocBodyHeight - linkHeight) {
+                    tocBody.scrollTop = linkTop - tocBodyHeight / 2;
+                }
+            }
+        }
+    }
+    
+    // 节流函数
+    function throttle(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 绑定滚动事件
+    window.addEventListener('scroll', throttle(updateActiveHeading, 100));
+    
+    // 初始化高亮
+    updateActiveHeading();
+});
+</script>
+
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <ul>
+<li>任务场景<br>
+  在支付宝中，如果你在蚂蚁森林里面种植了一颗树苗，它会根据用户每天使用支付宝的各种场景：地铁出行，线下支付等来生成相应的能量，每天早上，支付宝会通知每个用户收取能量，以便他们能够种植更多的树苗。</li>
+</ul>
+<span id="more"></span>
+<ul>
+<li>
+<p>单机场景</p>
+<ul>
+<li>Spring Scheduler</li>
+</ul>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs Java"><span class="hljs-keyword">import</span> org.springframework.scheduling.annotation.Scheduled;<br><span class="hljs-keyword">import</span> org.springframework.stereotype.Component;<br><br><span class="hljs-meta">@Component</span><br><span class="hljs-meta">@EnableScheduling</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">EnergyCollectTask</span> &#123;<br>  <span class="hljs-meta">@Scheduled(cron = &quot;0 0 0 * * *&quot;)</span><br>  <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">collectEnergy</span><span class="hljs-params">()</span> &#123;<br>      <span class="hljs-keyword">try</span> &#123;<br>          <span class="hljs-comment">// Execute the energy collection logic</span><br>          System.out.println(<span class="hljs-string">&quot;Collecting energy...&quot;</span>);<br>      &#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>          <span class="hljs-comment">// Handle exception logic</span><br>          System.out.println(<span class="hljs-string">&quot;Failed to collect energy, reason: &quot;</span> + e.getMessage());<br>          <span class="hljs-comment">// Handle exception situation</span><br>          sendAlertMessage(e);<br>      &#125;<br>  &#125;<br>  <br> <span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">sendAlertMessage</span><span class="hljs-params">(Exception e)</span> &#123;<br>      <span class="hljs-comment">// Handle exception situation</span><br>      System.out.println(<span class="hljs-string">&quot;Sending alert message: &quot;</span> + e.getMessage());<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<ul>
+<li>
+<h3 id="spring-scheduler 几种使用方式">spring scheduler 几种使用方式</h3>
+<ul>
+<li><strong>@Scheduled(fixedDelay = 3 * 1000)</strong>
+<ul>
+<li>nextExecutionTime= lastCompletionTime + fixedDelay</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<img src="/2023/04/22/task_scheduler/fixed_delay.png" class="">
+<div class="highlight"><pre class="code" ><code><span class="hljs-bullet">  -</span> 隔3s执行一次
+</code></pre></div>
+<ul>
+<li>@Scheduled(cron = &quot;*/3 * * * * *&quot;)</li>
+</ul>
+<img src="/2023/04/22/task_scheduler/cron.png" class="">
+<div class="highlight"><pre class="code" ><code><span class="hljs-bullet">  -</span> 每3s执行一次
+</code></pre></div>
+<ul>
+<li><strong>@Scheduled(fixedRate = 3 * 1000)</strong>
+<ul>
+<li>nextExecutionTime= firstExecutionTime + fixedRate * times</li>
+</ul>
+</li>
+</ul>
+<img src="/2023/04/22/task_scheduler/fixed_rate.png" class="">  
+</li>
+<li>
+<p>spring scheduler 实现</p>
+<img src="/2023/04/22/task_scheduler/spring_scheduler.png" class="">
+</li>
+<li>
+<p>如果同一时刻有大量任务需要处理，DelayWorkQueue是根据PriorityQueue实现的，底层数据结构是堆,从而删除和插入的都是O(logN)，为了性能考虑，可以使用时间轮算法来获取任务，它的插入和删除都是O(1)</p>
+<img src="/2023/04/22/task_scheduler/ring.png" class="">  
+</li>
+</ul>
+<p>  时间轮可以理解为一种环形结构，像钟表一样被分为多个 slot 槽位。每个 slot 代表一个时间段，每个 slot 中可以存放多个任务，使用的是链表结构保存该时间段到期的所有任务。时间轮通过一个时针随着时间一个个 slot 转动，并执行 slot 中的所有到期任务。<br>
+  时间轮定时器最大的优势就是，任务的新增和取消都是 O(1) 时间复杂度，而且只需要一个线程就可以驱动时间轮进行工作。</p>
+<p>  随着微服务化架构的逐步演进，单体架构逐渐演变为分布式、微服务架构。在此的背景下，很多原先的单点式任务调度平台已经不能满足业务系统的需求，系统可以部署多个应用节点，而每个应用节点都可以当作任务执行器，如果一个任务执行器宕机，任务可以转移到其他存活的执行器上去执行，同时对于数据量大且处理耗时的任务，可以利用好多个节点的资源，实现任务在多个节点分片处理。</p>
+  <img src="/2023/04/22/task_scheduler/distributed.png" class="">
+<ul>
+<li>
+<p>在分布式场景下，需要确保任务能够被分配到可用的机器上并得到调度执行。从而就需要考虑分布式场景下所面临的问题：</p>
+<ul>
+<li>高可用性
+<ul>
+<li>在分布式场景下，集群中的某些节点可能会宕机，需要确保任务被正常执行</li>
+</ul>
+</li>
+<li>调度策略
+<ul>
+<li>轮询调度，异常转移，分片处理</li>
+</ul>
+</li>
+<li>任务的注册和发现</li>
+<li>任务的持久化存储
+<ul>
+<li>避免在节点宕机、重启等情况下能够重新加载已有的任务信息，保证任务不丢失</li>
+</ul>
+</li>
+<li>分布式锁
+<ul>
+<li>多个节点同时执行同一个任务时，需要保证同一时间只有一个节点在执行该任务</li>
+</ul>
+</li>
+<li>可扩展性
+<ul>
+<li>通过添加新的节点来提高任务执行的并发度，从而提高任务的执行效率</li>
+</ul>
+</li>
+<li>监控和报警
+<ul>
+<li>通过监控和报警机制来查看任务是否正常执行</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Quartz</p>
+<ul>
+<li>通过数据库的方式，来保证同一时间只有一个节点获取任务触发器</li>
+</ul>
+<img src="/2023/04/22/task_scheduler/quartz.png" class="">
+<ul>
+<li>节点轮询
+<ul>
+<li>每个节点的scheduler模块都会去轮询是否有到期的job，每个节点会去抢占锁，来保证同一时间只有一个节点执行任务</li>
+</ul>
+</li>
+<li>节点异常处理
+<ul>
+<li>每个节点都会及时更新自己的状态到<code>qrtz_scheduler_state</code>，当节点出现宕机时，其他节点会及时更新这个节点为DEAD，同时将未执行的任务根据策略重新执行</li>
+</ul>
+</li>
+<li>任务执行处理
+<ul>
+<li>任务超时未执行或者执行报错都会根据执行策略来进行调度或者重试</li>
+</ul>
+</li>
+<li>动态管理任务
+<ul>
+<li>通过API的方式来查询和修改任务信息</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>xxl-job</p>
+<ul>
+<li>quartz通过抢占式获取DB锁来确保只会存在一个节点来处理任务，可能会导致节点负载悬殊，同时调度逻辑和执行任务器耦合在一起，可能会导致性能影响</li>
+<li>xxl-job在此基础上做了一些拓展和优化，实现调度器和执行器的分离，支持任务的分片处理，并且考虑各节点的负载均衡。</li>
+</ul>
+</li>
+</ul>
+<p>scheduler线程定时扫描数据库中的任务，同时利用数据库锁的方式，避免同一任务被重复调度</p>
+  <img src="/2023/04/22/task_scheduler/xxl_job_whole.png" class="">
+<ul>
+<li>配置任务<img src="/2023/04/22/task_scheduler/config_task.png" class="">  
+</li>
+</ul>
+<p>  <br>
+路由策略</p>
+<ul>
+<li><code>FIRST</code>(第一个)
+<ul>
+<li>固定选择第一个机器</li>
+</ul>
+</li>
+<li><code>LAST</code>(最后一个)
+<ul>
+<li>固定选择最后一个机器</li>
+</ul>
+</li>
+<li><code>ROUND</code>(轮询)</li>
+<li><code>RANDOM</code>(随机)
+<ul>
+<li>随机选择在线的机器</li>
+</ul>
+</li>
+<li><code>CONSISTENT_HASH</code>(一致性HASH)
+<ul>
+<li>每个任务按照Hash算法固定选择某一台机器，且所有任务均匀散列在不同机器上</li>
+</ul>
+</li>
+<li><code>LEAST_FREQUENTLY_USED</code>(最不经常使用)
+<ul>
+<li>使用频率最低的机器优先被选举</li>
+</ul>
+</li>
+<li><code>LEAST_RECENTLY_USED</code>(最近最久未使用)
+<ul>
+<li>最久未使用的机器优先被选举</li>
+</ul>
+</li>
+<li><code>FAILOVER</code>(故障转移)
+<ul>
+<li>按照顺序依次进行心跳检测，第一个心跳检测成功的机器选定为目标执行器并发起调度</li>
+</ul>
+</li>
+<li><code>BUSYOVER</code>(忙碌转移)
+<ul>
+<li>按照顺序依次进行空闲检测，第一个空闲检测成功的机器选定为目标执行器并发起调度</li>
+</ul>
+</li>
+</ul>
+  <img src="/2023/04/22/task_scheduler/busy_over.png" class="">
+<ul>
+<li><code>SHARDING_BROADCAST</code>(分片广播)：广播触发对应集群中所有机器执行一次任务，同时系统自动传递分片参数；可根据分片参数开发分片任务；</li>
+</ul>
+  <img src="/2023/04/22/task_scheduler/carbon_sharding.png" class="">
+<ul>
+<li>
+<p>阻塞处理策略</p>
+<ul>
+<li>任务的一次运行还没有结束，下一次调度的时间又到了</li>
+<li>单机串行（默认）：调度请求进入单机执行器后，调度请求进入FIFO队列并以串行方式运行；</li>
+<li>丢弃后续调度：调度请求进入单机执行器后，发现执行器存在运行的调度任务，本次请求将会被丢弃并标记为失败；</li>
+<li>覆盖之前调度：调度请求进入单机执行器后，发现执行器存在运行的调度任务，将会终止运行中的调度任务并清空队列，然后运行本地调度任务；</li>
+</ul>
+<img src="/2023/04/22/task_scheduler/xxl_job_scheduler_process.png" class="">
+</li>
+<li>
+<p>总结：</p>
+<ul>
+<li>从单机式任务调度到分布式多节点部署，其中都需要考虑到任务触发的时间，触发策略，重试机制等，</li>
+<li>在分布式下需要考虑到高可用，避免节点故障而导致任务失败，合理利用集群资源，进行分片处理，增加任务的处理效率，同时可以进行动态扩容。但是也需要考虑到分布式场景下锁的竞争，目前有数据库的实现，也有基于redis、zookeeper分布式锁的实现，其目的都是为了解决多节点调度竞争问题。</li>
+</ul>
+</li>
+</ul>
+<p>  </p>
+<ul>
+<li>
+<p><a target="_blank" rel="noopener" href="https://juejin.cn/post/7132753859134357534">如何做好分布式任务调度——Scheduler 的一些探索</a></p>
+<ul>
+<li>分片处理时将任务进行分阶段处理，同时收集结果，及时处理  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs Java">type ShardingProcessor interface &#123;<br>   PreProcess(ctx context.Context, tc *TaskContext) error<br>   <span class="hljs-title function_">ShardingProcess</span><span class="hljs-params">(ctx context.Context, tc *TaskContext)</span> error<br>   <span class="hljs-title function_">Notify</span><span class="hljs-params">(ctx context.Context, tc *TaskContext)</span>error<br>   <span class="hljs-title function_">PostProcess</span><span class="hljs-params">(ctx context.Context, tc *TaskContext)</span> error<br>&#125;<br></code></pre></td></tr></table></figure>
+</li>
+<li>流量控制
+<ul>
+<li>通过监听性能指标：CPU 、DB, 来控制路由策略</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>reference</p>
+<ul>
+<li><a target="_blank" rel="noopener" href="https://heapdump.cn/article/641128">构建企业级业务高可用的延时消息中台</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.cnblogs.com/rossiXYZ/p/14788282.html">quartz执行逻辑</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7174284538539933704">xxl-job原理</a></li>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/6854573208524800008">power-job</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.jobrunr.io/en/documentation/pro/job-chaining/">jobrunr-更好的任务Workflows</a></li>
+</ul>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Quartz/" rel="tag">Quartz</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BB%BB%E5%8A%A1/" rel="tag">分布式任务</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/" rel="tag">定时任务</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2023/05/20/zookeeper_utilize/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Zookeeper 简介与使用场景
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2023/04/09/GCWithTroubleShoot/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          垃圾回收与检查工具
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2025 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="/js/clipboard.min.js"></script>
+<script src="/js/jquery-1.4.3.min.js"></script>
+
+<script src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="/mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+  
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
+</body>
+</html>

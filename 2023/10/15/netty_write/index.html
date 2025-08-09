@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Netty write 流程 | Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SEO Meta Tags -->
+  
+  <meta name="description" content="1. ChannelPipline 传播事件
+  每一个Channel都会分配一个新的ChannelPipline，所有的出入站事件都会流经ChannelPipline来进行处理。
+  其中处理每一个事件的主要是ChannelHandler，例如ChannelOutboundHandler、ChannelInboundHandler分别用来处理出入站事件。通过调用ChannelHandlerContext实现，它将被转发给同一超类型的下一个ChannelHandler进行处理。">
+  
+  
+  <!-- Keywords -->
+  
+  <meta name="keywords" content="programming, database, mongodb, elasticsearch, monstache, tech blog, development, tutorial">
+  
+  
+  <!-- Author -->
+  <meta name="author" content="epic">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Netty write 流程 | Yonhoo">
+  <meta property="og:url" content="https://Yonhoo.github.io/2023/10/15/netty_write/">
+  <meta property="og:site_name" content="Yonhoo">
+  
+  <meta property="og:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Netty write 流程 | Yonhoo">
+  
+  <meta name="twitter:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://Yonhoo.github.io/2023/10/15/netty_write/">
+  
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+  
+    <link rel="alternate" href="/atom.xml" title="Yonhoo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+  <!-- 额外的favicon格式支持 -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="/" id="logo">Yonhoo</a>
+  </h1>
+  
+    <h2 id="subtitle-wrap">
+      <a href="/" id="subtitle">Tech Blog &amp; Personal Journey</a>
+    </h2>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-netty_write" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/10/15/netty_write/" class="article-date">
+  <time class="dt-published" datetime="2023-10-14T16:00:00.000Z" itemprop="datePublished">2023-10-15</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Java/">Java</a>►<a class="article-category-link" href="/categories/Java/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/">网络编程</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      Netty write 流程
+    </h1>
+  
+
+      </header>
+    
+    
+<!-- 鼠标悬停触发区域 -->
+<div class="toc-hover-trigger"></div>
+
+<!-- 左侧边栏TOC -->
+<div id="sidebar-toc" class="sidebar-toc">
+    <div class="toc-toggle" id="toc-toggle">
+        <i class="fa fa-list"></i>
+        <span>目录</span>
+    </div>
+    <div class="toc-content" id="toc-content">
+        <div class="toc-header">
+            <h3 class="toc-title">Table Of Contents</h3>
+        </div>
+        <div class="toc-body">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-channelpipline%20%E4%BC%A0%E6%92%AD%E4%BA%8B%E4%BB%B6"><span class="toc-number">1.</span> <span class="toc-text">1. ChannelPipline 传播事件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E5%86%99%E4%BA%8B%E4%BB%B6"><span class="toc-number">2.</span> <span class="toc-text">2. 写事件</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E5%BE%85%E7%BC%93%E5%86%B2%E6%95%B0%E6%8D%AE%E9%98%9F%E5%88%97--channeloutboundbuffer"><span class="toc-number">3.</span> <span class="toc-text">3. 待缓冲数据队列--ChannelOutboundBuffer</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-flush"><span class="toc-number">4.</span> <span class="toc-text">4. flush</span></a></li></ol>
+        </div>
+    </div>
+</div>
+
+<!-- TOC遮罩层 -->
+<div id="toc-overlay" class="toc-overlay"></div>
+
+<!-- TOC JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocContent = document.getElementById('toc-content');
+    const tocOverlay = document.getElementById('toc-overlay');
+    const sidebarToc = document.getElementById('sidebar-toc');
+    const tocLinks = tocContent.querySelectorAll('.toc-link');
+    
+    // 切换TOC显示状态
+    function toggleToc() {
+        sidebarToc.classList.toggle('active');
+        tocOverlay.classList.toggle('active');
+        document.body.classList.toggle('toc-open');
+    }
+    
+    // 关闭TOC
+    function closeToc() {
+        sidebarToc.classList.remove('active');
+        tocOverlay.classList.remove('active');
+        document.body.classList.remove('toc-open');
+    }
+    
+    // 事件监听
+    tocToggle.addEventListener('click', toggleToc);
+    tocOverlay.addEventListener('click', closeToc);
+    
+    // TOC链接点击后自动关闭（移动端）
+    tocLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(closeToc, 300); // 延迟关闭，让滚动完成
+            }
+        });
+    });
+    
+    // 键盘ESC关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeToc();
+        }
+    });
+    
+    // 窗口大小变化时的处理
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeToc();
+        }
+    });
+    
+    // 滚动监听，高亮当前章节
+    let headings = [];
+    tocLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                headings.push({
+                    link: link,
+                    target: target,
+                    offset: target.offsetTop
+                });
+            }
+        }
+    });
+    
+    function updateActiveHeading() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        let activeHeading = null;
+        
+        // 找到当前可视区域内的标题
+        for (let i = headings.length - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (scrollTop >= heading.offset - 100) {
+                activeHeading = heading;
+                break;
+            }
+        }
+        
+        // 更新高亮状态
+        tocLinks.forEach(link => link.classList.remove('active'));
+        if (activeHeading) {
+            activeHeading.link.classList.add('active');
+            
+            // 滚动TOC到当前项
+            const tocBody = document.querySelector('.toc-body');
+            if (tocBody && sidebarToc.classList.contains('active')) {
+                const linkTop = activeHeading.link.offsetTop;
+                const tocBodyHeight = tocBody.offsetHeight;
+                const linkHeight = activeHeading.link.offsetHeight;
+                
+                if (linkTop < tocBody.scrollTop || linkTop > tocBody.scrollTop + tocBodyHeight - linkHeight) {
+                    tocBody.scrollTop = linkTop - tocBodyHeight / 2;
+                }
+            }
+        }
+    }
+    
+    // 节流函数
+    function throttle(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 绑定滚动事件
+    window.addEventListener('scroll', throttle(updateActiveHeading, 100));
+    
+    // 初始化高亮
+    updateActiveHeading();
+});
+</script>
+
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h2 id="1-channelpipline 传播事件">1. ChannelPipline 传播事件</h2>
+<p>  每一个Channel都会分配一个新的ChannelPipline，所有的出入站事件都会流经ChannelPipline来进行处理。</p>
+<p>  其中处理每一个事件的主要是ChannelHandler，例如ChannelOutboundHandler、ChannelInboundHandler分别用来处理出入站事件。通过调用ChannelHandlerContext实现，它将被转发给同一超类型的下一个ChannelHandler进行处理。</p>
+<span id="more"></span>
+<p>  ChannelHandlerContext代表了ChannelHandler和ChannelPipline之间的关联，每当有ChannelHandler添加到ChannelPipline中时，都会创建ChannelHandlerContext。ChannelHandlerContext的主要功能是管理它所关联的ChannelHandler和在同一个ChannelPipline中的其他ChannelHandler之间的交互。</p>
+<img src="/2023/10/15/netty_write/channel_flow.png" class="">
+<p>  channel的入站事件会从第一个HeadContext的channelHandler一直向后传播，而channel的出站事件会从最后的tailContext的channelHandler向前传播，一直到HeadContext。</p>
+<p>  通常ChannelPipline中的每一个ChannelHandler都是通过它的EventLoop(I/O线程)来处理传递给它的事件，netty也可以通过channelPipline的addLast方法，传递一个自定义的EventExecutorGroup来代替channel本身的I/O线程。在出站时，最后的HeadContext使用的channel本身的I/O线程。</p>
+<h2 id="2-写事件">2. 写事件</h2>
+<p>  netty是一个异步网络I/O框架，当调用完写事件后，netty会直接返回一个ChannelFuture，当数据被写入到底层的socket后，netty会通过ChannelFutureListner告知我们写入结果：</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs pgsql"><span class="hljs-keyword">connection</span>.getChannel().writeAndFlush(rpcMessage)<br>        .addListener(<span class="hljs-built_in">new</span> FutureListener&lt;<span class="hljs-type">Void</span>&gt;() &#123;<br>            <span class="hljs-built_in">public</span> <span class="hljs-type">void</span> operationComplete(Future&lt;<span class="hljs-type">Void</span>&gt; f) throws <span class="hljs-keyword">Exception</span> &#123;<br>                <span class="hljs-keyword">if</span> (f.isSuccess()) &#123;<br>                    <span class="hljs-keyword">log</span>.<span class="hljs-keyword">info</span>(&quot;channel write message success&quot;);<br>                &#125; <span class="hljs-keyword">else</span> &#123;<br>                    <span class="hljs-keyword">log</span>.error(&quot;write message error:&quot;, f.cause());<br>                &#125;<br><br>            &#125;<br>        &#125;);<br></code></pre></td></tr></table></figure>
+<p>写事件会在ChannelOutboundHandler中向前传播：</p>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><code class="hljs arduino"><span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-type">void</span> <span class="hljs-title">write</span><span class="hljs-params">(Object msg, <span class="hljs-type">boolean</span> flush, ChannelPromise promise)</span> </span>&#123;<br>    ObjectUtil.<span class="hljs-built_in">checkNotNull</span>(msg, <span class="hljs-string">&quot;msg&quot;</span>);<br><br>    ......<br><br>    AbstractChannelHandlerContext next = <span class="hljs-keyword">this</span>.<span class="hljs-built_in">findContextOutbound</span>(flush ? <span class="hljs-number">98304</span> : <span class="hljs-string">&#x27;耀&#x27;</span>);<br>    Object m = <span class="hljs-keyword">this</span>.pipeline.<span class="hljs-built_in">touch</span>(msg, next);<br>    EventExecutor executor = next.<span class="hljs-built_in">executor</span>();<br>    <span class="hljs-keyword">if</span> (executor.<span class="hljs-built_in">inEventLoop</span>()) &#123;<br>        <span class="hljs-keyword">if</span> (flush) &#123;<br>            next.<span class="hljs-built_in">invokeWriteAndFlush</span>(m, promise);<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            next.<span class="hljs-built_in">invokeWrite</span>(m, promise);<br>        &#125;<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>        WriteTask task = AbstractChannelHandlerContext.WriteTask.<span class="hljs-built_in">newInstance</span>(next, m, promise, flush);<br>        <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">safeExecute</span>(executor, task, promise, m, !flush)) &#123;<br>            task.<span class="hljs-built_in">cancel</span>();<br>        &#125;<br>    &#125;<br><br>&#125;<br></code></pre></td></tr></table></figure>
+<p>  通过this.findContextOutbound拿到下一个ChannelHandlerContext，调用next.invokeWrite，如果是调用的是writeAndFlush，则会调用next.invokeWriteAndFlush。<br>
+最终会来到HeadContext,调用outboundBuffer来addMessage</p>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><code class="hljs arduino"><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-type">void</span> <span class="hljs-title">write</span><span class="hljs-params">(Object msg, ChannelPromise promise)</span> </span>&#123;<br>    <span class="hljs-keyword">this</span>.<span class="hljs-built_in">assertEventLoop</span>();<br>    ChannelOutboundBuffer outboundBuffer = <span class="hljs-keyword">this</span>.outboundBuffer;<br>    <br>    ....<br>        <span class="hljs-type">int</span> size;<br>        <span class="hljs-keyword">try</span> &#123;<br>            msg = AbstractChannel.<span class="hljs-keyword">this</span>.<span class="hljs-built_in">filterOutboundMessage</span>(msg);<br>            <span class="hljs-comment">// 估计待写数据大小</span><br>            size = AbstractChannel.<span class="hljs-keyword">this</span>.pipeline.<span class="hljs-built_in">estimatorHandle</span>().<span class="hljs-built_in">size</span>(msg);<br>            <span class="hljs-keyword">if</span> (size &lt; <span class="hljs-number">0</span>) &#123;<br>                size = <span class="hljs-number">0</span>;<br>            &#125;<br>        &#125; <span class="hljs-built_in">catch</span> (Throwable var15) &#123;<br>            <span class="hljs-keyword">try</span> &#123;<br>                ReferenceCountUtil.<span class="hljs-built_in">release</span>(msg);<br>            &#125; finally &#123;<br>                <span class="hljs-keyword">this</span>.<span class="hljs-built_in">safeSetFailure</span>(promise, var15);<br>            &#125;<br><br>            <span class="hljs-keyword">return</span>;<br>        &#125;<br><br>        outboundBuffer.<span class="hljs-built_in">addMessage</span>(msg, size, promise);<br>    <br>&#125;<br></code></pre></td></tr></table></figure>
+<p>  由于netty是异步网络框架，对于write事件，并不会直接写进socket中，而是添加到待发送数据缓冲队列ChannelOutboundBuffer中，之后通过flush操作，将队列中所有的msg写进socket中。</p>
+<p>  这里的filterOutboundMessage是为了检查写入类型，过滤不是bytebuf或者FileRegion类型的msg，同时对非堆外内存进行转换，转换为堆外内存，提升性能。</p>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs typescript"><span class="hljs-keyword">protected</span> final <span class="hljs-title class_">Object</span> <span class="hljs-title function_">filterOutboundMessage</span>(<span class="hljs-params"><span class="hljs-built_in">Object</span> msg</span>) &#123;<br>    <span class="hljs-keyword">if</span> (msg <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">ByteBuf</span>) &#123;<br>        <span class="hljs-title class_">ByteBuf</span> buf = (<span class="hljs-title class_">ByteBuf</span>)msg;<br>        <span class="hljs-keyword">return</span> buf.<span class="hljs-title function_">isDirect</span>() ? msg : <span class="hljs-variable language_">this</span>.<span class="hljs-title function_">newDirectBuffer</span>(buf);<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (msg <span class="hljs-keyword">instanceof</span> <span class="hljs-title class_">FileRegion</span>) &#123;<br>        <span class="hljs-keyword">return</span> msg;<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">UnsupportedOperationException</span>(<span class="hljs-string">&quot;unsupported message type: &quot;</span> + <span class="hljs-title class_">StringUtil</span>.<span class="hljs-title function_">simpleClassName</span>(msg) + <span class="hljs-variable constant_">EXPECTED_TYPES</span>);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<h2 id="3-待缓冲数据队列--channeloutboundbuffer">3. 待缓冲数据队列--ChannelOutboundBuffer</h2>
+<p>ChannelOutboundBuffer是一个单链表结构的缓冲队列，其队列类型为Entry。其作用就是缓存待写入socket的数据信息，其中包含的属性有unflushedEntry、tailEntry、flushedEntry等</p>
+<ul>
+<li>
+<p>unflushedEntry ： 代表只是通过write方法添加到了Entry链表的消息节点。它是链表里第一个等待刷新的节点</p>
+</li>
+<li>
+<p>tailEntry ： Entry链表的最后一个节点</p>
+</li>
+<li>
+<p>flushedEntry ： 代表被flush方法标记为已刷新的消息节点，即可以认为该Entry马上或者已经被发到网络了，它指向的是链表里第一个要被刷新出去的节点</p>
+</li>
+</ul>
+<p> 调用addMessage方法之前，三个指针的样子：</p>
+<img src="/2023/10/15/netty_write/add_message1.png" class="">
+<p>当添加第一个msg后：</p>
+<img src="/2023/10/15/netty_write/add_message2.png" class="">
+<p>添加第二个msg：</p>
+<img src="/2023/10/15/netty_write/add_message3.png" class="">
+<p>以此类推：</p>
+<img src="/2023/10/15/netty_write/add_message4.png" class="">
+<p>  直到达到了ChannelOutboundBuffer的高水位线，才会停止添加，设置channel为不可写，直到恢复到低水位。</p>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs arduino"><span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-type">void</span> <span class="hljs-title">incrementPendingOutboundBytes</span><span class="hljs-params">(<span class="hljs-type">long</span> size, <span class="hljs-type">boolean</span> invokeLater)</span> </span>&#123;<br>    <span class="hljs-keyword">if</span> (size != <span class="hljs-number">0L</span>) &#123;<br>        <span class="hljs-type">long</span> newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.<span class="hljs-built_in">addAndGet</span>(<span class="hljs-keyword">this</span>, size);<br>        <span class="hljs-keyword">if</span> (newWriteBufferSize &gt; (<span class="hljs-type">long</span>)<span class="hljs-keyword">this</span>.channel.<span class="hljs-built_in">config</span>().<span class="hljs-built_in">getWriteBufferHighWaterMark</span>()) &#123;<br>            <span class="hljs-keyword">this</span>.<span class="hljs-built_in">setUnwritable</span>(invokeLater);<br>        &#125;<br><br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<h2 id="4-flush">4. flush</h2>
+<p>  我们看到，write只会将待写入数据放进ChannelOutboundBuffer，其实并不会真正的写进socket中，而flush操作会依次向前传播，最后在headContext中flush所有unflushedEntry。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">flush</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-built_in">this</span>.assertEventLoop();<br>    <span class="hljs-type">ChannelOutboundBuffer</span> <span class="hljs-variable">outboundBuffer</span> <span class="hljs-operator">=</span> <span class="hljs-built_in">this</span>.outboundBuffer;<br>    <span class="hljs-keyword">if</span> (outboundBuffer != <span class="hljs-literal">null</span>) &#123;<br>        outboundBuffer.addFlush();<br>        <span class="hljs-built_in">this</span>.flush0();<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>addFlush操作会将所有unflushedEntry标记为flushedEntry，然后进行flush。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">addFlush</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-type">Entry</span> <span class="hljs-variable">entry</span> <span class="hljs-operator">=</span> <span class="hljs-built_in">this</span>.unflushedEntry;<br>    <span class="hljs-keyword">if</span> (entry != <span class="hljs-literal">null</span>) &#123;<br>        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">this</span>.flushedEntry == <span class="hljs-literal">null</span>) &#123;<br>            <span class="hljs-built_in">this</span>.flushedEntry = entry;<br>        &#125;<br><br>        <span class="hljs-keyword">do</span> &#123;<br>            ++<span class="hljs-built_in">this</span>.flushed;<br>            <span class="hljs-keyword">if</span> (!entry.promise.setUncancellable()) &#123;<br>                <span class="hljs-type">int</span> <span class="hljs-variable">pending</span> <span class="hljs-operator">=</span> entry.cancel();<br>                <span class="hljs-built_in">this</span>.decrementPendingOutboundBytes((<span class="hljs-type">long</span>)pending, <span class="hljs-literal">false</span>, <span class="hljs-literal">true</span>);<br>            &#125;<br><br>            entry = entry.next;<br>        &#125; <span class="hljs-keyword">while</span>(entry != <span class="hljs-literal">null</span>);<br><br>        <span class="hljs-built_in">this</span>.unflushedEntry = <span class="hljs-literal">null</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<img src="/2023/10/15/netty_write/add_message5.png" class="">
+<p>  所有待写入socket的entry会从flushedEntry开始，unflushedEntry指向null，同时所有entry都变成不可取消的状态。<br>
+接下来就是真正的开始write数据到底层的socket了</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">flush0</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">this</span>.inFlush0) &#123;<br>        <span class="hljs-type">ChannelOutboundBuffer</span> <span class="hljs-variable">outboundBuffer</span> <span class="hljs-operator">=</span> <span class="hljs-built_in">this</span>.outboundBuffer;<br>        <span class="hljs-keyword">if</span> (outboundBuffer != <span class="hljs-literal">null</span> &amp;&amp; !outboundBuffer.isEmpty()) &#123;<br>            <span class="hljs-built_in">this</span>.inFlush0 = <span class="hljs-literal">true</span>;<br>            <span class="hljs-keyword">if</span> (AbstractChannel.<span class="hljs-built_in">this</span>.isActive()) &#123;<br>                <span class="hljs-keyword">try</span> &#123;<br>                    AbstractChannel.<span class="hljs-built_in">this</span>.doWrite(outboundBuffer);<br>                &#125; <span class="hljs-keyword">catch</span> (Throwable var10) &#123;<br>                    <span class="hljs-built_in">this</span>.handleWriteError(var10);<br>                &#125; <span class="hljs-keyword">finally</span> &#123;<br>                    <span class="hljs-built_in">this</span>.inFlush0 = <span class="hljs-literal">false</span>;<br>                &#125;<br><br>            &#125; <br>            .....<br>        &#125;<br>    &#125;<br>&#125;<br><br><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">doWrite</span><span class="hljs-params">(ChannelOutboundBuffer in)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>    java.nio.channels.<span class="hljs-type">SocketChannel</span> <span class="hljs-variable">ch</span> <span class="hljs-operator">=</span> <span class="hljs-built_in">this</span>.javaChannel();<br>    <span class="hljs-type">int</span> <span class="hljs-variable">writeSpinCount</span> <span class="hljs-operator">=</span> <span class="hljs-built_in">this</span>.config().getWriteSpinCount();<br><br>    <span class="hljs-keyword">do</span> &#123;<br>        <span class="hljs-keyword">if</span> (in.isEmpty()) &#123;<br>            <span class="hljs-built_in">this</span>.clearOpWrite();<br>            <span class="hljs-keyword">return</span>;<br>        &#125;<br><br>        <span class="hljs-type">int</span> <span class="hljs-variable">maxBytesPerGatheringWrite</span> <span class="hljs-operator">=</span> ((NioSocketChannelConfig)<span class="hljs-built_in">this</span>.config).getMaxBytesPerGatheringWrite();<br>        ByteBuffer[] nioBuffers = in.nioBuffers(<span class="hljs-number">1024</span>, (<span class="hljs-type">long</span>)maxBytesPerGatheringWrite);<br>        <span class="hljs-type">int</span> <span class="hljs-variable">nioBufferCnt</span> <span class="hljs-operator">=</span> in.nioBufferCount();<br>        <span class="hljs-keyword">switch</span> (nioBufferCnt) &#123;<br>            <span class="hljs-keyword">case</span> <span class="hljs-number">0</span>:<br>                writeSpinCount -= <span class="hljs-built_in">this</span>.doWrite0(in);<br>                <span class="hljs-keyword">break</span>;<br>            <span class="hljs-keyword">case</span> <span class="hljs-number">1</span>:<br>                <span class="hljs-type">ByteBuffer</span> <span class="hljs-variable">buffer</span> <span class="hljs-operator">=</span> nioBuffers[<span class="hljs-number">0</span>];<br>                <span class="hljs-type">int</span> <span class="hljs-variable">attemptedBytes</span> <span class="hljs-operator">=</span> buffer.remaining();<br>                <span class="hljs-type">int</span> <span class="hljs-variable">localWrittenBytes</span> <span class="hljs-operator">=</span> ch.write(buffer);<br>                <span class="hljs-keyword">if</span> (localWrittenBytes &lt;= <span class="hljs-number">0</span>) &#123;<br>                    <span class="hljs-built_in">this</span>.incompleteWrite(<span class="hljs-literal">true</span>);<br>                    <span class="hljs-keyword">return</span>;<br>                &#125;<br><br>                <span class="hljs-built_in">this</span>.adjustMaxBytesPerGatheringWrite(attemptedBytes, localWrittenBytes, maxBytesPerGatheringWrite);<br>                in.removeBytes((<span class="hljs-type">long</span>)localWrittenBytes);<br>                --writeSpinCount;<br>                <span class="hljs-keyword">break</span>;<br>            <span class="hljs-keyword">default</span>:<br>                <span class="hljs-type">long</span> <span class="hljs-variable">attemptedBytes</span> <span class="hljs-operator">=</span> in.nioBufferSize();<br>                <span class="hljs-type">long</span> <span class="hljs-variable">localWrittenBytes</span> <span class="hljs-operator">=</span> ch.write(nioBuffers, <span class="hljs-number">0</span>, nioBufferCnt);<br>                <span class="hljs-keyword">if</span> (localWrittenBytes &lt;= <span class="hljs-number">0L</span>) &#123;<br>                    <span class="hljs-built_in">this</span>.incompleteWrite(<span class="hljs-literal">true</span>);<br>                    <span class="hljs-keyword">return</span>;<br>                &#125;<br><br>                <span class="hljs-built_in">this</span>.adjustMaxBytesPerGatheringWrite((<span class="hljs-type">int</span>)attemptedBytes, (<span class="hljs-type">int</span>)localWrittenBytes, maxBytesPerGatheringWrite);<br>                in.removeBytes(localWrittenBytes);<br>                --writeSpinCount;<br>        &#125;<br>    &#125; <span class="hljs-keyword">while</span>(writeSpinCount &gt; <span class="hljs-number">0</span>);<br><br>    <span class="hljs-built_in">this</span>.incompleteWrite(writeSpinCount &lt; <span class="hljs-number">0</span>);<br></code></pre></td></tr></table></figure>
+<p>  写一直发生在这个do while里面，writeSpinCount表示最大写的次数，默认是16次；通过调用nioBuffers方法，从flushedEntry开始，将bytebuf转换成JDK的ByteBuffer数组。每写完一个ByteBuffer，都会进行remove操作，然后write下一个entry。</p>
+<p>  这里注意两点：</p>
+<ol>
+<li>maxBytesPerGatheringWrite</li>
+</ol>
+<p>  每次写入数据的大小，都是适应调整的。maxBytesPerGatheringWrite 决定每次 write 可以从 channelOutboundBuffer 中最多发送数据，初始值为 SO_SNDBUF大小 * 2 = 293976 = 146988 &lt;&lt; 1。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">adjustMaxBytesPerGatheringWrite</span><span class="hljs-params">(<span class="hljs-type">int</span> attempted, <span class="hljs-type">int</span> written, <span class="hljs-type">int</span> oldMaxBytesPerGatheringWrite)</span> &#123;<br>    <span class="hljs-keyword">if</span> (attempted == written) &#123;<br>        <span class="hljs-keyword">if</span> (attempted &lt;&lt; <span class="hljs-number">1</span> &gt; oldMaxBytesPerGatheringWrite) &#123;<br>            ((NioSocketChannelConfig)<span class="hljs-built_in">this</span>.config).setMaxBytesPerGatheringWrite(attempted &lt;&lt; <span class="hljs-number">1</span>);<br>        &#125;<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (attempted &gt; <span class="hljs-number">4096</span> &amp;&amp; written &lt; attempted &gt;&gt;&gt; <span class="hljs-number">1</span>) &#123;<br>        ((NioSocketChannelConfig)<span class="hljs-built_in">this</span>.config).setMaxBytesPerGatheringWrite(attempted &gt;&gt;&gt; <span class="hljs-number">1</span>);<br>    &#125;<br><br>&#125;<br></code></pre></td></tr></table></figure>
+<p>  如果这次尝试写入量attempted与真实写入量written一样，并且真实写入量的2倍大于最大可写入量，netty会扩大下次写入量为这次写入量的2倍written * 2， 如果真实写入量的2倍小于这次最大可写入量，则表示需求也不是很大，就不会进行扩容。而真实写入量小于尝试写入的一半，则会缩小下次最大写入量为attempted的1/2。当然有最小值的限制。</p>
+<ol start="2">
+<li>writeSpinCount</li>
+</ol>
+<p>  默认一次写入最多循环16次，第一种情况是，如果超过16次，并且数据没有写完，则会强制退出channel的write，添加到IO线程的task中，让其他的channel去执行任务，如果是未超过16次，但是socket写满了，则会停止写入，注册写事件，等待socket可写为止。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs kotlin"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">final</span> void incompleteWrite(boolean setOpWrite) &#123;<br>    <span class="hljs-keyword">if</span> (setOpWrite) &#123;<br>        <span class="hljs-keyword">this</span>.setOpWrite();<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-keyword">this</span>.clearOpWrite();<br>        <span class="hljs-keyword">this</span>.eventLoop().execute(<span class="hljs-keyword">this</span>.flushTask);<br>    &#125;<br><br>&#125;<br></code></pre></td></tr></table></figure>
+<p>  channel的写事件会向前传播，进行write和flush，依次添加进待刷新队列，然后是执行flush操作，在flush操作时，也会根据写入量动态进行放缩来调整写入量，同时也不会一直让一个耗时的entry一直进行写入，如果超过writeSpinCount次数，则会添加进futuretask，进行下次写入，要么是socket写满了，等待可写为止。当最终写入socket后，会通过channelPromise，进行异步通知。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/NIO/" rel="tag">NIO</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Netty/" rel="tag">Netty</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BC%82%E6%AD%A5%E7%BC%96%E7%A8%8B/" rel="tag">异步编程</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2023/11/25/Kafka-replica-producer/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Kafka-Producer
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2023/10/14/distribute_transaction/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          分布式事务
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2025 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="/js/clipboard.min.js"></script>
+<script src="/js/jquery-1.4.3.min.js"></script>
+
+<script src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="/mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+  
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
+</body>
+</html>

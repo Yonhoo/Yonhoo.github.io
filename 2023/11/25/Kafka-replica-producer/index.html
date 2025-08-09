@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Kafka-Producer | Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SEO Meta Tags -->
+  
+  <meta name="description" content="  如今在维护各个微服务下，考虑到最多的就是分布式系统的可用性--CAP，那么就像数据密集型服务描述的那样，需要考虑分布式系统下数据复制、数据分区、分布式事务，本节通过看kafka的多分区复制方式，来学习数据复制中需要考虑到的通用处理。">
+  
+  
+  <!-- Keywords -->
+  
+  <meta name="keywords" content="programming, database, mongodb, elasticsearch, monstache, tech blog, development, tutorial">
+  
+  
+  <!-- Author -->
+  <meta name="author" content="epic">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Kafka-Producer | Yonhoo">
+  <meta property="og:url" content="https://Yonhoo.github.io/2023/11/25/Kafka-replica-producer/">
+  <meta property="og:site_name" content="Yonhoo">
+  
+  <meta property="og:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Kafka-Producer | Yonhoo">
+  
+  <meta name="twitter:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://Yonhoo.github.io/2023/11/25/Kafka-replica-producer/">
+  
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+  
+    <link rel="alternate" href="/atom.xml" title="Yonhoo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+  <!-- 额外的favicon格式支持 -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="/" id="logo">Yonhoo</a>
+  </h1>
+  
+    <h2 id="subtitle-wrap">
+      <a href="/" id="subtitle">Tech Blog &amp; Personal Journey</a>
+    </h2>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-Kafka-replica-producer" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/11/25/Kafka-replica-producer/" class="article-date">
+  <time class="dt-published" datetime="2023-11-24T16:00:00.000Z" itemprop="datePublished">2023-11-25</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      Kafka-Producer
+    </h1>
+  
+
+      </header>
+    
+    
+<!-- 鼠标悬停触发区域 -->
+<div class="toc-hover-trigger"></div>
+
+<!-- 左侧边栏TOC -->
+<div id="sidebar-toc" class="sidebar-toc">
+    <div class="toc-toggle" id="toc-toggle">
+        <i class="fa fa-list"></i>
+        <span>目录</span>
+    </div>
+    <div class="toc-content" id="toc-content">
+        <div class="toc-header">
+            <h3 class="toc-title">Table Of Contents</h3>
+        </div>
+        <div class="toc-body">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#producer"><span class="toc-number">1.</span> <span class="toc-text">Producer</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#metadata"><span class="toc-number">2.</span> <span class="toc-text">MetaData</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#recordaccumulator"><span class="toc-number">3.</span> <span class="toc-text">recordAccumulator</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#sender"><span class="toc-number">4.</span> <span class="toc-text">Sender</span></a></li></ol>
+        </div>
+    </div>
+</div>
+
+<!-- TOC遮罩层 -->
+<div id="toc-overlay" class="toc-overlay"></div>
+
+<!-- TOC JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocContent = document.getElementById('toc-content');
+    const tocOverlay = document.getElementById('toc-overlay');
+    const sidebarToc = document.getElementById('sidebar-toc');
+    const tocLinks = tocContent.querySelectorAll('.toc-link');
+    
+    // 切换TOC显示状态
+    function toggleToc() {
+        sidebarToc.classList.toggle('active');
+        tocOverlay.classList.toggle('active');
+        document.body.classList.toggle('toc-open');
+    }
+    
+    // 关闭TOC
+    function closeToc() {
+        sidebarToc.classList.remove('active');
+        tocOverlay.classList.remove('active');
+        document.body.classList.remove('toc-open');
+    }
+    
+    // 事件监听
+    tocToggle.addEventListener('click', toggleToc);
+    tocOverlay.addEventListener('click', closeToc);
+    
+    // TOC链接点击后自动关闭（移动端）
+    tocLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(closeToc, 300); // 延迟关闭，让滚动完成
+            }
+        });
+    });
+    
+    // 键盘ESC关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeToc();
+        }
+    });
+    
+    // 窗口大小变化时的处理
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeToc();
+        }
+    });
+    
+    // 滚动监听，高亮当前章节
+    let headings = [];
+    tocLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                headings.push({
+                    link: link,
+                    target: target,
+                    offset: target.offsetTop
+                });
+            }
+        }
+    });
+    
+    function updateActiveHeading() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        let activeHeading = null;
+        
+        // 找到当前可视区域内的标题
+        for (let i = headings.length - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (scrollTop >= heading.offset - 100) {
+                activeHeading = heading;
+                break;
+            }
+        }
+        
+        // 更新高亮状态
+        tocLinks.forEach(link => link.classList.remove('active'));
+        if (activeHeading) {
+            activeHeading.link.classList.add('active');
+            
+            // 滚动TOC到当前项
+            const tocBody = document.querySelector('.toc-body');
+            if (tocBody && sidebarToc.classList.contains('active')) {
+                const linkTop = activeHeading.link.offsetTop;
+                const tocBodyHeight = tocBody.offsetHeight;
+                const linkHeight = activeHeading.link.offsetHeight;
+                
+                if (linkTop < tocBody.scrollTop || linkTop > tocBody.scrollTop + tocBodyHeight - linkHeight) {
+                    tocBody.scrollTop = linkTop - tocBodyHeight / 2;
+                }
+            }
+        }
+    }
+    
+    // 节流函数
+    function throttle(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 绑定滚动事件
+    window.addEventListener('scroll', throttle(updateActiveHeading, 100));
+    
+    // 初始化高亮
+    updateActiveHeading();
+});
+</script>
+
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  如今在维护各个微服务下，考虑到最多的就是分布式系统的可用性--CAP，那么就像数据密集型服务描述的那样，需要考虑分布式系统下数据复制、数据分区、分布式事务，本节通过看kafka的多分区复制方式，来学习数据复制中需要考虑到的通用处理。</p>
+<span id="more"></span>
+<ul>
+<li>
+<h2 id="producer">Producer</h2>
+</li>
+</ul>
+<p>  生产者客户端通过调用<code>send</code>方法,将消息发送到Topic所在的Broker，之后供消费者来进行消费。先给整体Flow的digaram：</p>
+  <img src="/2023/11/25/Kafka-replica-producer/IMG-20231029191937038.png" class="">
+<p>  KafkaProducer构造函数中，初始化serializer、metaData、accumulator、sender：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs java">KafkaProducer(ProducerConfig config,  <br>  Serializer&lt;K&gt; keySerializer,  <br>  Serializer&lt;V&gt; valueSerializer,  <br>  ProducerMetadata metadata,  <br>  KafkaClient kafkaClient,  <br>  ProducerInterceptors&lt;K, V&gt; interceptors,  <br>  Time time) &#123;  <br>  <span class="hljs-keyword">try</span> &#123;  <br>  <br>  <span class="hljs-built_in">this</span>.partitioner = config.getConfiguredInstance(...);  <br>  <br>  <span class="hljs-built_in">this</span>.keySerializer = config.getConfiguredInstance(...);  <br>  <br>  <span class="hljs-built_in">this</span>.valueSerializer = config.getConfiguredInstance(...);  <br>  <br>  List&lt;ProducerInterceptor&lt;K, V&gt;&gt; interceptorList = ClientUtils.createConfiguredInterceptors(...)  <br>  <br>  <span class="hljs-built_in">this</span>.interceptors = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ProducerInterceptors</span>&lt;&gt;(interceptorList);  <br>  <br>  <span class="hljs-built_in">this</span>.accumulator = <span class="hljs-keyword">new</span> <span class="hljs-title class_">RecordAccumulator</span>(...);  <br>  <br>  <span class="hljs-built_in">this</span>.metadata = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ProducerMetadata</span>(...&#125;  <br>  <br>  <span class="hljs-built_in">this</span>.sender = newSender(logContext, kafkaClient, <span class="hljs-built_in">this</span>.metadata);  <br>  <br>  <span class="hljs-built_in">this</span>.ioThread = <span class="hljs-keyword">new</span> <span class="hljs-title class_">KafkaThread</span>(ioThreadName, <span class="hljs-built_in">this</span>.sender, <span class="hljs-literal">true</span>);  <br>  <span class="hljs-built_in">this</span>.ioThread.start();  <br>  <br>  &#125;<br></code></pre></td></tr></table></figure>
+<p>  我们来看看KafkaProducer的<code>send(record,callback)</code>方法的整体调用流程：</p>
+  <img src="/2023/11/25/Kafka-replica-producer/IMG-20231029200829827.png" class="">
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> Future&lt;RecordMetadata&gt; <span class="hljs-title function_">doSend</span><span class="hljs-params">(ProducerRecord&lt;K, V&gt; record, Callback callback)</span> &#123;<br>          <span class="hljs-comment">// Append callback takes care of the following:</span><br>          <span class="hljs-comment">// - call interceptors and user callback on completion</span><br>          <span class="hljs-comment">// - remember partition that is calculated in RecordAccumulator.append</span><br>          <span class="hljs-type">AppendCallbacks</span> <span class="hljs-variable">appendCallbacks</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">AppendCallbacks</span>(callback, <span class="hljs-built_in">this</span>.interceptors, record);<br><br>          <span class="hljs-keyword">try</span> &#123;<br>              throwIfProducerClosed();<br>              <span class="hljs-comment">// first make sure the metadata for the topic is available</span><br>              <span class="hljs-type">long</span> <span class="hljs-variable">nowMs</span> <span class="hljs-operator">=</span> time.milliseconds();<br>              ClusterAndWaitTime clusterAndWaitTime;<br>              <span class="hljs-keyword">try</span> &#123;<br>                  clusterAndWaitTime = waitOnMetadata(record.topic(), record.partition(), nowMs, maxBlockTimeMs);<br>              &#125; <span class="hljs-keyword">catch</span> (KafkaException e) &#123;<br>                  ...<br>              &#125;<br>              nowMs += clusterAndWaitTime.waitedOnMetadataMs;<br>              <span class="hljs-type">long</span> <span class="hljs-variable">remainingWaitMs</span> <span class="hljs-operator">=</span> Math.max(<span class="hljs-number">0</span>, maxBlockTimeMs - clusterAndWaitTime.waitedOnMetadataMs);<br>              <span class="hljs-type">Cluster</span> <span class="hljs-variable">cluster</span> <span class="hljs-operator">=</span> clusterAndWaitTime.cluster;<br>              <span class="hljs-type">byte</span>[] serializedKey;<br>              <span class="hljs-keyword">try</span> &#123;<br>                  serializedKey = keySerializer.serialize(record.topic(), record.headers(), record.key());<br>              &#125; <span class="hljs-keyword">catch</span> (ClassCastException cce) &#123;<br>                  ...<br>              &#125;<br>              <span class="hljs-type">byte</span>[] serializedValue;<br>              <span class="hljs-keyword">try</span> &#123;<br>                  serializedValue = valueSerializer.serialize(record.topic(), record.headers(), record.value());<br>              &#125; <span class="hljs-keyword">catch</span> (ClassCastException cce) &#123;<br>                  ...<br>              &#125;<br><br>              <span class="hljs-comment">// Try to calculate partition, but note that after this call it can be RecordMetadata.UNKNOWN_PARTITION,</span><br>              <span class="hljs-comment">// which means that the RecordAccumulator would pick a partition using built-in logic (which may</span><br>              <span class="hljs-comment">// take into account broker load, the amount of data produced to each partition, etc.).</span><br>              <span class="hljs-type">int</span> <span class="hljs-variable">partition</span> <span class="hljs-operator">=</span> partition(record, serializedKey, serializedValue, cluster);<br>              <br>              <span class="hljs-comment">// Append the record to the accumulator. Note, that the actual partition may be</span><br>              <span class="hljs-comment">// calculated there and can be accessed via appendCallbacks.topicPartition.</span><br>              RecordAccumulator.<span class="hljs-type">RecordAppendResult</span> <span class="hljs-variable">result</span> <span class="hljs-operator">=</span> accumulator.append(record.topic(), partition, timestamp, serializedKey,<br>                      serializedValue, headers, appendCallbacks, remainingWaitMs, abortOnNewBatch, nowMs, cluster);<br>              <span class="hljs-keyword">assert</span> appendCallbacks.getPartition() != RecordMetadata.UNKNOWN_PARTITION;<br><br>              <span class="hljs-keyword">if</span> (result.batchIsFull || result.newBatchCreated) &#123;<br>                  log.trace(<span class="hljs-string">&quot;Waking up the sender since topic &#123;&#125; partition &#123;&#125; is either full or getting a new batch&quot;</span>, record.topic(), appendCallbacks.getPartition());<br>                  <span class="hljs-built_in">this</span>.sender.wakeup();<br>              &#125;<br>              <span class="hljs-keyword">return</span> result.future;<br>              <span class="hljs-comment">// handling exceptions and record the errors;</span><br>              <span class="hljs-comment">// for API exceptions return them in the future,</span><br>              <span class="hljs-comment">// for other exceptions throw directly</span><br>          &#125;<br>  &#125;<br></code></pre></td></tr></table></figure>
+<ul>
+<li>
+<h2 id="metadata">MetaData</h2>
+</li>
+</ul>
+<p>  每个Topic中有多个分区，这些分区的Leader副本可以分配在集群中不同的Broker上，而这些Leader副本因为服务，网络等问题会动态变化，需要Producer维护各分区Leader副本的信息(包括Leader所在服务器的网络地址、分区号等),并且及时进行更新，当Producer发送消息到Topic中，根据MetaData中保存的最新各分区Leader副本来选择其中的patition来发送数据。</p>
+<p>  在KafkaProducer中用来维护MetaData的对象是ProducerMetadata，它其中有个properties:<code>Map&lt;String, Long&gt; topics = new HashMap&lt;&gt;();</code>这个topicsMap,并且封装了MetaData对象，它其中包含了：</p>
+  <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs text">MetaData<br>- MetadataCache cache<br>    - Map&lt;Integer, Node&gt; nodes;<br>    - Node controller;<br>    - Map&lt;TopicPartition, PartitionMetadata&gt; metadataByPartition;<br>    - Cluster clusterInstance;<br>- Long metadataExpireMs<br></code></pre></td></tr></table></figure>
+<p>PartitionMetadata包含Leader副本的详细信息</p>
+<ul>
+<li>
+<p>其中封装了MetaData对象，它其中包含了：</p>
+<figure class="highlight nestedtext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs nestedtext">MetaData<br><span class="hljs-bullet">-</span> <span class="hljs-string">MetadataCache cache</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">Map&lt;Integer, Node&gt; nodes;</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">Node controller;</span><br>    <span class="hljs-bullet">-</span> <span class="hljs-string">Map&lt;TopicPartition, PartitionMetadata&gt; metadataByPartition;</span><br>    // immutable clone for client read, from metadataByPartition<br>    <span class="hljs-bullet">-</span> <span class="hljs-string">Cluster clusterInstance;</span><br>// interval time of flush<br><span class="hljs-bullet">-</span> <span class="hljs-string">long metadataExpireMs;</span><br><span class="hljs-bullet">-</span> <span class="hljs-string">long lastRefreshMs;  </span><br><span class="hljs-bullet">-</span> <span class="hljs-string">long lastSuccessfulRefreshMs;</span><br></code></pre></td></tr></table></figure>
+<p>其中PartitionMetadata包含的Leader副本的详细信息</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs text">PartitionMetadata<br> - TopicPartition topicPartition;<br> - Optional&lt;Integer&gt; leaderId<br> - Optional&lt;Integer&gt; leaderEpoch;<br> - List&lt;Integer&gt; replicaIds;<br> - List&lt;Integer&gt; inSyncReplicaIds;  <br> - List&lt;Integer&gt; offlineReplicaIds;<br></code></pre></td></tr></table></figure>
+<p>MetaData的更新策略：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> ClusterAndWaitTime <span class="hljs-title function_">waitOnMetadata</span><span class="hljs-params">(String topic, Integer partition, <span class="hljs-type">long</span> nowMs, <span class="hljs-type">long</span> maxWaitMs)</span> <span class="hljs-keyword">throws</span> InterruptedException &#123;<br>          <span class="hljs-comment">// add topic to metadata topic list if it is not there already and reset expiry  </span><br>          <span class="hljs-type">Cluster</span> <span class="hljs-variable">cluster</span> <span class="hljs-operator">=</span> metadata.fetch();<br><br>          <span class="hljs-keyword">if</span> (cluster.invalidTopics().contains(topic))<br>              <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">InvalidTopicException</span>(topic);<br><br>          metadata.add(topic, nowMs);<br><br>          <span class="hljs-type">Integer</span> <span class="hljs-variable">partitionsCount</span> <span class="hljs-operator">=</span>cluster.partitionCountForTopic(topic);<br>          <span class="hljs-comment">// Return cached metadata if we have it, and if the record&#x27;s partition is either undefined  </span><br>          <span class="hljs-comment">// or within the known partition range  </span><br>          <span class="hljs-keyword">if</span> (partitionsCount != <span class="hljs-literal">null</span> &amp;&amp; (partition == <span class="hljs-literal">null</span> || partition &lt; partitionsCount))<br>              <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ClusterAndWaitTime</span>(cluster, <span class="hljs-number">0</span>);<br><br>          <span class="hljs-type">long</span> <span class="hljs-variable">remainingWaitMs</span> <span class="hljs-operator">=</span> maxWaitMs;<br>          <span class="hljs-type">long</span> <span class="hljs-variable">elapsed</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>;<br>          <span class="hljs-comment">// Issue metadata requests until we have metadata for the topic and the requested partition,  </span><br>          <span class="hljs-comment">// or until maxWaitTimeMs is exceeded. This is necessary in case the metadata  </span><br>          <span class="hljs-comment">// is stale and the number of partitions for this topic has increased in the meantime.  </span><br>          <span class="hljs-type">long</span> <span class="hljs-variable">nowNanos</span> <span class="hljs-operator">=</span> time.nanoseconds();<br>          <span class="hljs-keyword">do</span> &#123;<br>              <span class="hljs-keyword">if</span> (partition != <span class="hljs-literal">null</span>) &#123;<br>                  log.trace(<span class="hljs-string">&quot;Requesting metadata update for partition &#123;&#125; of topic &#123;&#125;.&quot;</span>, partition, topic);<br>              &#125; <span class="hljs-keyword">else</span> &#123;<br>                  log.trace(<span class="hljs-string">&quot;Requesting metadata update for topic &#123;&#125;.&quot;</span>, topic);<br>              &#125;<br>              metadata.add(topic, nowMs + elapsed);<br>              <span class="hljs-type">int</span> <span class="hljs-variable">version</span> <span class="hljs-operator">=</span> metadata.requestUpdateForTopic(topic);<br>              sender.wakeup();<br>              <span class="hljs-keyword">try</span> &#123;<br>                  metadata.awaitUpdate(version, remainingWaitMs);<br>              &#125; <span class="hljs-keyword">catch</span> (TimeoutException ex) &#123;<br>                  <span class="hljs-comment">// Rethrow with original maxWaitMs to prevent logging exception with remainingWaitMs  </span><br>                  ...<br>              &#125;<br><br>              cluster = metadata.fetch();<br>              elapsed = time.milliseconds() - nowMs;<br>              <span class="hljs-keyword">if</span> (elapsed &gt;= maxWaitMs) &#123;<br>                  ...<br>              &#125;<br><br>              metadata.maybeThrowExceptionForTopic(topic);<br>              remainingWaitMs = maxWaitMs - elapsed;<br>              partitionsCount = cluster.partitionCountForTopic(topic);<br>          &#125; <span class="hljs-keyword">while</span> (partitionsCount == <span class="hljs-literal">null</span> || (partition != <span class="hljs-literal">null</span> &amp;&amp; partition &gt;= partitionsCount));<br><br>          producerMetrics.recordMetadataWait(time.nanoseconds() - nowNanos);<br><br>          <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ClusterAndWaitTime</span>(cluster, elapsed);<br>      &#125;<br></code></pre></td></tr></table></figure>
+<ol>
+<li>先从<code>metadata.fetch()</code>中获取PartitionInfo的cache</li>
+<li>如果是新Topic，则进行requestUpdateForNewTopics</li>
+<li>更新needPartialUpdate = true</li>
+<li>将this.requestVersion++</li>
+<li>更新topic下一次刷新时间</li>
+<li>topics.put(topic, nowMs + metadataIdleMs)</li>
+<li>获取topicPartition的总数</li>
+<li>do循环中阻塞等待获取最新的PartitionData</li>
+<li>唤起sender线程去retrieveMetaDataInfo</li>
+<li>metadata.awaitUpdate(version, remainingWaitMs)阻塞等待</li>
+<li>超时报错，否则直到获取到partition的metaData</li>
+</ol>
+</li>
+<li>
+<h2 id="recordaccumulator">recordAccumulator</h2>
+</li>
+</ul>
+<p>  在send方法中发送消息时，并不是直接将消息发送到Broker，而是暂存在RecordAccumulator的<code>ConcurrentMap&lt;String, TopicInfo&gt; topicInfoMap</code>中，producer会不断的缓存消息到TopicInfo的ProducerBatch队列中，之后sender线程会不断的check，批量发送符合条件的records。以下是append方法：</p>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br></pre></td><td class="code"><pre><code class="hljs java">  <span class="hljs-keyword">public</span> RecordAppendResult <span class="hljs-title function_">append</span><span class="hljs-params">(String topic,</span><br><span class="hljs-params">                                   <span class="hljs-type">int</span> partition,</span><br><span class="hljs-params">                                   <span class="hljs-type">long</span> timestamp,</span><br><span class="hljs-params">                                   <span class="hljs-type">byte</span>[] key,</span><br><span class="hljs-params">                                   <span class="hljs-type">byte</span>[] value,</span><br><span class="hljs-params">                                   Header[] headers,</span><br><span class="hljs-params">                                   AppendCallbacks callbacks,</span><br><span class="hljs-params">                                   <span class="hljs-type">long</span> maxTimeToBlock,</span><br><span class="hljs-params">                                   <span class="hljs-type">boolean</span> abortOnNewBatch,</span><br><span class="hljs-params">                                   <span class="hljs-type">long</span> nowMs,</span><br><span class="hljs-params">                                   Cluster cluster)</span> <span class="hljs-keyword">throws</span> InterruptedException &#123;<br><br>    <span class="hljs-type">TopicInfo</span> <span class="hljs-variable">topicInfo</span> <span class="hljs-operator">=</span> topicInfoMap.computeIfAbsent(topic, k -&gt; <span class="hljs-keyword">new</span> <span class="hljs-title class_">TopicInfo</span>(logContext, k, batchSize));<br><br>    <span class="hljs-comment">// We keep track of the number of appending thread to make sure we do not miss batches in</span><br>    <span class="hljs-comment">// abortIncompleteBatches().</span><br>    appendsInProgress.incrementAndGet();<br>    <span class="hljs-type">ByteBuffer</span> <span class="hljs-variable">buffer</span> <span class="hljs-operator">=</span> <span class="hljs-literal">null</span>;<br>    <span class="hljs-keyword">if</span> (headers == <span class="hljs-literal">null</span>) headers = Record.EMPTY_HEADERS;<br>    <span class="hljs-keyword">try</span> &#123;<br>        <span class="hljs-comment">// Loop to retry in case we encounter partitioner&#x27;s race conditions.</span><br>        <span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>) &#123;<br>            <span class="hljs-comment">// If the message doesn&#x27;t have any partition affinity, so we pick a partition based on the broker</span><br>            <span class="hljs-comment">// availability and performance. Note, that here we peek current partition before we hold the</span><br>            <span class="hljs-comment">// deque lock, so we&#x27;ll need to make sure that it&#x27;s not changed while we were waiting for the</span><br>            <span class="hljs-comment">// deque lock.</span><br>            <span class="hljs-keyword">final</span> BuiltInPartitioner.StickyPartitionInfo partitionInfo;<br>            <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> effectivePartition;<br>            <span class="hljs-keyword">if</span> (partition == RecordMetadata.UNKNOWN_PARTITION) &#123;<br>                partitionInfo = topicInfo.builtInPartitioner<br>                        .peekCurrentPartitionInfo(cluster);<br>                effectivePartition = partitionInfo.partition();<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                partitionInfo = <span class="hljs-literal">null</span>;<br>                effectivePartition = partition;<br>            &#125;<br><br>            <span class="hljs-comment">// Now that we know the effective partition, let the caller know.</span><br><br>            setPartition(callbacks, effectivePartition);<br><br>            <span class="hljs-comment">// check if we have an in-progress batch</span><br>            Deque&lt;ProducerBatch&gt; dq = topicInfo.batches<br>                    .computeIfAbsent(effectivePartition, k -&gt; <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayDeque</span>&lt;&gt;());<br><br>            <span class="hljs-keyword">synchronized</span> (dq) &#123;<br>                <span class="hljs-comment">// After taking the lock, validate that the partition hasn&#x27;t changed and retry.</span><br>                <span class="hljs-keyword">if</span> (partitionChanged(topic, topicInfo, partitionInfo, dq, nowMs, cluster))<br>                    <span class="hljs-keyword">continue</span>;<br><br>                <span class="hljs-type">RecordAppendResult</span> <span class="hljs-variable">appendResult</span> <span class="hljs-operator">=</span> tryAppend(timestamp, key, value, headers, callbacks, dq, nowMs);<br><br>                <span class="hljs-keyword">if</span> (appendResult != <span class="hljs-literal">null</span>) &#123;<br>                    <span class="hljs-comment">// If queue has incomplete batches we disable switch (see comments in updatePartitionInfo).</span><br>                    <span class="hljs-type">boolean</span> <span class="hljs-variable">enableSwitch</span> <span class="hljs-operator">=</span> allBatchesFull(dq);<br><br>                    topicInfo.builtInPartitioner.updatePartitionInfo(<br>                            partitionInfo, appendResult.appendedBytes, cluster, enableSwitch);<br><br>                    <span class="hljs-keyword">return</span> appendResult;<br>                &#125;<br>            &#125;<br><br>            <span class="hljs-comment">// we don&#x27;t have an in-progress record batch try to allocate a new batch</span><br>            <span class="hljs-keyword">if</span> (abortOnNewBatch) &#123;<br>                <span class="hljs-comment">// Return a result that will cause another call to append.</span><br>                <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RecordAppendResult</span>(<span class="hljs-literal">null</span>, <span class="hljs-literal">false</span>, <span class="hljs-literal">false</span>, <span class="hljs-literal">true</span>, <span class="hljs-number">0</span>);<br><br>            &#125;<br><br>            <span class="hljs-keyword">if</span> (buffer == <span class="hljs-literal">null</span>) &#123;<br>                <span class="hljs-type">byte</span> <span class="hljs-variable">maxUsableMagic</span> <span class="hljs-operator">=</span> apiVersions.maxUsableProduceMagic();<br>                <span class="hljs-type">int</span> <span class="hljs-variable">size</span> <span class="hljs-operator">=</span> Math.max(<span class="hljs-built_in">this</span>.batchSize, AbstractRecords.estimateSizeInBytesUpperBound(maxUsableMagic, compression, key, value, headers));<br>                log.trace(<span class="hljs-string">&quot;Allocating a new &#123;&#125; byte message buffer for topic &#123;&#125; partition &#123;&#125; with remaining timeout &#123;&#125;ms&quot;</span>, size, topic, partition, maxTimeToBlock);<br>                <span class="hljs-comment">// This call may block if we exhausted buffer space.</span><br>                buffer = free.allocate(size, maxTimeToBlock);<br>                <span class="hljs-comment">// Update the current time in case the buffer allocation blocked above.</span><br>                <span class="hljs-comment">// <span class="hljs-doctag">NOTE:</span> getting time may be expensive, so calling it under a lock</span><br>                <span class="hljs-comment">// should be avoided.</span><br>                nowMs = time.milliseconds();<br>            &#125;<br><br>            <span class="hljs-keyword">synchronized</span> (dq) &#123;<br>                <span class="hljs-comment">// After taking the lock, validate that the partition hasn&#x27;t changed and retry.</span><br>                <span class="hljs-keyword">if</span> (partitionChanged(topic, topicInfo, partitionInfo, dq, nowMs, cluster))<br>                    <span class="hljs-keyword">continue</span>;<br><br>                <span class="hljs-type">RecordAppendResult</span> <span class="hljs-variable">appendResult</span> <span class="hljs-operator">=</span> appendNewBatch(topic, effectivePartition, dq, timestamp, key, value, headers, callbacks, buffer, nowMs);<br>                <span class="hljs-comment">// Set buffer to null, so that deallocate doesn&#x27;t return it back to free pool, since it&#x27;s used in the batch.</span><br>                <span class="hljs-keyword">if</span> (appendResult.newBatchCreated)<br>                    buffer = <span class="hljs-literal">null</span>;<br>                <span class="hljs-comment">// If queue has incomplete batches we disable switch (see comments in updatePartitionInfo).</span><br>                <span class="hljs-type">boolean</span> <span class="hljs-variable">enableSwitch</span> <span class="hljs-operator">=</span> allBatchesFull(dq);<br>                topicInfo.builtInPartitioner.updatePartitionInfo(partitionInfo, appendResult.appendedBytes, cluster, enableSwitch);<br>                <span class="hljs-keyword">return</span> appendResult;<br>            &#125;<br>        &#125;<br>    &#125; <span class="hljs-keyword">finally</span> &#123;<br>        free.deallocate(buffer);<br>        appendsInProgress.decrementAndGet();<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>TopicInfo其中每个partition的队列含有需要发送的records的ProducerBatch</p>
+  <figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs text">TopicInfo<br>  - ConcurrentMap&lt;Integer, Deque&lt;ProducerBatch&gt;&gt; batches<br>  - BuiltInPartitioner builtInPartitioner<br></code></pre></td></tr></table></figure>
+<p>大体实现方式如下，本文的学习内容暂时不包括底层的ByteBuffer是如何分配的，append底层的对象是如何维护的，只了解大概的实现方式：</p>
+  <img src="/2023/11/25/Kafka-replica-producer/IMG-20231104231958569.png" class="">
+<p>RecordAccumulator的append方法主要逻辑：</p>
+<ol>
+<li>首先在partition with batches 的Map中找到对应的Deque &lt;ProducerBatch&gt;,否则创建新的Deque</li>
+<li>对Deque加锁，调用tryAppend，尝试向ProducerBatch中插入一条record，释放锁</li>
+<li>如果append成功则直接返回，否则会close这个已经满的队列</li>
+<li>然后申请ByteBuffer</li>
+<li>再次对Deque加锁，分配一个新的ProducerBatch，将record添加进去，并将ProducerBatch append到deque的尾部</li>
+</ol>
+<ul>
+<li>这里在两次append方法中，分别都对deque进行加锁，因为这个Deque是非线程安全的，为什么要分成两次小粒度的加锁呢，并且为什么使用队列，并且在队列内部的元素也是一个List of Records:</li>
+<li>考虑现在有两个线程都会send reuqest，假设只有一次大粒度加锁，线程1发送的消息比较大，需要向BufferPool申请新空间，而此时BufferPool空间不足，线程1在BufferPool上等待，此时它依然持有对应Deque的锁，线程2发送的消息较小，Deque最后一个ProducerBatch剩余空间够用，但是由于线程1未释放Deque的锁，所以需要一起等待，若有多个小msg的线程存在，那么就会造成为了等待IO而阻塞其他请求，从而降低了吞吐量，而现在kafka的设计是，在tryAppend和最后new append中占有锁，在中间的allocate buffer中是不占有锁的，一个很好的设计！</li>
+<li>并且第二次加锁后重试，也防止了多个线程并发向BufferPool申请空间后，造成内部碎片。</li>
+</ul>
+  <img src="/2023/11/25/Kafka-replica-producer/IMG-20231104234331114.png" class="">
+<p>  之后是试着唤醒sender线程，来发送客户端消息到Broker，可以看到客户端的send请求，实际上<br>
+并没有将消息直接发送到Broker，而是先append到ProducerBatch中，之后统一通过sender线程将消息批量的发送到Broker，从而增加吞吐量。</p>
+<ul>
+<li>
+<h2 id="sender">Sender</h2>
+</li>
+</ul>
+<p>  在客户端将消息发送给服务端之前，会调用RecordAccumulator.ready()方法获取集群中符合发送消息条件的节点集合:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs java">  <span class="hljs-type">boolean</span> <span class="hljs-variable">sendable</span> <span class="hljs-operator">=</span> full<br>        || expired<br>        || exhausted<br>        || closed<br>        || flushInProgress()<br>        || transactionCompleting;<br><span class="hljs-keyword">if</span> (sendable &amp;&amp; !backingOff) <br>    readyNodes.add(leader);<br></code></pre></td></tr></table></figure>
+<ol>
+<li>Deque中有多个ProducerBatch或是第一个ProducerBatch已经满了</li>
+<li>是否超时</li>
+<li>是否有线程正在等待flush操作完成</li>
+<li>Sender线程准备关闭</li>
+</ol>
+<p>sendProducerData 就会将read的数据发送给Broker</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-type">long</span> <span class="hljs-title function_">sendProducerData</span><span class="hljs-params">(<span class="hljs-type">long</span> now)</span> &#123;<br>        <span class="hljs-comment">// get the list of partitions with data ready to send</span><br>        RecordAccumulator.<span class="hljs-type">ReadyCheckResult</span> <span class="hljs-variable">result</span> <span class="hljs-operator">=</span> <span class="hljs-built_in">this</span>.accumulator.ready(metadata, now);<br><br>        <span class="hljs-comment">// if there are any partitions whose leaders are not known yet, force metadata update</span><br>        <span class="hljs-keyword">if</span> (!result.unknownLeaderTopics.isEmpty()) &#123;<br>            <span class="hljs-comment">// The set of topics with unknown leader contains topics with leader election pending as well as</span><br>            <span class="hljs-comment">// topics which may have expired. Add the topic again to metadata to ensure it is included</span><br>            <span class="hljs-comment">// and request metadata update, since there are messages to send to the topic.</span><br>            <span class="hljs-keyword">for</span> (String topic : result.unknownLeaderTopics)<br>                <span class="hljs-built_in">this</span>.metadata.add(topic, now);<br><br>            log.debug(<span class="hljs-string">&quot;Requesting metadata update due to unknown leader topics from the batched records: &#123;&#125;&quot;</span>,<br>                    result.unknownLeaderTopics);<br>            <span class="hljs-built_in">this</span>.metadata.requestUpdate();<br>        &#125;<br><br>        <span class="hljs-comment">// remove any nodes we aren&#x27;t ready to send to</span><br>        Iterator&lt;Node&gt; iter = result.readyNodes.iterator();<br>        <span class="hljs-type">long</span> <span class="hljs-variable">notReadyTimeout</span> <span class="hljs-operator">=</span> Long.MAX_VALUE;<br>        <span class="hljs-keyword">while</span> (iter.hasNext()) &#123;<br>            <span class="hljs-type">Node</span> <span class="hljs-variable">node</span> <span class="hljs-operator">=</span> iter.next();<br>            <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">this</span>.client.ready(node, now)) &#123;<br>                <span class="hljs-comment">// Update just the readyTimeMs of the latency stats, so that it moves forward</span><br>                <span class="hljs-comment">// every time the batch is ready (then the difference between readyTimeMs and</span><br>                <span class="hljs-comment">// drainTimeMs would represent how long data is waiting for the node).</span><br>                <span class="hljs-built_in">this</span>.accumulator.updateNodeLatencyStats(node.id(), now, <span class="hljs-literal">false</span>);<br>                iter.remove();<br>                notReadyTimeout = Math.min(notReadyTimeout, <span class="hljs-built_in">this</span>.client.pollDelayMs(node, now));<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                <span class="hljs-comment">// Update both readyTimeMs and drainTimeMs, this would &quot;reset&quot; the node</span><br>                <span class="hljs-comment">// latency.</span><br>                <span class="hljs-built_in">this</span>.accumulator.updateNodeLatencyStats(node.id(), now, <span class="hljs-literal">true</span>);<br>            &#125;<br>        &#125;<br><br>        <span class="hljs-comment">// create produce requests</span><br>        Map&lt;Integer, List&lt;ProducerBatch&gt;&gt; batches = <span class="hljs-built_in">this</span>.accumulator.drain(metadata, result.readyNodes, <span class="hljs-built_in">this</span>.maxRequestSize, now);<br>        addToInflightBatches(batches);<br>        <span class="hljs-keyword">if</span> (guaranteeMessageOrder) &#123;<br>            <span class="hljs-comment">// Mute all the partitions drained</span><br>            <span class="hljs-keyword">for</span> (List&lt;ProducerBatch&gt; batchList : batches.values()) &#123;<br>                <span class="hljs-keyword">for</span> (ProducerBatch batch : batchList)<br>                    <span class="hljs-built_in">this</span>.accumulator.mutePartition(batch.topicPartition);<br>            &#125;<br>        &#125;<br><br>        accumulator.resetNextBatchExpiryTime();<br>        List&lt;ProducerBatch&gt; expiredInflightBatches = getExpiredInflightBatches(now);<br>        List&lt;ProducerBatch&gt; expiredBatches = <span class="hljs-built_in">this</span>.accumulator.expiredBatches(now);<br>        expiredBatches.addAll(expiredInflightBatches);<br><br>        <span class="hljs-comment">// Reset the producer id if an expired batch has previously been sent to the broker. Also update the metrics</span><br>        <span class="hljs-comment">// for expired batches. see the documentation of @TransactionState.resetIdempotentProducerId to understand why</span><br>        <span class="hljs-comment">// we need to reset the producer id here.</span><br>        <span class="hljs-keyword">if</span> (!expiredBatches.isEmpty())<br>            log.trace(<span class="hljs-string">&quot;Expired &#123;&#125; batches in accumulator&quot;</span>, expiredBatches.size());<br>        <span class="hljs-keyword">for</span> (ProducerBatch expiredBatch : expiredBatches) &#123;<br>            <span class="hljs-type">String</span> <span class="hljs-variable">errorMessage</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;Expiring &quot;</span> + expiredBatch.recordCount + <span class="hljs-string">&quot; record(s) for &quot;</span> + expiredBatch.topicPartition<br>                    + <span class="hljs-string">&quot;:&quot;</span> + (now - expiredBatch.createdMs) + <span class="hljs-string">&quot; ms has passed since batch creation&quot;</span>;<br>            failBatch(expiredBatch, <span class="hljs-keyword">new</span> <span class="hljs-title class_">TimeoutException</span>(errorMessage), <span class="hljs-literal">false</span>);<br>            <span class="hljs-keyword">if</span> (transactionManager != <span class="hljs-literal">null</span> &amp;&amp; expiredBatch.inRetry()) &#123;<br>                <span class="hljs-comment">// This ensures that no new batches are drained until the current in flight batches are fully resolved.</span><br>                transactionManager.markSequenceUnresolved(expiredBatch);<br>            &#125;<br>        &#125;<br>        sensors.updateProduceRequestMetrics(batches);<br><br>        <span class="hljs-comment">// If we have any nodes that are ready to send + have sendable data, poll with 0 timeout so this can immediately</span><br>        <span class="hljs-comment">// loop and try sending more data. Otherwise, the timeout will be the smaller value between next batch expiry</span><br>        <span class="hljs-comment">// time, and the delay time for checking data availability. Note that the nodes may have data that isn&#x27;t yet</span><br>        <span class="hljs-comment">// sendable due to lingering, backing off, etc. This specifically does not include nodes with sendable data</span><br>        <span class="hljs-comment">// that aren&#x27;t ready to send since they would cause busy looping.</span><br>        <span class="hljs-type">long</span> <span class="hljs-variable">pollTimeout</span> <span class="hljs-operator">=</span> Math.min(result.nextReadyCheckDelayMs, notReadyTimeout);<br>        pollTimeout = Math.min(pollTimeout, <span class="hljs-built_in">this</span>.accumulator.nextExpiryTimeMs() - now);<br>        pollTimeout = Math.max(pollTimeout, <span class="hljs-number">0</span>);<br>        <span class="hljs-keyword">if</span> (!result.readyNodes.isEmpty()) &#123;<br>            log.trace(<span class="hljs-string">&quot;Nodes with data ready to send: &#123;&#125;&quot;</span>, result.readyNodes);<br>            <span class="hljs-comment">// if some partitions are already ready to be sent, the select time would be 0;</span><br>            <span class="hljs-comment">// otherwise if some partition already has some data accumulated but not ready yet,</span><br>            <span class="hljs-comment">// the select time will be the time difference between now and its linger expiry time;</span><br>            <span class="hljs-comment">// otherwise the select time will be the time difference between now and the metadata expiry time;</span><br>            pollTimeout = <span class="hljs-number">0</span>;<br>        &#125;<br>        sendProduceRequests(batches, now);<br>        <span class="hljs-keyword">return</span> pollTimeout;<br>    &#125;<br></code></pre></td></tr></table></figure>
+<p>  之后会检查readyNodes，将过期的records移除掉，之后client发送请求到Broker，当client收到response后，会调用callback</p>
+<p>  这种分多个Batch，并且全部通过callback来完成异步response的方式，可以避免一个大的消息阻塞线程，同时多个batch发送，来提高吞吐量，这种方式可以考虑到RPC客户端在发送多个消息时，来避免大消息阻塞线程。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kafka/" rel="tag">Kafka</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Producer/" rel="tag">Producer</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%B6%88%E6%81%AF%E5%8F%91%E9%80%81/" rel="tag">消息发送</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2023/11/25/Kafka-concept/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Kafka-Concept
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2023/10/15/netty_write/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          Netty write 流程
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2025 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="/js/clipboard.min.js"></script>
+<script src="/js/jquery-1.4.3.min.js"></script>
+
+<script src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="/mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+  
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
+</body>
+</html>

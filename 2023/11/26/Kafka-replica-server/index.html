@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Kafka-replica-server | Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SEO Meta Tags -->
+  
+  <meta name="description" content="  本文简单介绍当Broker接受到producerRequest的时候，ReplicaManager是如何处理的本地写入和WaitForFollowerFetch">
+  
+  
+  <!-- Keywords -->
+  
+  <meta name="keywords" content="programming, database, mongodb, elasticsearch, monstache, tech blog, development, tutorial">
+  
+  
+  <!-- Author -->
+  <meta name="author" content="epic">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Kafka-replica-server | Yonhoo">
+  <meta property="og:url" content="https://Yonhoo.github.io/2023/11/26/Kafka-replica-server/">
+  <meta property="og:site_name" content="Yonhoo">
+  
+  <meta property="og:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Kafka-replica-server | Yonhoo">
+  
+  <meta name="twitter:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://Yonhoo.github.io/2023/11/26/Kafka-replica-server/">
+  
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+  
+    <link rel="alternate" href="/atom.xml" title="Yonhoo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+  <!-- 额外的favicon格式支持 -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="/" id="logo">Yonhoo</a>
+  </h1>
+  
+    <h2 id="subtitle-wrap">
+      <a href="/" id="subtitle">Tech Blog &amp; Personal Journey</a>
+    </h2>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-Kafka-replica-server" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/11/26/Kafka-replica-server/" class="article-date">
+  <time class="dt-published" datetime="2023-11-25T16:00:00.000Z" itemprop="datePublished">2023-11-26</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      Kafka-replica-server
+    </h1>
+  
+
+      </header>
+    
+    
+<!-- 鼠标悬停触发区域 -->
+<div class="toc-hover-trigger"></div>
+
+<!-- 左侧边栏TOC -->
+<div id="sidebar-toc" class="sidebar-toc">
+    <div class="toc-toggle" id="toc-toggle">
+        <i class="fa fa-list"></i>
+        <span>目录</span>
+    </div>
+    <div class="toc-content" id="toc-content">
+        <div class="toc-header">
+            <h3 class="toc-title">Table Of Contents</h3>
+        </div>
+        <div class="toc-body">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#delayedoperation"><span class="toc-number">1.</span> <span class="toc-text">DelayedOperation</span></a></li></ol>
+        </div>
+    </div>
+</div>
+
+<!-- TOC遮罩层 -->
+<div id="toc-overlay" class="toc-overlay"></div>
+
+<!-- TOC JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocContent = document.getElementById('toc-content');
+    const tocOverlay = document.getElementById('toc-overlay');
+    const sidebarToc = document.getElementById('sidebar-toc');
+    const tocLinks = tocContent.querySelectorAll('.toc-link');
+    
+    // 切换TOC显示状态
+    function toggleToc() {
+        sidebarToc.classList.toggle('active');
+        tocOverlay.classList.toggle('active');
+        document.body.classList.toggle('toc-open');
+    }
+    
+    // 关闭TOC
+    function closeToc() {
+        sidebarToc.classList.remove('active');
+        tocOverlay.classList.remove('active');
+        document.body.classList.remove('toc-open');
+    }
+    
+    // 事件监听
+    tocToggle.addEventListener('click', toggleToc);
+    tocOverlay.addEventListener('click', closeToc);
+    
+    // TOC链接点击后自动关闭（移动端）
+    tocLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(closeToc, 300); // 延迟关闭，让滚动完成
+            }
+        });
+    });
+    
+    // 键盘ESC关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeToc();
+        }
+    });
+    
+    // 窗口大小变化时的处理
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeToc();
+        }
+    });
+    
+    // 滚动监听，高亮当前章节
+    let headings = [];
+    tocLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                headings.push({
+                    link: link,
+                    target: target,
+                    offset: target.offsetTop
+                });
+            }
+        }
+    });
+    
+    function updateActiveHeading() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        let activeHeading = null;
+        
+        // 找到当前可视区域内的标题
+        for (let i = headings.length - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (scrollTop >= heading.offset - 100) {
+                activeHeading = heading;
+                break;
+            }
+        }
+        
+        // 更新高亮状态
+        tocLinks.forEach(link => link.classList.remove('active'));
+        if (activeHeading) {
+            activeHeading.link.classList.add('active');
+            
+            // 滚动TOC到当前项
+            const tocBody = document.querySelector('.toc-body');
+            if (tocBody && sidebarToc.classList.contains('active')) {
+                const linkTop = activeHeading.link.offsetTop;
+                const tocBodyHeight = tocBody.offsetHeight;
+                const linkHeight = activeHeading.link.offsetHeight;
+                
+                if (linkTop < tocBody.scrollTop || linkTop > tocBody.scrollTop + tocBodyHeight - linkHeight) {
+                    tocBody.scrollTop = linkTop - tocBodyHeight / 2;
+                }
+            }
+        }
+    }
+    
+    // 节流函数
+    function throttle(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 绑定滚动事件
+    window.addEventListener('scroll', throttle(updateActiveHeading, 100));
+    
+    // 初始化高亮
+    updateActiveHeading();
+});
+</script>
+
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  本文简单介绍当Broker接受到producerRequest的时候，ReplicaManager是如何处理的本地写入和WaitForFollowerFetch</p>
+<span id="more"></span>
+<p>  每个Partition都有两个管理对象ReplicaManager 和 LogManger，ReplicaManager的作用是管理这台 broker 上的所有副本（replica）。在 Kafka 中，每个副本（replica）都会跟日志实例（Log 对象）一一对应，一个副本会对应一个 Log 对象。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>管理对象</th>
+<th>组成部分</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>日志管理器（LogManager）</td>
+<td>日志（Log）</td>
+<td>日志分段（LogSegment）</td>
+</tr>
+<tr>
+<td>副本管理器（ReplicaManager）</td>
+<td>分区（Partition）</td>
+<td>副本（Replica）</td>
+</tr>
+</tbody>
+</table>
+<p>  生产者的ack是可以配置的，当acks=0时，生产者发送数据后，就不会等待服务器的响应，当acks=1时，生产者只需要等待Leader Partition的响应，当acks=all时，就会等待配置的isr集合中所有副本的返回，从而通过利用acks=all和isr动态集合来确保数据一致性问题：当Leader节点失效后，由于保证了所有ISR集合中所有副本的log end offset都是一致的，从而可以从ISR集合中选举新的Leader。</p>
+<p>  KafkaApis是Kafka服务器处理请求的入口类,负责将KafkaRequestHandler传递过来的请求分发到不同的handle*()处理方法中，这一节主要是关注producer的请求：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">case</span> ApiKeys.PRODUCE =&gt; handleProduceRequest(request, requestLocal)<br></code></pre></td></tr></table></figure>
+<p>  handleProduceRequest中前面是验证request，定义sendResponseCallback，processingStatsCallback，其主要是为了记录metrics，之后就是主要的replicaManager.appendRecords:</p>
+<figure class="highlight jboss-cli"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs jboss-cli">replicaManager.appendRecords<span class="hljs-params">(  </span><br><span class="hljs-params">    <span class="hljs-attr">timeout</span> = produceRequest.timeout.toLong,  </span><br><span class="hljs-params">    <span class="hljs-attr">requiredAcks</span> = produceRequest.acks,  </span><br><span class="hljs-params">    <span class="hljs-attr">internalTopicsAllowed</span> = internalTopicsAllowed,  </span><br><span class="hljs-params">    <span class="hljs-attr">origin</span> = AppendOrigin.CLIENT,  </span><br><span class="hljs-params">    <span class="hljs-attr">entriesPerPartition</span> = authorizedRequestInfo,  </span><br><span class="hljs-params">    <span class="hljs-attr">requestLocal</span> = requestLocal,  </span><br><span class="hljs-params">    <span class="hljs-attr">responseCallback</span> = sendResponseCallback,  </span><br><span class="hljs-params">    <span class="hljs-attr">recordConversionStatsCallback</span> = processingStatsCallback,  </span><br><span class="hljs-params">    <span class="hljs-attr">transactionalId</span> = produceRequest.transactionalId()</span>,  <br>    transactionStatePartition = transactionStatePartition)<br></code></pre></td></tr></table></figure>
+<ol>
+<li>appendEntries:
+<ul>
+<li>appendLogResults
+<ul>
+<li>appendToLocalLog
+<ul>
+<li>appendRecordsToLeader</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<p>  先对leaderIsrUpdateLock用读锁，避免这个时候更新Isr集合，造成副本Replica同步与Isr集合不一致的问题，每个Partition中都有一个log的对象，因为是appendToLeader，需要先判断log是不是LeaderLog，然后check此时partitionState的isr.size&gt;=leaderLog.config.minInSyncReplicas，如果满足就appendAsLeader，具体log中是如何写进本地磁盘的先不深入。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs java">def <span class="hljs-title function_">appendRecordsToLeader</span><span class="hljs-params">(records: MemoryRecords, origin: AppendOrigin, requiredAcks: Int,</span><br><span class="hljs-params">        requestLocal: RequestLocal, verificationGuard: Object = <span class="hljs-literal">null</span>)</span>: LogAppendInfo = &#123;<br>        val (info, leaderHWIncremented) = inReadLock(leaderIsrUpdateLock) &#123;<br>        <span class="hljs-comment">// leaderLogIfLocal 这个变量是在 LeaderAndIsr 的构造函数中初始化的  </span><br>        leaderLogIfLocal match &#123;<br>        <span class="hljs-keyword">case</span> <span class="hljs-title function_">Some</span><span class="hljs-params">(leaderLog)</span> =&gt;<br>        <span class="hljs-type">val</span> <span class="hljs-variable">minIsr</span> <span class="hljs-operator">=</span> leaderLog.config.minInSyncReplicas<br>        <span class="hljs-type">val</span> <span class="hljs-variable">inSyncSize</span> <span class="hljs-operator">=</span> partitionState.isr.size<br><br>        <span class="hljs-comment">// Avoid writing to leader if there are not enough insync replicas to make it safe  </span><br>        <span class="hljs-keyword">if</span> (inSyncSize &lt; minIsr &amp;&amp; requiredAcks == -<span class="hljs-number">1</span>) &#123;<br>        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">NotEnoughReplicasException</span>(s<span class="hljs-string">&quot;The size of the current ISR $&#123;partitionState.isr&#125; &quot;</span> +<br>        s<span class="hljs-string">&quot;is insufficient to satisfy the min.isr requirement of $minIsr for partition $topicPartition&quot;</span>)<br>        &#125;<br><br>        <span class="hljs-type">val</span> <span class="hljs-variable">info</span> <span class="hljs-operator">=</span> leaderLog.appendAsLeader(records, leaderEpoch = <span class="hljs-built_in">this</span>.leaderEpoch, origin,<br>        interBrokerProtocolVersion, requestLocal, verificationGuard)<br><br>        <span class="hljs-comment">// we may need to increment high watermark since ISR could be down to 1  </span><br>        (info, maybeIncrementLeaderHW(leaderLog))<br><br>        <span class="hljs-type">case</span> <span class="hljs-variable">None</span> <span class="hljs-operator">=</span>&gt;<br>        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">NotLeaderOrFollowerException</span>(<span class="hljs-string">&quot;Leader not local for partition %s on broker %d&quot;</span><br>        .format(topicPartition, localBrokerId))<br>        &#125;<br>        &#125;<br><br>        info.copy(<span class="hljs-keyword">if</span> (leaderHWIncremented) LeaderHwChange.INCREASED <span class="hljs-keyword">else</span> LeaderHwChange.SAME)<br>        &#125;<br></code></pre></td></tr></table></figure>
+<ol start="2">
+<li>delayedProduceRequestRequired</li>
+</ol>
+<p>  检查requiredAcks,如果是-1，则要等Isr集合中所有的副本都同步完成，这次的request才算是发送成功。构建DelayedProduce的request，然后调用delayedProducePurgatory.tryCompleteElseWatch(delayedProduce, producerRequestKeys)请求，异步的等待leader的其他副本同步完成。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-type">val</span> <span class="hljs-variable">produceMetadata</span> <span class="hljs-operator">=</span> ProduceMetadata(requiredAcks, produceStatus)  <br><span class="hljs-type">val</span> <span class="hljs-variable">delayedProduce</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">DelayedProduce</span>(timeout, produceMetadata, <span class="hljs-built_in">this</span>, responseCallback, delayedProduceLock)<br></code></pre></td></tr></table></figure>
+<p>  其中delayedProduce封装的是每个TopicPartition对应的写入Leader副本的lastOffset + 1的记录，其他还有responseCallback</p>
+<figure class="highlight pgsql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs pgsql">def produceStatusResult(appendResult: Map[TopicPartition, LogAppendResult], useCustomMessage: <span class="hljs-type">Boolean</span>): Map[TopicPartition, ProducePartitionStatus] = &#123;<br>  appendResult.map &#123; <span class="hljs-keyword">case</span> (topicPartition, result) =&gt;<br>    topicPartition -&gt; ProducePartitionStatus(<br>      result.<span class="hljs-keyword">info</span>.lastOffset + <span class="hljs-number">1</span>, // required <span class="hljs-keyword">offset</span>  <br>      <span class="hljs-built_in">new</span> PartitionResponse(<br>        result.error,<br>        result.<span class="hljs-keyword">info</span>.firstOffset.map[Long](_.messageOffset)<br>          .orElse(<span class="hljs-number">-1</span>L),<br>        result.<span class="hljs-keyword">info</span>.lastOffset,<br>        result.<span class="hljs-keyword">info</span>.logAppendTime,<br>        result.<span class="hljs-keyword">info</span>.logStartOffset,<br>        result.<span class="hljs-keyword">info</span>.recordErrors,<br>        <span class="hljs-keyword">if</span> (useCustomMessage) result.<span class="hljs-keyword">exception</span>.<span class="hljs-keyword">get</span>.getMessage <span class="hljs-keyword">else</span> result.<span class="hljs-keyword">info</span>.errorMessage<br>      )<br>    ) // response status  <br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>  producerRequestKeys指的是如果其他副本还没有同步完成，就将这些topPartition加入到Watchers中，等异步完成的时候再移除。</p>
+<h2 id="delayedoperation">DelayedOperation</h2>
+<p>  DelayedOperationPurgatory是用来管理延迟操作，通过时间轮来完成定时任务或者异步任务。DelayedOperation有四个实现类，分别表示四类不同的延迟操作，也对应了四种不同的请求，我们先从replicaManager调用的地方开始：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs Scala">delayedProducePurgatory.tryCompleteElseWatch(delayedProduce, producerRequestKeys)<br></code></pre></td></tr></table></figure>
+<p>  tryCompleteElseWatch如其名字所示，先check有没有complete，否则将topPartition加入到Watchers中；</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs scala"><span class="hljs-keyword">if</span> (operation.safeTryCompleteOrElse &#123;<br>  watchKeys.foreach(key =&gt; watchForOperation(key, operation))<br>  <span class="hljs-keyword">if</span> (watchKeys.nonEmpty) estimatedTotalOperations.incrementAndGet()<br>&#125;) <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span><br></code></pre></td></tr></table></figure>
+<p>  在调用safeTryCompleteOrElse时，会先抢占锁，这里的lock是自旋锁lockOpt.getOrElse(new ReentrantLock)</p>
+<figure class="highlight smali"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs smali">def safeTryCompleteOrElse(f: =&gt; Unit): Boolean = inLock(lock) &#123;  <br><span class="hljs-built_in">    if </span>(tryComplete()) true  <br>    else &#123;  <br>        f  <br>        // last completion<span class="hljs-built_in"> check </span> <br>        tryComplete()  <br>    &#125;  <br>&#125;<br></code></pre></td></tr></table></figure>
+<p>tryComplete()满足的条件在源码的注释中有写道：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs scala"><span class="hljs-comment">/**  </span><br><span class="hljs-comment">* The delayed produce operation can be completed if every partition  </span><br><span class="hljs-comment">* it produces to is satisfied by one of the following:  </span><br><span class="hljs-comment">*  </span><br><span class="hljs-comment">* Case A: Replica not assigned to partition  </span><br><span class="hljs-comment">* Case B: Replica is no longer the leader of this partition  </span><br><span class="hljs-comment">* Case C: This broker is the leader:  </span><br><span class="hljs-comment">* C.1 - If there was a local error thrown while checking if at least requiredAcks  </span><br><span class="hljs-comment">* replicas have caught up to this operation: set an error in response  </span><br><span class="hljs-comment">* C.2 - Otherwise, set the response with no error.  </span><br><span class="hljs-comment">*/</span><br></code></pre></td></tr></table></figure>
+<p>如果满足其中任何一个条件，就进行forceComplete：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs scala"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">tryComplete</span></span>(): <span class="hljs-type">Boolean</span> = &#123;  <br><span class="hljs-comment">// check for each partition if it still has pending acks  </span><br>    produceMetadata.produceStatus.forKeyValue &#123; (topicPartition, status) =&gt;  <br><br><span class="hljs-comment">// skip those partitions that have already been satisfied  </span><br>    <span class="hljs-keyword">if</span> (status.acksPending) &#123;  <br>        <span class="hljs-keyword">val</span> (hasEnough, error) = <br>            replicaManager.getPartitionOrError(topicPartition) <span class="hljs-keyword">match</span> &#123;  <br>        <span class="hljs-keyword">case</span> <span class="hljs-type">Left</span>(err) =&gt;  <br>            <span class="hljs-comment">// Case A  </span><br>            (<span class="hljs-literal">false</span>, err)  <br>  <br>        <span class="hljs-keyword">case</span> <span class="hljs-type">Right</span>(partition) =&gt;  <br>            partition.checkEnoughReplicasReachOffset(<br>                    status.requiredOffset)  <br>            &#125;  <br>  <br>        <span class="hljs-comment">// Case B || C.1 || C.2  </span><br>        <span class="hljs-keyword">if</span> (error != <span class="hljs-type">Errors</span>.<span class="hljs-type">NONE</span> || hasEnough) &#123;  <br>            status.acksPending = <span class="hljs-literal">false</span>  <br>            status.responseStatus.error = error  <br>            &#125;  <br>        &#125;  <br>    &#125;  <br>  <br>    <span class="hljs-comment">// check if every partition has satisfied </span><br>    <span class="hljs-comment">//at least one of case A, B or C  </span><br>    <span class="hljs-keyword">if</span> (!produceMetadata.produceStatus.values.exists(_.acksPending))<br>        forceComplete()  <br>    <span class="hljs-keyword">else</span>  <br>        <span class="hljs-literal">false</span>  <br>&#125;<br><br></code></pre></td></tr></table></figure>
+<p>getPartitionOrError是为了判断此broker是不是该副本的leader，以及此partition是不是还属于此Topic：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs scala"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">getPartitionOrError</span></span>(topicPartition: <span class="hljs-type">TopicPartition</span>): <span class="hljs-type">Either</span>[<span class="hljs-type">Errors</span>, <span class="hljs-type">Partition</span>] = &#123;<br>  getPartition(topicPartition) <span class="hljs-keyword">match</span> &#123;<br>    <span class="hljs-keyword">case</span> <span class="hljs-type">HostedPartition</span>.<span class="hljs-type">Online</span>(partition) =&gt;<br>      <span class="hljs-type">Right</span>(partition)<br><br>    <span class="hljs-keyword">case</span> <span class="hljs-type">HostedPartition</span>.<span class="hljs-type">Offline</span> =&gt;<br>      <span class="hljs-type">Left</span>(<span class="hljs-type">Errors</span>.<span class="hljs-type">KAFKA_STORAGE_ERROR</span>)<br><br>    <span class="hljs-keyword">case</span> <span class="hljs-type">HostedPartition</span>.<span class="hljs-type">None</span> <span class="hljs-keyword">if</span> metadataCache.contains(topicPartition) =&gt;<br>      <span class="hljs-comment">// The topic exists, but this broker is no longer a replica of it, so we return NOT_LEADER_OR_FOLLOWER which</span><br>      <span class="hljs-comment">// forces clients to refresh metadata to find the new location. This can happen, for example,</span><br>      <span class="hljs-comment">// during a partition reassignment if a produce request from the client is sent to a broker after</span><br>      <span class="hljs-comment">// the local replica has been deleted.</span><br>      <span class="hljs-type">Left</span>(<span class="hljs-type">Errors</span>.<span class="hljs-type">NOT_LEADER_OR_FOLLOWER</span>)<br><br>    <span class="hljs-keyword">case</span> <span class="hljs-type">HostedPartition</span>.<span class="hljs-type">None</span> =&gt;<br>      <span class="hljs-type">Left</span>(<span class="hljs-type">Errors</span>.<span class="hljs-type">UNKNOWN_TOPIC_OR_PARTITION</span>)<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>  checkEnoughReplicasReachOffset这个方法比较重要，主要是了检查ISR集合的offset是否已经到了Leader这次写入请求的offset,主要的check条件是leaderLog.highWatermark &gt;= requiredOffset</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><code class="hljs scala"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">checkEnoughReplicasReachOffset</span></span>(requiredOffset: <span class="hljs-type">Long</span>): (<span class="hljs-type">Boolean</span>, <span class="hljs-type">Errors</span>) = &#123;<br>  leaderLogIfLocal <span class="hljs-keyword">match</span> &#123;<br>    <span class="hljs-keyword">case</span> <span class="hljs-type">Some</span>(leaderLog) =&gt;<br>      <span class="hljs-comment">// keep the current immutable replica list reference  </span><br>      <span class="hljs-keyword">val</span> curMaximalIsr = partitionState.maximalIsr<br><br>      <span class="hljs-keyword">if</span> (isTraceEnabled) &#123;<br>        <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">logEndOffsetString</span></span>: ((<span class="hljs-type">Int</span>, <span class="hljs-type">Long</span>)) =&gt; <span class="hljs-type">String</span> = &#123;<br>          <span class="hljs-keyword">case</span> (brokerId, logEndOffset) =&gt; <span class="hljs-string">s&quot;broker <span class="hljs-subst">$brokerId</span>: <span class="hljs-subst">$logEndOffset</span>&quot;</span><br>        &#125;<br><br>        <span class="hljs-keyword">val</span> curInSyncReplicaObjects = (curMaximalIsr - localBrokerId).flatMap(getReplica)<br>        <span class="hljs-keyword">val</span> replicaInfo = curInSyncReplicaObjects.map(replica =&gt; (replica.brokerId, replica.stateSnapshot.logEndOffset))<br>        <span class="hljs-keyword">val</span> localLogInfo = (localBrokerId, localLogOrException.logEndOffset)<br>        <span class="hljs-keyword">val</span> (ackedReplicas, awaitingReplicas) = (replicaInfo + localLogInfo).partition &#123;<br>          _._2 &gt;= requiredOffset<br>        &#125;<br><br>        trace(<span class="hljs-string">s&quot;Progress awaiting ISR acks for offset <span class="hljs-subst">$requiredOffset</span>: &quot;</span> +<br>          <span class="hljs-string">s&quot;acked: <span class="hljs-subst">$&#123;ackedReplicas.map(logEndOffsetString)&#125;</span>, &quot;</span> +<br>          <span class="hljs-string">s&quot;awaiting <span class="hljs-subst">$&#123;awaitingReplicas.map(logEndOffsetString)&#125;</span>&quot;</span>)<br>      &#125;<br><br>      <span class="hljs-keyword">val</span> minIsr = leaderLog.config.minInSyncReplicas<br>      <span class="hljs-keyword">if</span> (leaderLog.highWatermark &gt;= requiredOffset) &#123;<br>        <span class="hljs-comment">/*  </span><br><span class="hljs-comment">        * The topic may be configured not to accept messages if there are not enough replicas in ISR  </span><br><span class="hljs-comment">        * in this scenario the request was already appended locally and then added to the purgatory before the ISR was shrunk  </span><br><span class="hljs-comment">        */</span><br>        <span class="hljs-keyword">if</span> (minIsr &lt;= curMaximalIsr.size)<br>          (<span class="hljs-literal">true</span>, <span class="hljs-type">Errors</span>.<span class="hljs-type">NONE</span>)<br>        <span class="hljs-keyword">else</span><br>          (<span class="hljs-literal">true</span>, <span class="hljs-type">Errors</span>.<span class="hljs-type">NOT_ENOUGH_REPLICAS_AFTER_APPEND</span>)<br>      &#125; <span class="hljs-keyword">else</span><br>        (<span class="hljs-literal">false</span>, <span class="hljs-type">Errors</span>.<span class="hljs-type">NONE</span>)<br>    <span class="hljs-keyword">case</span> <span class="hljs-type">None</span> =&gt;<br>      (<span class="hljs-literal">false</span>, <span class="hljs-type">Errors</span>.<span class="hljs-type">NOT_LEADER_OR_FOLLOWER</span>)<br>  &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>  如果满足leaderLog.highWatermark &gt;= requiredOffset，则complete这次的DelayOperation，取消timeout任务，调response的callback</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs scala"><span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">onComplete</span></span>(): <span class="hljs-type">Unit</span> = &#123;<br>  <span class="hljs-keyword">val</span> responseStatus = produceMetadata.produceStatus.map &#123; <span class="hljs-keyword">case</span> (k, status) =&gt; k -&gt; status.responseStatus &#125;<br>  responseCallback(responseStatus)<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>  上面介绍的tryComplete成功的情况，如果此时Leader的高水位并没有达到requiredOffset，那么就会将topicPartition加入到Watchers中，那么之后watchers就会等副本的fetch完成来进行更新：</p>
+<p>Broker Server HandleProducerRequest 的diagram如下：</p>
+<img src="/2023/11/26/Kafka-replica-server/IMG-20231126183832276.png" class="">
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kafka/" rel="tag">Kafka</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%89%AF%E6%9C%AC%E6%9C%BA%E5%88%B6/" rel="tag">副本机制</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%AB%98%E5%8F%AF%E7%94%A8/" rel="tag">高可用</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2023/11/27/Kafka-fetch/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Kafka-Fetch
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2023/11/25/Kafka-concept/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          Kafka-Concept
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2025 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="/js/clipboard.min.js"></script>
+<script src="/js/jquery-1.4.3.min.js"></script>
+
+<script src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="/mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+  
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
+</body>
+</html>

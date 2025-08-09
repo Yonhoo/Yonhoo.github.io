@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>垃圾回收与检查工具 | Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SEO Meta Tags -->
+  
+  <meta name="description" content="java内存区域
+  运行时数据区域
+  
+
+程序计数器
+
+  当前线程私有，是当前线程所执行的字节码的行号指示器
+
+java虚拟机栈
+
+  当前线程私有，每个方法被执行时的栈帧，用于储存局部变量表、操作数栈，动态连接，方法出口等信息动态连接作用就是为了将这些方法符号引用转换为调用方法的直接引用，因为有的对象调用方法时动态生成的，所以在编译器不能确定要执行的符号，从而需要在运行时，去方法区动态的找。">
+  
+  
+  <!-- Keywords -->
+  
+  <meta name="keywords" content="programming, database, mongodb, elasticsearch, monstache, tech blog, development, tutorial">
+  
+  
+  <!-- Author -->
+  <meta name="author" content="epic">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="垃圾回收与检查工具 | Yonhoo">
+  <meta property="og:url" content="https://Yonhoo.github.io/2023/04/09/GCWithTroubleShoot/">
+  <meta property="og:site_name" content="Yonhoo">
+  
+  <meta property="og:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="垃圾回收与检查工具 | Yonhoo">
+  
+  <meta name="twitter:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://Yonhoo.github.io/2023/04/09/GCWithTroubleShoot/">
+  
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+  
+    <link rel="alternate" href="/atom.xml" title="Yonhoo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+  <!-- 额外的favicon格式支持 -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="/" id="logo">Yonhoo</a>
+  </h1>
+  
+    <h2 id="subtitle-wrap">
+      <a href="/" id="subtitle">Tech Blog &amp; Personal Journey</a>
+    </h2>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-GCWithTroubleShoot" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/04/09/GCWithTroubleShoot/" class="article-date">
+  <time class="dt-published" datetime="2023-04-08T16:00:00.000Z" itemprop="datePublished">2023-04-09</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Java/">Java</a>►<a class="article-category-link" href="/categories/Java/%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/">性能优化</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      垃圾回收与检查工具
+    </h1>
+  
+
+      </header>
+    
+    
+<!-- 鼠标悬停触发区域 -->
+<div class="toc-hover-trigger"></div>
+
+<!-- 左侧边栏TOC -->
+<div id="sidebar-toc" class="sidebar-toc">
+    <div class="toc-toggle" id="toc-toggle">
+        <i class="fa fa-list"></i>
+        <span>目录</span>
+    </div>
+    <div class="toc-content" id="toc-content">
+        <div class="toc-header">
+            <h3 class="toc-title">Table Of Contents</h3>
+        </div>
+        <div class="toc-body">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F"><span class="toc-number">1.</span> <span class="toc-text">java内存区域</span></a></li></ol>
+        </div>
+    </div>
+</div>
+
+<!-- TOC遮罩层 -->
+<div id="toc-overlay" class="toc-overlay"></div>
+
+<!-- TOC JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocContent = document.getElementById('toc-content');
+    const tocOverlay = document.getElementById('toc-overlay');
+    const sidebarToc = document.getElementById('sidebar-toc');
+    const tocLinks = tocContent.querySelectorAll('.toc-link');
+    
+    // 切换TOC显示状态
+    function toggleToc() {
+        sidebarToc.classList.toggle('active');
+        tocOverlay.classList.toggle('active');
+        document.body.classList.toggle('toc-open');
+    }
+    
+    // 关闭TOC
+    function closeToc() {
+        sidebarToc.classList.remove('active');
+        tocOverlay.classList.remove('active');
+        document.body.classList.remove('toc-open');
+    }
+    
+    // 事件监听
+    tocToggle.addEventListener('click', toggleToc);
+    tocOverlay.addEventListener('click', closeToc);
+    
+    // TOC链接点击后自动关闭（移动端）
+    tocLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(closeToc, 300); // 延迟关闭，让滚动完成
+            }
+        });
+    });
+    
+    // 键盘ESC关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeToc();
+        }
+    });
+    
+    // 窗口大小变化时的处理
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeToc();
+        }
+    });
+    
+    // 滚动监听，高亮当前章节
+    let headings = [];
+    tocLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                headings.push({
+                    link: link,
+                    target: target,
+                    offset: target.offsetTop
+                });
+            }
+        }
+    });
+    
+    function updateActiveHeading() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        let activeHeading = null;
+        
+        // 找到当前可视区域内的标题
+        for (let i = headings.length - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (scrollTop >= heading.offset - 100) {
+                activeHeading = heading;
+                break;
+            }
+        }
+        
+        // 更新高亮状态
+        tocLinks.forEach(link => link.classList.remove('active'));
+        if (activeHeading) {
+            activeHeading.link.classList.add('active');
+            
+            // 滚动TOC到当前项
+            const tocBody = document.querySelector('.toc-body');
+            if (tocBody && sidebarToc.classList.contains('active')) {
+                const linkTop = activeHeading.link.offsetTop;
+                const tocBodyHeight = tocBody.offsetHeight;
+                const linkHeight = activeHeading.link.offsetHeight;
+                
+                if (linkTop < tocBody.scrollTop || linkTop > tocBody.scrollTop + tocBodyHeight - linkHeight) {
+                    tocBody.scrollTop = linkTop - tocBodyHeight / 2;
+                }
+            }
+        }
+    }
+    
+    // 节流函数
+    function throttle(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 绑定滚动事件
+    window.addEventListener('scroll', throttle(updateActiveHeading, 100));
+    
+    // 初始化高亮
+    updateActiveHeading();
+});
+</script>
+
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h2 id="java内存区域">java内存区域</h2>
+<p>  运行时数据区域</p>
+<img src="/2023/04/09/GCWithTroubleShoot/runtime_region.png" class="">  
+<ol>
+<li>程序计数器</li>
+</ol>
+<p>  当前线程私有，是当前线程所执行的字节码的行号指示器</p>
+<ol start="3">
+<li>java虚拟机栈</li>
+</ol>
+<p>  当前线程私有，每个方法被执行时的栈帧，用于储存局部变量表、操作数栈，动态连接，方法出口等信息动态连接作用就是为了将这些方法符号引用转换为调用方法的直接引用，因为有的对象调用方法时动态生成的，所以在编译器不能确定要执行的符号，从而需要在运行时，去方法区动态的找。</p>
+<span id="more"></span>
+<p>  <a target="_blank" rel="noopener" href="https://www.cnblogs.com/Timeouting-Study/p/12511969.html">栈帧内部结构,动态链接及方法的调用</a></p>
+<ol start="4">
+<li>本地方法栈</li>
+</ol>
+<p>  虚拟机使用本地方法</p>
+<ol start="5">
+<li>Java heap</li>
+</ol>
+<p>  对象实例存放的地方</p>
+<ol start="6">
+<li>方法区</li>
+</ol>
+<p>  它是各个线程共享的内存区域，存储被虚拟机加载的类型信息、常量、静态变量、即时编译器编译后的代码缓存等数据。<br>
+  <strong>JDK8 之前，Hotspot 中方法区的实现是永久代（Perm），JDK8 开始使用元空间（Metaspace），JDK7中将永久代的字符串常量、静态变量移至堆内存，元空间直接在本地内存分配，而不是在虚拟机中进行分配。</strong><br>
+  使用永久代会导致如果类及方法信息如果增加，则永久代的大小就不好设置，从而可能会导致OOM。现在使用metaSpace，是将这些内容直接放在本地内存，从而可以方便扩展，且很少进行垃圾回收<br>
+为什么要使用元空间取代永久代的实现？</p>
+<ul>
+<li>字符串存在永久代中，容易出现性能问题和内存溢出。</li>
+<li>类及方法的信息等比较难确定其大小，因此对于永久代的大小指定比较困难，太小容易出现永久代溢出，太大则容易导致老年代溢出。</li>
+<li>永久代会为 GC 带来不必要的复杂度，并且回收效率偏低。</li>
+<li>将 HotSpot 与 JRockit 合二为一。</li>
+</ul>
+<ol start="7">
+<li>运行时常量池</li>
+</ol>
+<p>  运行时常量池是方法区的一部分。Class 文件中除了有类的版本、字段、方法、接口等描述信息外，还有一项信息是常量池（Constant Pool Table），用于存放编译期生成的各种字面量和符号引用，这部分内容将在类加载后进入方法区的运行时常量池中存放。一般来说，除了保存 Class 文件中描述的符号引用外，还会把翻译出来的直接引用也存储在运行时常量池中。运行期间将新的常量放入池中，比如String的intern。</p>
+<ol start="8">
+<li>直接内存</li>
+</ol>
+<p>  直接内存并不是虚拟机运行时数据区的一部分，也不是《java虚拟机规范》中定义的内存区域。但是这部分内存也被频繁的使用，也可能导致OOM。<br>
+  比如NIO，一种基于通道(Channel)与缓冲区(Buffer)的I/O方式，它可以使用Native函数库直接分配堆外内存，然后通过一个存储在Java堆里面的DirectByteBuffer对象作为这块内存的引用进行操作。避免在Java堆和Native堆中来回复制数据。</p>
+<img src="/2023/04/09/GCWithTroubleShoot/memory_map.png" class="">  
+<ol start="9">
+<li>OutOfMemory</li>
+</ol>
+<ul>
+<li>
+<p>堆内存异常</p>
+</li>
+<li>
+<p>虚拟机栈异常</p>
+</li>
+<li>
+<p>本地方法栈</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs Java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">stackLeak</span><span class="hljs-params">()</span> &#123;<br>  stackLeak();<br>&#125;<br></code></pre></td></tr></table></figure>
+</li>
+<li>
+<p>方法区和运行时常量池溢出<br>
+  String::intern 是一个本地方法，它的作用是如果字符串常量池中已经包含一个等于此String对象的字符串，则返回代表池中这个字符串的String对象的引用，否则，会将此String对象包含的字符串添加到常量池中，并且返回此String对象的引用。<br>
+<a target="_blank" rel="noopener" href="https://hellofrank.github.io/2019/10/13/Java%E9%87%8C%E9%9D%A2%E7%9A%84String%E5%AF%B9%E8%B1%A1%E5%88%B0%E5%BA%95%E7%A5%9E%E5%A5%87%E5%9C%A8%E4%BB%80%E4%B9%88%E5%9C%B0%E6%96%B9/">Java里面的String对象到底神奇在什么地方</a></p>
+<ul>
+<li>运行时常量池溢出</li>
+</ul>
+  <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><code class="hljs Java"><span class="hljs-type">int</span> <span class="hljs-variable">i</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>;<br>List&lt;String&gt; strList = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br><span class="hljs-keyword">while</span>(<span class="hljs-literal">true</span>)&#123;<br>  strList.add(String.valueOf(i++).intern());<br>&#125;<br></code></pre></td></tr></table></figure>
+<ul>
+<li>方法区溢出<br>
+  使用动态代理，比如CGLib直接操作字节码运行时生成大量的动态类，当增强的类越多，就需要越大的方法区以保证动态生成的新类型可以载入内存， <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><code class="hljs Java">          <span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">RuntimeConstantPoolOOM</span> &#123;<br><br>          <span class="hljs-keyword">static</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">OOMObject</span> &#123;<br>              &#125;<br><br>          <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">main</span><span class="hljs-params">(String[] args)</span> <span class="hljs-keyword">throws</span> NoSuchMethodException, InvocationTargetException, IllegalAccessException &#123;<br>          <span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>) &#123;<br>              <span class="hljs-type">Enhancer</span> <span class="hljs-variable">enhancer</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Enhancer</span>();<br>              enhancer.setSuperclass(OOMObject.class);<br>              enhancer.setUseCache(<span class="hljs-literal">false</span>);<br>              enhancer.setCallback(<span class="hljs-keyword">new</span> <span class="hljs-title class_">MethodInterceptor</span>() &#123;<br>                  <span class="hljs-meta">@Override</span><br>                  <span class="hljs-keyword">public</span> Object <span class="hljs-title function_">intercept</span><span class="hljs-params">(Object o, Method method, Object[] objects, MethodProxy methodProxy)</span> <span class="hljs-keyword">throws</span> Throwable &#123;<br>                    <span class="hljs-keyword">return</span> methodProxy.invokeSuper(o, args);<br>                  &#125;<br>              &#125;);<br>            enhancer.create();<br>            &#125;<br>          &#125;<br>        &#125;<br>        ```  <br>&amp;emsp;&amp;emsp;在经常运行时生成大量动态类的应用场景中，应该特别关注这些类的回收状况。这类场景除了之前提到的程序使用CGLib字节码增强和动态语言外，常见的还有：大量JSP或动态产生JSP文件的应用、基于OSGi的应用，即使是同一个文件，被不同的加载器加载也会视为不同的类。  <br>   - 可以设定元空间最大值： -XX:MaxMetaspaceSize  <br>   - 设定元空间初始空间大小： -XX:MetaspaceSize  <br><br>以上代码虽然创建的临时对象应该被回收，但是通过heap dump发现，每个class都是soft Reference，从而即使是full gc，也不会回收它们。   <br>&#123;% asset_img heam_dump.png %&#125;<br>[shallow size and retained size](https:<span class="hljs-comment">//www.yourkit.com/docs/java/help/sizes.jsp)  </span><br><br>- **Dominator by retain size**  <br>     - [Dominators view ‒ Firefox Source Docs documentation](https:<span class="hljs-comment">//firefox-source-docs.mozilla.org/devtools-user/memory/dominators_view/index.html)  </span><br>     - [Dominators ‒ Firefox Source Docs documentation](https:<span class="hljs-comment">//firefox-source-docs.mozilla.org/devtools-user/memory/dominators/index.html)</span><br><br>&amp;emsp;&amp;emsp;这里有个对Dominator tree更加直观的描述支配树体现了对象实例间的支配关系。在对象引用图中，所有指向对象B的路径都经过对象A，则认为对象A支配对象B。如果对象A是离对象B最近的一个支配对象，则认为对象A为对象B的直接支配者。支配树是基于对象间的引用图所建立的，它有以下基本性质:<br>  - 对象A的子树（所有被对象A支配的对象集合）表示对象A的保留集(retained set)，即深堆。<br>  - 如果对象A支配对象B，那么对象A的直接支配者也支配对象B。<br>  - 支配树的边与对象引用图的边不直接对应。<br>如下图所示:左图表示对象引用图，右图表示左图所对应的支配树。对象A和B由根对象直接支配，由于在到对象C的路径中，可以经过A，也可以经过B，因此对象C的直接支配者也是根对象。对象F与对象 D相互引用，因为到对象F的所有路径必然经过对象D，因此，对象D是对象F的直接支配者。而到对象D的所有路径中，必然经过对象c，即使是从对象F到对象D的引用，从根节点出发，也是经过对象c的,所以，对象D的直接支配者为对象C。<br><br>&#123;% asset_img Dominator_tree.png %&#125;<br><br><br>  - 本机直接内存溢出    <br><br>&amp;emsp;&amp;emsp;直接内存的容量大小可通过-XX:MaxDirectMemorySize参数来指定，如果不去指定，则默认与Java堆最大值一致。<br>```Java<br><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">int</span> <span class="hljs-variable">_1MB</span> <span class="hljs-operator">=</span> <span class="hljs-number">1024</span> * <span class="hljs-number">1024</span>;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">directMemoryOOM</span><span class="hljs-params">()</span> <span class="hljs-keyword">throws</span> IllegalAccessException &#123;<br>    <span class="hljs-type">Field</span> <span class="hljs-variable">unsafeField</span> <span class="hljs-operator">=</span> Unsafe.class.getDeclaredFields()[<span class="hljs-number">0</span>];<br>    unsafeField.setAccessible(<span class="hljs-literal">true</span>);<br>    <span class="hljs-type">Unsafe</span> <span class="hljs-variable">unsafe</span> <span class="hljs-operator">=</span> (Unsafe) unsafeField.get(<span class="hljs-literal">null</span>);<br>    <span class="hljs-keyword">while</span> (<span class="hljs-literal">true</span>) &#123;<br>        unsafe.allocateMemory(_1MB);<br>    &#125;<br><br>&#125;<br>```  <br><br>&amp;emsp;&amp;emsp;由直接内存导致的内存溢出，一个明显的特征是在Heap Dump文件中不会看见有什么明显的异常情况，这有可能就是直接内存溢出的原因。<br><br>## 垃圾收集器与内存分配策略  <br><span class="hljs-number">1.</span> 可达性分析算法<br>&#123;% asset_img reachable.png %&#125;  <br><br>在Java技术体系里，固定可作为GC Roots的对象包括以下几种：<br>- 在虚拟机栈中引用的对象，譬如当前正在运行的方法所使用到的参数、局部变量、临时变量<br>```Java<br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Test</span> &#123;<br><br>&#125;<br><br><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">method</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-type">Integer</span> <span class="hljs-variable">temp</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Test</span>();<br>    temp = <span class="hljs-literal">null</span>;<br>&#125;<br><br>temp 作为临时变量，引用了<span class="hljs-keyword">new</span> <span class="hljs-title class_">Test</span>(), 从而不会被回收，当temp = <span class="hljs-literal">null</span> 时，原来的<span class="hljs-keyword">new</span> <span class="hljs-title class_">Test</span>()就会被回收<br>- 在方法区中类静态属性引用的对象，譬如Java类的引用类型静态变量<br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Test</span> &#123;<br>    p rivate <span class="hljs-keyword">static</span> Test s;<br>    <br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">main</span><span class="hljs-params">(String[] args)</span> &#123;<br>        <span class="hljs-type">Test</span> <span class="hljs-variable">temp</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Test</span>();<br>        temp.s = <span class="hljs-keyword">new</span> <span class="hljs-title class_">Test</span>();<br>        temp = <span class="hljs-literal">null</span>;<br>    &#125;<br>&#125;<br><br>s 作为类的静态属性，被赋值<span class="hljs-keyword">new</span> <span class="hljs-title class_">Test</span>();从而这个<span class="hljs-keyword">new</span> <span class="hljs-title class_">Test</span>()不会被回收，但是这个temp作为临时变量，则它之前被赋值的<span class="hljs-keyword">new</span> <span class="hljs-title class_">test</span>()就会被回收<br></code></pre></td></tr></table></figure>
+</li>
+</ul>
+</li>
+<li>
+<p>在方法区中常量引用的对象，譬如字符串常量池里的引用(<a target="_blank" rel="noopener" href="https://juejin.cn/post/6844903988781907981#comment">字符串常量池</a>)</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br></pre></td><td class="code"><pre><code class="hljs Java">    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">main</span><span class="hljs-params">(String[] args)</span> &#123;            <br>      <span class="hljs-type">String</span> <span class="hljs-variable">s1</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;abc&quot;</span>;           <br>      <span class="hljs-type">String</span> <span class="hljs-variable">s2</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;abc&quot;</span>;         <br>      <span class="hljs-type">String</span> <span class="hljs-variable">s3</span> <span class="hljs-operator">=</span> <span class="hljs-string">&quot;xxx&quot;</span>;     <br>    &#125;<br>  ```  <br>&#123;% asset_img string_pool.png %&#125;  <br><br>- 在本地方法栈中JNI引用的对象  <br><br>&amp;emsp;&amp;emsp;所谓本地方法就是一个 java 调用非 java 代码的接口，该方法并非 Java 实现的，可能由 C 或 Python等其他语言实现的， Java 通过 JNI 来调用本地方法， 而本地方法是以库文件的形式存放的（在 WINDOWS 平台上是 DLL 文件形式，在 UNIX 机器上是 SO 文件形式）。通过调用本地的库文件的内部方法，使 JAVA 可以实现和本地机器的紧密联系，调用系统级的各接口方法，还是不明白？见文末参考，对本地方法定义与使用有详细介绍。  <br>&amp;emsp;&amp;emsp;当调用 Java 方法时，虚拟机会创建一个栈桢并压入 Java 栈，而当它调用的是本地方法时，虚拟机会保持 Java 栈不变，不会在 Java 栈祯中压入新的祯，虚拟机只是简单地动态连接并直接调用指定的本地方法。<br><br>  - Java虚拟机内部的引用，如基本数据类型对应的Class对象，一些常驻的异常对象(比如NullPointerException、OutOfMemoryError)等，还有系统类加载器。<br>  - 所有被同步锁(<span class="hljs-keyword">synchronized</span>关键字)持有的对象<br>  - 反映Java虚拟机内部情况的JMXBean、JVMTI中注册的回调、本地代码缓存等  <br><br><br>&amp;emsp;&amp;emsp;除了这些固定的GC Roots集合以外，根据用户所选用的垃圾收集器以及当前回收的内存区域不同，还可以有其他对象“临时性”地加入，共同构成完整GC Roots集合。譬如后文将会提到的分代收集和局部回收(Partial GC),如果只针对Java堆中某一块区域发起垃圾收集时(如最典型的只针对新生代的垃圾收集)，必须考虑到内存区域是虚拟机自己的实现细节，而不是孤立封闭的，所以某个区域里的对象完全有可能被位于堆中其他区域的对象所引用，这时候就需要将这些关联区域的对象也一并加入GC Roots集合中去，才能保证可达性分析的正确性。([GC root](https:<span class="hljs-comment">//blog.csdn.net/weixin_38007185/article/details/108093716))  </span><br><br>&amp;emsp;<br><br>## 引用([直观理解](https:<span class="hljs-comment">//bboyjing.github.io/2020/04/16/Java%E5%BC%BA%E3%80%81%E8%BD%AF%E3%80%81%E5%BC%B1%E3%80%81%E8%99%9A%E5%BC%95%E7%94%A8%E7%9A%84%E7%9B%B4%E8%A7%82%E7%90%86%E8%A7%A3/))</span><br>- 强应用：只要强引用关系还在，垃圾收集器就永远不会回收掉被引用的对象。<br>- 软引用：只被软引用关联着的对象，在系统将要发生内存溢出异常前，会把这些对象列进回收范围之中进行第二次回收，如果这次回收还没有足够的内存，才会抛出内存溢出异常。<br>- 弱引用：只被弱引用关联的对象只能生存到下一次垃圾收集发生为止。<br>- 虚引用：一个对象是否有虚引用的存在，完全不会对其生存时间构成影响，也无法通过虚引用来取得一个对象实例。为一个对象设置虚引用关联的唯一目的只是为了能在这个对象被收集器回收时收到一个系统通知。<br><br><br>## 分代收集理论 <br>当前的垃圾收集器，大多数都遵循了“分代收集”理论。主要是建立两个分代假说之上  <br>  - 弱分代假说：绝大多数对象都是朝生夕灭的  <br>  - 强分代假说：熬过越多次垃圾收集过程的对象就越难以消亡  <br><br>&amp;emsp;&amp;emsp;这两个分代假说共同奠定了多款常用的垃圾收集器的一致设计原则：收集器应该将Java堆划分出不同的区域，然后将回收对象依据其年龄分配到不同的区域之中存储，显而易见，如果一个区域中大多数对象都是朝生夕灭，难以熬过垃圾收集过程的话，那么把它们集中放在一起，每次回收只关注如何保留少量存活而不是去标记那些大量将要被回收的对象，就能以较低代价回收到大量的空间；如果剩下的都是难以消亡的对象，那把它们集中放在一块，虚拟机便可以使用较低频率来回收这个区域，这就同时兼顾了垃圾收集的时间开销和内存的空间有效利用。<br><br>## 基础的垃圾回收器<br>  <span class="hljs-number">1.</span> 标记-清除算法  <br>&amp;emsp;首先标记出所有需要回收的对象，在标记完成后，统一回收掉所有被标记的对象。  <br>    缺点：<br>     - 执行效率不稳定，如果堆中大部分是需要被回收的，则会导致标记和清除两个过程的执行效率都随对象数量增长而降低<br>     - 内存空间碎片问题<br>  <span class="hljs-number">2.</span> 标记复制算法  <br>  &amp;emsp;为了解决标记-清除算法面对大量可回收对象时执行效率低的问题，标记-复制算法将可用内存按容量划分为大小相等的两块，每次只使用其中的一块。当这一块的内存用完了，就将还存活着的对象复制到另一块上面，然后再把已使用过的内存空间一次清理掉。    <br>  &amp;emsp;IBM有一项研究表明，新生代中的对象有<span class="hljs-number">98</span>%熬不过第一轮收集，因此不需要按照<span class="hljs-number">1</span>:<span class="hljs-number">1</span>的比例来划分，Appel式回收的具体做法是把新生代分为一块较大的Eden空间和两块较小的Survivor空间，HotSpot设定的比例是<span class="hljs-number">8</span>:<span class="hljs-number">2</span>，每次分配内存只使用Eden和其中一块Survivor空间。发生垃圾收集时，将Eden和Survivor中仍然存活的对象一次性复制到另外一块Survivor空间上，然后直接清理掉Eden和已用过的那块Survivor空间。  <br><br>      缺点：<br>      - 如果大量对象存活，则会导致大量的内存复制开销<br>      - 内存利用率只有一半  <br>&amp;emsp;    <br><br>  <span class="hljs-number">3.</span>  标记-整理算法  <br>&amp;emsp;标记-复制算法在对象存活率较高时就要进行较多的复制操作，效率将会降低。标记-整理算法是让所有存活对象都向内存空间一端移动，然后直接清理掉边界以外的内存。  <br>      缺点：<br>      - 当有大量存活对象时，则移动对象就会降低回收效率  <br>&amp;emsp;<br><br>## 垃圾收集器<br><br>  <span class="hljs-number">1.</span> Serial收集器  <br>&amp;emsp;&amp;emsp;单线程工作的收集器，它<span class="hljs-string">&quot;单线程&quot;</span>的意义并不仅仅是说明它只会使用一个处理器或一条收集线程去完成垃圾收集工作，更重要的是强调在它进行垃圾收集时，必须暂停其他所有工作线程，直到它收集结束。<br>&#123;% asset_img Serial.png %&#125;  <br>&amp;emsp;&amp;emsp;虽然是很早出现的收集器，但是有着优于其他收集器的地方，那就是简单高效，对于内存资源受限的环境，它是所有收集器里额外内存消耗最小的；对于单核处理器或处理器核心数较少的环境来说，Serial收集器由于没有线程交互的开销，专心做垃圾收集自然可以获得最高的单线程收集效率。  <br><br>  <span class="hljs-number">2.</span> ParNew收集器  <br>&amp;emsp;&amp;emsp;ParNew收集器实质上是Serial收集器的多线程并行版本，除了同时使用多条线程进行垃圾收集之外，其余的行为包括Serial收集器可用的所有控制参数、收集算法、Stop The World、对象分配策略、回收策略等都与Serial收集器完全一致。<br>&#123;% asset_img ParNew.png %&#125;<br><br>  <span class="hljs-number">3.</span> Parallel Scavenge 收集器  <br>&amp;emsp;&amp;emsp;Parallel Scavenge收集器又称为吞吐量优先收集器，和ParNew收集器类似，是一个新生代收集器。同样是使用标记-复制算法的并行多线程收集器。它的目标是达到一个可控制的吞吐量。吞吐量就是处理器用于运行用户代码的时间与处理器总消耗时间的比值:    <br>      $$吞吐量=\cfrac&#123;运行用户代码时间&#125;&#123;运行用户代码时间+运行垃圾收集时间&#125;$$  <br>      &amp;emsp;&amp;emsp;高吞吐量就可以最高效率地利用处理器资源，尽快完成程序的运算任务。有一些参数可以控制GC停顿的时间：-XX:MaxGCPauseMills，还可以通过-XX:GCTimeRatio来控制GC消耗时间所占的比例，从而来控制吞吐量，此外还可以通过-XX:+UseAdaptiveSizePolicy，让JVM来动态调整。但是过分的设置高吞吐量，可能会导致新生代频繁的回收，新生代内存变小，来降至提高吞吐量。<br>  <br>  <span class="hljs-number">4.</span> Serial Old收集器   <br>&#123;% asset_img Serial_Old.png %&#125;<br>&amp;emsp;&amp;emsp;Serial Old收集器是Serial收集器的老年版本<br>  <span class="hljs-number">5.</span> Parallel Old收集器  <br>&amp;emsp;&amp;emsp;Parallel Old是Parallel Scavenge收集器的老年代版本，支持多线程并行收集，基于标记-整理算法实现。<br>&#123;% asset_img Parallel_Old.png %&#125;  <br>  <span class="hljs-number">6.</span> CMS收集器  <br>        CMS收集器是一种以获取最短回收停顿时间为目标的收集器。整个过程分为四个步骤:  <br>        -  初始标记  <br>        - 并发标记  <br>        - 重新标记  <br>        - 并发清除 <br>&#123;% asset_img CMS.png %&#125;<br><br>  &amp;emsp;&amp;emsp;由于是和用户线程一起并发执行，从而会降低GC的停顿时间。但是由于是和用户线程并发执行，从而会导致占用一部分线程而导致应用程序变慢，降低总吞吐量。如果处理器核心不足，则还需要分出算力给收集器线程去执行。并且CMS会进行标记清理，造成垃圾碎片，于是就无法处理“浮动垃圾”，有可能出现“Concurrent Mode Failure”失败进而导致另一次完全“Stop The World”的Full GC的产生。<br><br>  <span class="hljs-number">7.</span> Garbage First收集器（G1）  <br>&amp;emsp;&amp;emsp;G1开创的基于Region的堆内存布局能够控制消耗在垃圾收集器上的时间。G1不再根据分代收集，要么是整个新生代，要么是这个老年代，再要么就是整个Java堆(Full GC)，G1可以面向堆内存任何部分来组成回收集进行回收，衡量标准不再是它属于哪个分代，而是哪块内存中存放的垃圾数量最多，回收受益最大，这就是G1收集器的Mixed GC模式。G1把连续的堆划分为多个大小相等的region，每一个region可以根据需要扮演不同的空间，如Eden、Survivor、老年代，以及存储大对象的Humongous区域。  <br>&#123;% asset_img G1.png %&#125;<br>&amp;emsp;&amp;emsp;用户可以指定期望的停顿时间，设置不同的期望停顿时间，可使得G1在不同应用场景中取得关注吞吐量和关注延迟之间的最佳平衡。从G1开始，最先进的垃圾收集器的设计导向都不约而同地变为追求能够应付应用的内存分配速率，而不追求一次把整个Java堆全部清理干净。  <br>&amp;emsp;&amp;emsp;G1是基于标记整理算法的，从而不会产生内存碎片，但无论是内存占用，还是运行时的额外执行负载都要比CMS要高。<br><br><span class="hljs-number">8.</span> 低延迟收集器  <br>&amp;emsp;&amp;emsp;在内存占用，吞吐量和延迟三项指标里，延迟的重要性日益凸显，随着硬件性能的提升，吞吐量会变高，内存会逐渐扩大，从而回收大内存就会耗费更多的时间。以低延迟出发的收集器：Shenandoah、ZGC收集器。<br><br>## [GC 日志分析](https:<span class="hljs-comment">//poonamparhar.github.io/understanding-metaspace-gc-logs/)</span><br><br><span class="hljs-number">1.</span> GC 日志参数：  <br>  - -verbose:gc :输出gc日志信息，默认输出到标准输出<br>  - -XX:+PrintGC :等同于-verbose:gc表示打开简化的GC日志<br>  - -XX:+PrintGCDetails :在发生垃圾回收时打印内存回收详细的日志并在进程退出- 时输出当前内存各区域分配情况<br>  - -XX:+PrintGCTimeStamps :输出GC发生时的时间戳<br>  - -XX:+PrintGCDateStamps :输出GC发生时的时间戳（以日期的形式，如- <span class="hljs-number">2021</span>-<span class="hljs-number">10</span>-04T21:<span class="hljs-number">53</span>:<span class="hljs-number">59.234</span>+0800)<br>  - -XX:+PrintHeapAtGC :每一次GC前和GC后，都打印堆信息<br>  - -Xloggc:&lt;file&gt; :把GC日志写入到一个文件中去，而不是打印到标准输出中<br>  - -XX:+TraceClassLoading : 监控类的加载<br>  - -XX:+PrintGCApplicationStoppedTime: 打印GC时线程的停顿时间<br>  - -XX:+PrintGCApplicationConcurrentTime : 垃圾收集之前打印出应用未中- 断的执行时间<br>  - -XX:+PrintReferenceGC : 记录回收了多少种不同引用类型的引用<br>  - -XX:+PrintTenuringDistribution : 让JVM在每次MinorGC后打印出当前使用- 的Survivor中对象的年龄分布<br>  - -XX:+UseGCLogFileRotation : 启用GC日志文件的自动转储<br>  - -XX:NumberOfGClogFiles=<span class="hljs-number">1</span> : GC日志文件的循环数目<br>  - -XX:GCLogFileSize=1M : 控制GC日志文件的大小<br>  <br><br>   <span class="hljs-number">2.</span> GC 日志分类  <br>&amp;emsp;&amp;emsp;针对HotSpot VM的实现，它里面的GC按照回收区域又分为两大种类型:一种是部分收集（Partial GC），一种是整堆收集(Full GC)  <br>      - 部分收集:不是完整收集整个Java堆的垃圾收集。其中又分为:  <br>        - 新生代收集（Minor GC / Young GC）:只是新生代（Eden\S0,S1）的垃圾收集  <br>        - 老年代收集（Major GC / Old GC）:只是老年代的垃圾收集。<br>          - 目前，只有CMS GC会有单独收集老年代的行为。<br>          - 注意，很多时候Major GC会和Full GC混淆使用，需要具体分辨是老年代回收还是整堆回收。<br>      - 混合收集（Mixed GC):收集整个新生代以及部分老年代的垃圾收集。<br>       - 目前,只有G1 GC会有这种行为<br>      - 整堆收集（Full GC):收集整个java堆和方法区的垃圾收集。<br><br>&amp;emsp;   <br>&amp;emsp;&amp;emsp;GC日志格式的规律一般都是:<br>   - GC前内存占用-&gt;GC后内存占用（该区域内存总大小)<br>   - [PSYoungGen: 5986K-&gt;696K(8704K)] 5986K-&gt;704K(9216K)<br>   - 中括号内:GC回收前年轻代堆大小，回收后大小，(年轻代堆总大小）<br>   - 括号外:GC回收前年轻代和老年代大小，回收后大小，(年轻代和老年代总大小)<br></code></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>----------------------Minor GC----------------------------<br>
+2021-09-09T14:44:04.813+0800: 0.163:<br>
+[GC (Allocation Failure) 2021-09-09T14:44:04.813+0800: 0.163:<br>
+[DefNew: 139776K-&gt;17472K(157248K), 0.0164545 secs] 139776K-&gt;45787K(506816K), 0.0165501 secs]<br>
+[Times: user=0.00 sys=0.02, real=0.02 secs] 2021-09-09T14:44:04.853+0800: 0.203:<br>
+[GC (Allocation Failure) 2021-09-09T14:44:04.853+0800: 0.203:<br>
+[DefNew: 157248K-&gt;17471K(157248K), 0.0192998 secs] 185563K-&gt;84401K(506816K), 0.0193485 secs]<br>
+[Times: user=0.02 sys=0.01, real=0.02 secs]<br>
+-----------------------Full GC----------------------------<br>
+2021-09-09T14:44:05.240+0800: 0.589:<br>
+[GC (Allocation Failure) 2021-09-09T14:44:05.240+0800: 0.589:<br>
+[DefNew: 157148K-&gt;157148K(157248K), 0.0000289 secs]2021-09-09T14:44:05.240+0800: 0.589:<br>
+[Tenured: 341758K-&gt;308956K(349568K), 0.0459961 secs] 498907K-&gt;308956K(506816K),<br>
+[Metaspace: 2608K-&gt;2608K(1056768K)], 0.0460956 secs]<br>
+[Times: user=0.05 sys=0.00, real=0.05secs]</p>
+<div class="highlight"><pre class="code"><code><span class="xml">
+2021-09-09T14:44:04.813-GC事件开始的时间点。+0800表示当前时区为东八区，这只是一个标识。0.163是GC事件相对于JVM启动时间的间隔，单位是秒
+
+GC - 用来区分Minor GC还是Full GC的标志。GC表明这是一次小型GC（Minor GC），即年轻代GC。Allocation Failure 表示触发GC的原因。本次GC事件是由于对象分配失败，即年轻代中没有空间来存放新生成的对象引起的。 
+
+DefNew表示垃圾收集器的名称。这个名称表示：年轻到使用的单线程、标记-复制、STW的垃圾收集器。139776K-&gt;17472K 表示在垃圾收集之前和之后的年轻代使用量。
+
+(157248K) 表示年轻代的总空间大小。分析可得，GC之后年轻代使用率为11%。  
+139776K-&gt;45787K 表示在垃圾收集前后整个堆内存的使用情况，(506816K)表示整个堆的大小 
+
+0.0165501 secs - GC事件的持续时间，单位：秒  
+[Times: user=0.00 sys=0.02, real=0.02 secs] 表示此次GC事件的持续时间，通过三个部分来衡量：
+  - user：进程执行用户态代码所耗费的处理器时间
+  - sys： 进程执行核心态代码所耗费的时间
+  - real： 执行动作从开始到结束耗费的时钟时间
+
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>前面两个是处理器时间，real代表的是时钟时间，它们的区别是处理器时间代表的是线程占用处理器一个核心的耗时计数器，而时钟时间就是现实世界中的时间计数。如果是单核单线程的场景下，这两者可以认为是等价的，但如果是多喝环境下，同一个时钟时间内有多少处理器核心正在工作，就会有多少倍的处理器时间被消耗和记录下来。
+
+
+
+## 虚拟机性能监控和故障处理工具
+
+  1.  Jps  
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>可以列出正在运行的虚拟机进程，并显示虚拟机执行主类名称以及这些进程的本地虚拟机唯一ID。  
+<span class="hljs-symbol">&amp;emsp;</span>基本语法为:jps [options] [hostid]
+      - -q:仅仅显示LVMID (local virtual machine id)，即本地虚拟机唯一id。不显示主类的名称等
+      - -1:输出应用程序主类的全类名或如果进程执行的是jar包，则输出jar完整路径
+      - -m:输出虚拟机进程启动时传递给主类main()的参数
+      - -v:列出虚拟机进程启动时的JVM参数。比如: -Xms20m -Xmx50m是启动程序指定的jvm参数。
+      - 说明:以上参数可以综合使用。
+  2. 虚拟机统计信息监视工具  
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>jstat(VM Statistics Monitoring Tool):用于监视虚拟机各种运行状态信息的命令行工具。它可以显示本地或者远程虚拟机进程中的类装载、内存、垃圾收集、JIT编译等运行数据。    
+<span class="hljs-symbol">&amp;emsp;</span>-class:显示ClassLoader的相关信息:类的装载、卸载数量、总空间、类装载所消耗的时间等
+        - -t ：前面显示Timestamp一列
+        - -h3 ：每隔三次输出标题
+        - 9000 ：进程号
+        - 1000 ：每隔1000毫米输出一次
+        - 10 ：一共输出10次  
+
+<span class="hljs-symbol">&amp;emsp;</span>
+
+垃圾回收相关的:
+  - -gc:显示与GC相关的堆信息。包括Eden区、两个Survivor区、老年代、永久代等的容量、己用空间、GC时间合计等信息。
+  - -gccapacity:显示内容与-gc基本相同，但输出主要关注Java堆各个区域使用到的最大、最小空间。
+  - -gcutil:显示内容与-gc基本相同，但输出主要关注已使用空间占总空间的百分比。
+  - -gccause:与-gcutil功能一样，但是会额外输出导致最后一次或当前正在发生的GC产生的原因。
+  - -gcnew:显示新生代Gc状况
+  - -gcnewcapacity:显示内容与-gcnew基本相同，输出主要关注使用到的最大、最小空间
+  - -geold:显示老年代GC状况
+  - -gcoldcapacity:显示内容与-gcold基本相同，输出主要关注使用到的最大、最小空间
+  - -gcpermcapacity:显示永久代使用到的最大、最小空间。  
+
+
+<span class="hljs-symbol">&amp;emsp;</span>
+
+1. Jmap ：java内存映像工具  
+<span class="hljs-symbol">&amp;emsp;</span>jmap(JVM Memory Map):作用一方面是获取dump文件（堆转储快照文件，二进制文件），它还可以获取目标Java进程的内存相关信息，包括Java堆各区域的使用情况、堆中对象的统计信息、类加载信息等。
+   - jmap [option] <span class="hljs-tag">&lt;<span class="hljs-name">pid</span>&gt;</span>
+   - jmap [option] <span class="hljs-tag">&lt;<span class="hljs-name">executable</span> &lt;<span class="hljs-attr">core</span>&gt;</span>
+   - jmap [option] [server_id@] <span class="hljs-tag">&lt;<span class="hljs-name">remote</span> <span class="hljs-attr">server</span> <span class="hljs-attr">IP</span> <span class="hljs-attr">or</span> <span class="hljs-attr">hostname</span>&gt;</span>
+  - -dump： 生成Java堆转储快照: dump文件
+    - 特别的: -dump:live只保存堆中的存活对象
+  - -heap： 输出整个堆空间的详细信息，包括GC的使用、堆配置信息，以及内存的使用信息等
+  - -histo： 输出堆中对象的统计信息，包括类、实例数量和合计容量
+    - 特别的:-histo:live只统计堆中的存活对象
+  - -permstat： 以ClassLoader为统计口径输出永久代的内存状态信息
+    - 仅linux/solaris平台有效
+  - -finalizerinfo： 显示在F-Queue中等待Finalizer线程执行finalize方法的对象
+    - 仅linux/solaris平台有效
+  - -F： 当虚拟机进程对-dump选项没有任何响应时，可使用此选项强制执行生成dump文件
+    - 仅linux/solaris平台有效
+  - -h |-help： jmap工具使用的帮助命令
+  - -J <span class="hljs-tag">&lt;<span class="hljs-name">flag</span>&gt;</span>： 传递参数给jmap启动的jvm
+
+1. Jstack: java 堆栈跟踪工具  
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>生成线程快照的作用:可用于定位线程出现长时间停顿的原因，如线程间死锁、死循环、请求外部资源导致的长时间等待等问题。这些都是导致线程长时间停顿的常见原因。当线程出现停顿时，就可以用jstack显示各个线程调用的堆栈情况。
+
+option参数：
+- -F：当正常输出的请求不被响应时，强制输出线程堆栈
+- -m：除堆栈外，显示关于锁的附加信息
+- -h：如果调用到本地方法的话，可以显示C/C++的堆栈
+
+
+5. Jcmd   
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>它是一个多功能的工具，可以用来实现前面除了jstat之外所有命令的功能。比如:用它来导出堆、内存使用、查看Java进程、导出线程信息、执行GC、JVM运行时间等  
+
+
+<span class="hljs-symbol">&amp;emsp;</span>可视化故障处理工具
+  - JConsole
+  - VisualVM
+Monitor 显示CPU、Classes、Heap、Metaspace、Threads的Usage  
+
+<span class="hljs-comment">&#123;% asset_img monitor.png %&#125;</span>
+
+<span class="hljs-comment">&#123;% asset_img monitor_thread.png %&#125;</span>
+
+对进程进行heap dump进行分析  
+<span class="hljs-comment">&#123;% asset_img monitor_heap_dump.png %&#125;</span>
+dump的结果可以看到class实例的个数，size，每个instance的size，以及分析从父节点开始的支配树 size，来分析引用关系  
+<span class="hljs-comment">&#123;% asset_img monitor_heap_dump_result.png %&#125;</span>
+
+   - mat  
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>对Object的引用关系分析更加准确
+   - Jprofile
+
+
+
+
+## 判断是不是 GC 引发的问题？ 
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>到底是结果（现象）还是原因，在一次 GC 问题处理的过程中，如何判断是 GC 导致的故障，还是系统本身引发 GC 问题。这里继续拿在本文开头提到的一个 Case：“GC 耗时增大、线程 Block 增多、慢查询增多、CPU 负载高等四个表象，如何判断哪个是根因？”，笔者这里根据自己的经验大致整理了四种判断方法供参考：
+- 时序分析： 先发生的事件是根因的概率更大，通过监控手段分析各个指标的异常时间点，还原事件时间线，如先观察到 CPU 负载高（要有足够的时间 Gap），那么整个问题影响链就可能是：CPU 负载高 -&gt; 慢查询增多 -&gt; GC 耗时增大 -&gt; 线程Block增多 -&gt; RT 上涨。
+- 概率分析： 使用统计概率学，结合历史问题的经验进行推断，由近到远按类型分析，如过往慢查的问题比较多，那么整个问题影响链就可能是：慢查询增多 -&gt; GC 耗时增大 -&gt; CPU 负载高 -&gt; 线程 Block 增多 -&gt; RT上涨。
+- 实验分析： 通过故障演练等方式对问题现场进行模拟，触发其中部分条件（一个或多个），观察是否会发生问题，如只触发线程 Block 就会发生问题，那么整个问题影响链就可能是：线程Block增多 -&gt; CPU 负载高 -&gt; 慢查询增多 -&gt; GC 耗时增大 -&gt; RT 上涨。
+- 反证分析： 对其中某一表象进行反证分析，即判断表象的发不发生跟结果是否有相关性，例如我们从整个集群的角度观察到某些节点慢查和 CPU 都正常，但也出了问题，那么整个问题影响链就可能是：GC 耗时增大 -&gt; 线程 Block 增多 -&gt; RT 上涨。
+不同的根因，后续的分析方法是完全不同的。如果是 CPU 负载高那可能需要用火焰图看下热点、如果是慢查询增多那可能需要看下 DB 情况、如果是线程 Block 引起那可能需要看下锁竞争的情况，最后如果各个表象证明都没有问题，那可能 GC 确实存在问题，可以继续分析 GC 问题了。  
+
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>  
+总结：  
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>我们可以根据进程的内存使用特点，结合实际场景考虑吞吐量，延迟性，内存使用情况，配合参数来进行JVM的调优，同时在出现频繁GC，GC耗时增加，内存使用猛增等情况，我们可以使用一些命令：Jmap、Jcmd，dump整个堆内存以及Visiualize的工具来分析jvm的情况。  
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>在分析是不是GC导致应用出现问题时，要注意时序分析，不要只看GC异常，有可能更早的是CPU等出现了问题，从而引发GC异常，如今项目上可能使用了k8s这些容器技术，那么jvm的控制还需要结合k8s的参数来综合考虑问题。  
+
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>  
+<span class="hljs-symbol">&amp;emsp;</span><span class="hljs-symbol">&amp;emsp;</span>  
+
+
+
+Reference:
+- [minigc的实现](https://github.com/authorNari/minigc)
+- [G1 gc技术分析](https://tech.meituan.com/2016/09/23/g1.html)
+- [gc 过程分析](https://www.cnblogs.com/klvchen/articles/11841337.html)
+- [classLoader memory issue](https://www.dynatrace.com/resources/ebooks/javabook/class-loader-issues/)
+- [metaSpace内存溢出](https://juejin.cn/post/7058958428370108452)
+- [metaSpaceOOM原因](https://juejin.cn/post/7021088899787292703)
+- [java Metaspace频繁FGC问题定位](https://www.jianshu.com/p/8dfa51498343)
+- [GC优化与评价指标](https://tech.meituan.com/2017/12/29/jvm-optimize.html)
+- [CPU 优化线上实战篇:Java JVM 频繁 GC的原因和排查方法 | HeapDump性能社区](https://heapdump.cn/article/1907253)
+- [JVM监控及诊断工具](https://juejin.cn/post/7012488939219091487)
+- [GC日志解读，这次别再说看不懂GC日志了](https://juejin.cn/post/7029130033268555807)
+</span></code></pre></div>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/GC/" rel="tag">GC</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JVM/" rel="tag">JVM</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98/" rel="tag">性能调优</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2023/04/22/task_scheduler/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          任务调度
+        
+      </div>
+    </a>
+  
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2025 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="/js/clipboard.min.js"></script>
+<script src="/js/jquery-1.4.3.min.js"></script>
+
+<script src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="/mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+  
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
+</body>
+</html>

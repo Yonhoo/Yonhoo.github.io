@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Kafka-Concept | Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SEO Meta Tags -->
+  
+  <meta name="description" content="  关于Kafka的文章，主要是为了学习在分布式系统下，非常重要的部分如数据复制，数据分区的真正实践，同时对于消息队列的使用并不是很多，从而通过学习Kafka相关内容来进行深入，当然没有大型项目关于Kafka的深入实践，很难结合业务场景来调优最佳实践和更加深刻的认知，但还是希望通过这种方式来进行入门，了解万变不离其宗的分布式系统下的复杂性。">
+  
+  
+  <!-- Keywords -->
+  
+  <meta name="keywords" content="programming, database, mongodb, elasticsearch, monstache, tech blog, development, tutorial">
+  
+  
+  <!-- Author -->
+  <meta name="author" content="epic">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Kafka-Concept | Yonhoo">
+  <meta property="og:url" content="https://Yonhoo.github.io/2023/11/25/Kafka-concept/">
+  <meta property="og:site_name" content="Yonhoo">
+  
+  <meta property="og:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Kafka-Concept | Yonhoo">
+  
+  <meta name="twitter:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://Yonhoo.github.io/2023/11/25/Kafka-concept/">
+  
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+  
+    <link rel="alternate" href="/atom.xml" title="Yonhoo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+  <!-- 额外的favicon格式支持 -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="/" id="logo">Yonhoo</a>
+  </h1>
+  
+    <h2 id="subtitle-wrap">
+      <a href="/" id="subtitle">Tech Blog &amp; Personal Journey</a>
+    </h2>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-Kafka-concept" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/11/25/Kafka-concept/" class="article-date">
+  <time class="dt-published" datetime="2023-11-24T16:00:00.000Z" itemprop="datePublished">2023-11-25</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6/">消息中间件</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      Kafka-Concept
+    </h1>
+  
+
+      </header>
+    
+    
+<!-- 鼠标悬停触发区域 -->
+<div class="toc-hover-trigger"></div>
+
+<!-- 左侧边栏TOC -->
+<div id="sidebar-toc" class="sidebar-toc">
+    <div class="toc-toggle" id="toc-toggle">
+        <i class="fa fa-list"></i>
+        <span>目录</span>
+    </div>
+    <div class="toc-content" id="toc-content">
+        <div class="toc-header">
+            <h3 class="toc-title">Table Of Contents</h3>
+        </div>
+        <div class="toc-body">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B6%88%E6%81%AF"><span class="toc-number">1.</span> <span class="toc-text">消息</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#topic"><span class="toc-number">2.</span> <span class="toc-text">Topic</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#broker%E5%92%8C%E9%9B%86%E7%BE%A4"><span class="toc-number">3.</span> <span class="toc-text">broker和集群</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#isr%E9%9B%86%E5%90%88"><span class="toc-number">4.</span> <span class="toc-text">ISR集合</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#hw-&%20leo"><span class="toc-number">5.</span> <span class="toc-text">HW &amp; LEO</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1**%E5%A4%9A%E5%89%AF%E6%9C%AC%E6%9C%BA%E5%88%B6**"><span class="toc-number">5.1.</span> <span class="toc-text">1.多副本机制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-**isr%E9%9B%86%E5%90%88**"><span class="toc-number">5.2.</span> <span class="toc-text">2. ISR集合</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-**leo%E4%B8%8Ehw**"><span class="toc-number">5.3.</span> <span class="toc-text">3. LEO与HW</span></a></li></ol></li></ol>
+        </div>
+    </div>
+</div>
+
+<!-- TOC遮罩层 -->
+<div id="toc-overlay" class="toc-overlay"></div>
+
+<!-- TOC JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocContent = document.getElementById('toc-content');
+    const tocOverlay = document.getElementById('toc-overlay');
+    const sidebarToc = document.getElementById('sidebar-toc');
+    const tocLinks = tocContent.querySelectorAll('.toc-link');
+    
+    // 切换TOC显示状态
+    function toggleToc() {
+        sidebarToc.classList.toggle('active');
+        tocOverlay.classList.toggle('active');
+        document.body.classList.toggle('toc-open');
+    }
+    
+    // 关闭TOC
+    function closeToc() {
+        sidebarToc.classList.remove('active');
+        tocOverlay.classList.remove('active');
+        document.body.classList.remove('toc-open');
+    }
+    
+    // 事件监听
+    tocToggle.addEventListener('click', toggleToc);
+    tocOverlay.addEventListener('click', closeToc);
+    
+    // TOC链接点击后自动关闭（移动端）
+    tocLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(closeToc, 300); // 延迟关闭，让滚动完成
+            }
+        });
+    });
+    
+    // 键盘ESC关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeToc();
+        }
+    });
+    
+    // 窗口大小变化时的处理
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeToc();
+        }
+    });
+    
+    // 滚动监听，高亮当前章节
+    let headings = [];
+    tocLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                headings.push({
+                    link: link,
+                    target: target,
+                    offset: target.offsetTop
+                });
+            }
+        }
+    });
+    
+    function updateActiveHeading() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        let activeHeading = null;
+        
+        // 找到当前可视区域内的标题
+        for (let i = headings.length - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (scrollTop >= heading.offset - 100) {
+                activeHeading = heading;
+                break;
+            }
+        }
+        
+        // 更新高亮状态
+        tocLinks.forEach(link => link.classList.remove('active'));
+        if (activeHeading) {
+            activeHeading.link.classList.add('active');
+            
+            // 滚动TOC到当前项
+            const tocBody = document.querySelector('.toc-body');
+            if (tocBody && sidebarToc.classList.contains('active')) {
+                const linkTop = activeHeading.link.offsetTop;
+                const tocBodyHeight = tocBody.offsetHeight;
+                const linkHeight = activeHeading.link.offsetHeight;
+                
+                if (linkTop < tocBody.scrollTop || linkTop > tocBody.scrollTop + tocBodyHeight - linkHeight) {
+                    tocBody.scrollTop = linkTop - tocBodyHeight / 2;
+                }
+            }
+        }
+    }
+    
+    // 节流函数
+    function throttle(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 绑定滚动事件
+    window.addEventListener('scroll', throttle(updateActiveHeading, 100));
+    
+    // 初始化高亮
+    updateActiveHeading();
+});
+</script>
+
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  关于Kafka的文章，主要是为了学习在分布式系统下，非常重要的部分如数据复制，数据分区的真正实践，同时对于消息队列的使用并不是很多，从而通过学习Kafka相关内容来进行深入，当然没有大型项目关于Kafka的深入实践，很难结合业务场景来调优最佳实践和更加深刻的认知，但还是希望通过这种方式来进行入门，了解万变不离其宗的分布式系统下的复杂性。</p>
+<span id="more"></span>
+<p>  Kafka本身算是一个复杂项目，从而不想一下子掉进开源代码中，本次学习还是按照想要了解数据复制，数据分区，负载均衡这种主题来进行学习，故而有些点比如log本地写入磁盘，网络模型等内容暂时不是我的重点。</p>
+<p>  本节是关于Kafka比较重要的组成部分进行简单的介绍，方便接下来更深入的了解。</p>
+<ul>
+<li>
+<h2 id="消息">消息</h2>
+</li>
+</ul>
+<p>  消息是Kafka中最基本的数据单元。消息可以看成是数据库里的一个“数据行”或一条“记录”，由字节数组组成。</p>
+<ul>
+<li>
+<h2 id="topic">Topic</h2>
+</li>
+</ul>
+<p>  topic是用于存储消息的逻辑概念，可以看作一个消息集合。每个生产者可以有多个生产者向其中推送消息，然后由任意多个消费者进行消费</p>
+  <img src="/2023/11/25/Kafka-concept/IMG-20231028230752517.png" class="">
+<p>  每个Topic可以划分成若干个分区(Partition)，一个分区就是一个提交日志。消息以追加的方式写入分区，然后以先入先出的顺序读取。由于一个主题一般包含几个分区，因此无法在整个主题范围内保证消息的顺序，但可以保证消息在单个分区的顺序。</p>
+  <img src="/2023/11/25/Kafka-concept/IMG-20231029101028764.png" class="">
+<ul>
+<li>
+<h2 id="broker和集群">broker和集群</h2>
+</li>
+</ul>
+<p>  一个独立的Kafka服务器被称为broker。broker接受来自生产者的消息，为消息设置偏移量，并提交消息到磁盘保存。broker为消费者提供服务，对读取分区的请求作出响应，返回已经提交到磁盘上的消息。</p>
+<p>  broker是集群的组成部分，每个集群都有一个broker同时充当了集群控制器的角色（自动从集群的活跃成员中选举出来）。控制器负责管理工作，包括将分区分配给broker和监控broker。在集群中，一个分区从属于一个broker，该broker被称为分区的首领。一个分区可以分配给多个broker，这个时候会发生分区复制，这种复制机制为分区提供了消息冗余，如果有一个broker失效，其他broker可以接管领导权。然后相关的消费者和生产者都要重新连接到新的首领。</p>
+  <img src="/2023/11/25/Kafka-concept/IMG-20231029103415752.png" class="">
+<ul>
+<li>
+<h2 id="isr集合">ISR集合</h2>
+</li>
+</ul>
+<p>  ISR(In-Sync Replica)集合表示的是目前“可用”(alive)且消息量与Leader相差不多的副本集合，这是整个副本集合的一个子集。其进入条件为：<br>
+1. 副本所在节点必须是连接畅通的<br>
+2. 副本最后一条消息的offset与Leader副本的最后一条消息的offset相等或者上一次的catchUp的时间与当<br>
+前时间的差值小于一个设定的阈值</p>
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs ini"><span class="hljs-attr">leaderEndOffset</span> == logEnd<span class="hljs-literal">Off</span>set || currentTimeMs - lastCaughtUpTimeMs &lt;= replicaMaxLagMs<br></code></pre></td></tr></table></figure>
+<p>  每个分区中的Leader副本都会维护此分区的ISR集合。写请求首先由Leader副本处理，之后Follower副本会从Leader上拉取写入的消息。ISR集合是Kafka数据可靠性的一部分保证，类似于ZK中的“少数服从多数”，当Leader副本不可用时，ISR集合中的其他副本由于和Leader的offset保持一致，从而可以充当新Leader副本供读和写。</p>
+<ul>
+<li>
+<h2 id="hw-&amp; leo">HW &amp; LEO</h2>
+</li>
+</ul>
+<p>  LEO（Log End Offset）是所有的副本都会有的一个offset，它指的是当前副本的同步到的最后一个消息的offset。当Follower副本成功从Leader副本拉取消息并更新到本地的时候，Follower副本的LEO就会增加。</p>
+<p>  HW(HighWatermark)和LEO与上面的ISR集合紧密相关。HW标记了一个特殊的offset，指的是所有ISR集合中最小的LEO位置，当消费者处理消息的时候，只能拉取到HW之前的消息，HW之后的消息对消费者来说是不可见的，HW也是由Leader副本管理。当ISR集合中全部的Follower副本都拉取HW指定消息进行同步后，Leader副本会递增HW的值。通过多副本以及HW的同步，保证了可靠性消费。</p>
+<img src="/2023/11/25/Kafka-concept/IMG-20231029152134304.png" class="">
+<p>  Kafka权衡了同步复制和异步复制，通过加入ISR集合，通过动态的管理副本集合，避免所有副本同步复制带来的延迟过高问题，利用HW来保证当Leader副本所在的Broker出现问题时，此时消费Follower副本消息的一致性。</p>
+<p>在简单概念介绍完，以及分析过kafka-producer、kafka-replica-server、kafka-fetch后，做一下从数据同步侧是如何保证可靠性问题：</p>
+<h3 id="1**多副本机制**">1.<strong>多副本机制</strong></h3>
+<p>  通过一个分区多副本机制，一个Leader副本，其余都为Folloer副本，每个副本都存在于不同的Broker上，当Leader出现问题，就进行故障转移，在剩下的副本中选举新Leader来保证数据的可用性<br>
+<img src="/2023/11/25/Kafka-concept/IMG-20231129213616079.png" class=""></p>
+<h3 id="2-**isr集合**">2. <strong>ISR集合</strong></h3>
+<p>  通过定义ISR集合，实现分布式系统下的数据不丢失，就像Zookeeper的“大于一半”的方式，kafka通过定义ISR集合，在producer生产消息过后，需要ISR集合中的所有副本都同步此次数据后，才确认这次生产的消息是成功的，那么当Leader节点出故障后，就可以从ISR集合中选出新Leader，来保证已经生成的消息不会丢失，同时通过动态的ISR集合的伸缩，当追赶上Leader的LEO，就将其加入到ISR中，如果一个副本的lastCaughtUpTime &lt; replica.lag.time.max.ms并且Follower LEO &lt; Leader LEO，那么也会被认为是失效副本，从而踢出ISR中，等待重新追赶上Leader。</p>
+<h3 id="3-**leo与hw**">3. <strong>LEO与HW</strong></h3>
+<p>  对于Partiton的每个副本而言，其Log都有一个Log End Offset，简称LEO，而HW指的是Partition的所有副本中最小的LEO，通过Replica Fetch Request同步Leader数据后，就会及时的更新Leader的HW，通过这种方式，就很好的保证了数据可见的一致性，因为不是每个Broker的状态都是一样的，有的副本同步的比较慢，从而每个副本的LEO可能是不一样的，那么只有HW之前的消息对consumer是可见的，这样的话，当Leader失效，重新选举Leader后，就还可以保证只有HW之前的消息是可见的，保证了数据的一致性，因为有可能最后只剩一个副本当选新的Leader，假设这个副本的LEO小于之前的Leader的LEO，如果不以HW作为可见，那么就会出现消息丢失的问题。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kafka/" rel="tag">Kafka</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/" rel="tag">分布式</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" rel="tag">消息队列</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2023/11/26/Kafka-replica-server/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Kafka-replica-server
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2023/11/25/Kafka-replica-producer/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          Kafka-Producer
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2025 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="/js/clipboard.min.js"></script>
+<script src="/js/jquery-1.4.3.min.js"></script>
+
+<script src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="/mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+  
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
+</body>
+</html>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>ClassLoader | Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SEO Meta Tags -->
+  
+  <meta name="description" content="类加载机制
+  在编译成的Class文件最终都要加载到虚拟机中才能被运行和使用，Java虚拟机把描述类的数据从Class文件加载到内存，并对数据进行校验、转换解析和初始化，最终形成可以被虚拟机直接使用的Java类型，这个过程被称作虚拟机的类加载机制。">
+  
+  
+  <!-- Keywords -->
+  
+  <meta name="keywords" content="programming, database, mongodb, elasticsearch, monstache, tech blog, development, tutorial">
+  
+  
+  <!-- Author -->
+  <meta name="author" content="epic">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="ClassLoader | Yonhoo">
+  <meta property="og:url" content="https://Yonhoo.github.io/2024/01/03/classLoader/">
+  <meta property="og:site_name" content="Yonhoo">
+  
+  <meta property="og:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="ClassLoader | Yonhoo">
+  
+  <meta name="twitter:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://Yonhoo.github.io/2024/01/03/classLoader/">
+  
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+  
+    <link rel="alternate" href="/atom.xml" title="Yonhoo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+  <!-- 额外的favicon格式支持 -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="/" id="logo">Yonhoo</a>
+  </h1>
+  
+    <h2 id="subtitle-wrap">
+      <a href="/" id="subtitle">Tech Blog &amp; Personal Journey</a>
+    </h2>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-classLoader" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2024/01/03/classLoader/" class="article-date">
+  <time class="dt-published" datetime="2024-01-02T16:00:00.000Z" itemprop="datePublished">2024-01-03</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Java/">Java</a>►<a class="article-category-link" href="/categories/Java/JVM/">JVM</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      ClassLoader
+    </h1>
+  
+
+      </header>
+    
+    
+<!-- 鼠标悬停触发区域 -->
+<div class="toc-hover-trigger"></div>
+
+<!-- 左侧边栏TOC -->
+<div id="sidebar-toc" class="sidebar-toc">
+    <div class="toc-toggle" id="toc-toggle">
+        <i class="fa fa-list"></i>
+        <span>目录</span>
+    </div>
+    <div class="toc-content" id="toc-content">
+        <div class="toc-header">
+            <h3 class="toc-title">Table Of Contents</h3>
+        </div>
+        <div class="toc-body">
+            <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6"><span class="toc-number">1.</span> <span class="toc-text">类加载机制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="toc-number">2.</span> <span class="toc-text">类加载器</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B"><span class="toc-number">3.</span> <span class="toc-text">双亲委派模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%A0%B4%E5%9D%8F%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%A8%A1%E5%9E%8B"><span class="toc-number">4.</span> <span class="toc-text">破坏双亲委派模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#dubbo-spi%E6%9C%BA%E5%88%B6"><span class="toc-number">5.</span> <span class="toc-text">Dubbo SPI机制</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%84%E8%8C%83%E5%AE%9A%E4%B9%89"><span class="toc-number">6.</span> <span class="toc-text">规范定义</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%87%AA%E9%80%82%E5%BA%94%E6%9C%BA%E5%88%B6adaptive"><span class="toc-number">7.</span> <span class="toc-text">自适应机制Adaptive</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#@adaptive-%E4%BF%AE%E9%A5%B0%E6%96%B9%E6%B3%95"><span class="toc-number">8.</span> <span class="toc-text">@Adaptive 修饰方法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#@adaptive-%E4%BF%AE%E9%A5%B0%E7%B1%BB"><span class="toc-number">9.</span> <span class="toc-text">@Adaptive 修饰类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8C%85%E8%A3%85%E6%9C%BA%E5%88%B6-wrapper"><span class="toc-number">10.</span> <span class="toc-text">包装机制 Wrapper</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%BF%80%E6%B4%BB%E6%9C%BA%E5%88%B6-activate"><span class="toc-number">11.</span> <span class="toc-text">激活机制 Activate</span></a></li></ol>
+        </div>
+    </div>
+</div>
+
+<!-- TOC遮罩层 -->
+<div id="toc-overlay" class="toc-overlay"></div>
+
+<!-- TOC JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocContent = document.getElementById('toc-content');
+    const tocOverlay = document.getElementById('toc-overlay');
+    const sidebarToc = document.getElementById('sidebar-toc');
+    const tocLinks = tocContent.querySelectorAll('.toc-link');
+    
+    // 切换TOC显示状态
+    function toggleToc() {
+        sidebarToc.classList.toggle('active');
+        tocOverlay.classList.toggle('active');
+        document.body.classList.toggle('toc-open');
+    }
+    
+    // 关闭TOC
+    function closeToc() {
+        sidebarToc.classList.remove('active');
+        tocOverlay.classList.remove('active');
+        document.body.classList.remove('toc-open');
+    }
+    
+    // 事件监听
+    tocToggle.addEventListener('click', toggleToc);
+    tocOverlay.addEventListener('click', closeToc);
+    
+    // TOC链接点击后自动关闭（移动端）
+    tocLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(closeToc, 300); // 延迟关闭，让滚动完成
+            }
+        });
+    });
+    
+    // 键盘ESC关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeToc();
+        }
+    });
+    
+    // 窗口大小变化时的处理
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeToc();
+        }
+    });
+    
+    // 滚动监听，高亮当前章节
+    let headings = [];
+    tocLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                headings.push({
+                    link: link,
+                    target: target,
+                    offset: target.offsetTop
+                });
+            }
+        }
+    });
+    
+    function updateActiveHeading() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        let activeHeading = null;
+        
+        // 找到当前可视区域内的标题
+        for (let i = headings.length - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (scrollTop >= heading.offset - 100) {
+                activeHeading = heading;
+                break;
+            }
+        }
+        
+        // 更新高亮状态
+        tocLinks.forEach(link => link.classList.remove('active'));
+        if (activeHeading) {
+            activeHeading.link.classList.add('active');
+            
+            // 滚动TOC到当前项
+            const tocBody = document.querySelector('.toc-body');
+            if (tocBody && sidebarToc.classList.contains('active')) {
+                const linkTop = activeHeading.link.offsetTop;
+                const tocBodyHeight = tocBody.offsetHeight;
+                const linkHeight = activeHeading.link.offsetHeight;
+                
+                if (linkTop < tocBody.scrollTop || linkTop > tocBody.scrollTop + tocBodyHeight - linkHeight) {
+                    tocBody.scrollTop = linkTop - tocBodyHeight / 2;
+                }
+            }
+        }
+    }
+    
+    // 节流函数
+    function throttle(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 绑定滚动事件
+    window.addEventListener('scroll', throttle(updateActiveHeading, 100));
+    
+    // 初始化高亮
+    updateActiveHeading();
+});
+</script>
+
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h3 id="类加载机制">类加载机制</h3>
+<p>  在编译成的Class文件最终都要加载到虚拟机中才能被运行和使用，Java虚拟机把描述类的数据从Class文件加载到内存，并对数据进行校验、转换解析和初始化，最终形成可以被虚拟机直接使用的Java类型，这个过程被称作虚拟机的类加载机制。</p>
+<span id="more"></span>
+<p>  一个类型从被加载到虚拟机内存中开始，到卸载出内存为止，它的整个生命周期将会经历加载（Loading）、验证（Verification）、准备（Preparation）、解析（Resolution）、初始化（Initialization）、使用（Using）和卸载（Unloading）七个阶段，其中验证、准备、解析三个部分统称为连接（Linking）。</p>
+<img src="/2024/01/03/classLoader/IMG-20231225224001517.png" class="">
+<p>  <br>
+对于初始化阶段，《Java虚拟机规范》严格规定了只有六种情况必须立即对类进行“初始化”:</p>
+<ol>
+<li>遇到new、getstatic、putstatic或invokestatic这四条字节码指令时，如果类型没有进行过初始化，则需要先触发其初始化阶生成这四条指令的典型Java代码场景有：
+<ol>
+<li>使用new关键字实例化对象的时候</li>
+<li>读取或设置一个类型的静态字段(被final修饰，已在编译期把结果放入常量池的静态字段除外)的时候</li>
+<li>调用一个类型的静态方法</li>
+</ol>
+</li>
+<li>使用java.lang.reflect包的方法对类型进行反射调用的时候，如果类型没有进行过初始化，则需要先触发其初始化</li>
+<li>当初始化类的时候，如果发现其父类还没有进行过初始化，则需要先触发其父类的初始化</li>
+<li>当虚拟机启动时，用户需要指定一个要执行的主类（包含main方法的那个类），虚拟机会先初始化这个主类</li>
+<li>当使用JDK7新加入的动态语言支持时，如果一个java.lang.invoke.MethodHandle实例最后的解析结果为REF_getStatic、REF_putStatic、REF_invokeStatic、REF_newInvokeSpecial四种类型的方法句柄，并且这个方法句柄对应的类没有进行过初始化则需要先触发其初始化。</li>
+<li>当一个接口中定义了JDK8新加入的默认方法(被default关键字修饰的接口方法)时，如果有这个接口的实现类发生了初始化，那该接要在其之前被初始化</li>
+</ol>
+<p>下面给个例子说明初始化</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">main</span><span class="hljs-params">(String[]args)</span>&#123;<br>        System.out.println(SuperClass.value);<br>        &#125;<br><br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">SuperClass</span> &#123;<br>    <span class="hljs-keyword">static</span> &#123;<br>        System.out.println(<span class="hljs-string">&quot;SuperClass init!&quot;</span>);<br>    &#125;<br><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-type">int</span> <span class="hljs-variable">value</span> <span class="hljs-operator">=</span> <span class="hljs-number">123</span>;<br>&#125;<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">SubClass</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">SuperClass</span> &#123;<br>    <span class="hljs-keyword">static</span> &#123;<br>        System.out.println(<span class="hljs-string">&quot;SubClass init!&quot;</span>);<br>    &#125;<br>&#125;<br><br>output:<br><br>        SuperClass init!<br>        <span class="hljs-number">123</span><br><br></code></pre></td></tr></table></figure>
+<p>可以看到“SubClass init” 并没有输出，对于静态字段，只有直接定义这个字段才会被初始化，因此通过其子类来引用父类中定义的静态字段，只会触发父类的初始化而不会触发子类的初始化。</p>
+<p>这里列出所有初始化的情况，是因为发现实际项目中有一段dubbo的静态代码块没有执行而引发的疑问：dubbo的AbstractConfig里有关于shutdown的静态代码块，因为我发现我们服务在terminating的时候，暴露的服务并没有在注册中心下线，于是就看我们用的dubbo2.6.2的版本下是如何优雅下线的：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs java">  <span class="hljs-keyword">static</span> &#123;<br>    Runtime.getRuntime().addShutdownHook(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Thread</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Runnable</span>() &#123;<br>        <span class="hljs-meta">@Override</span><br>        <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">run</span><span class="hljs-params">()</span> &#123;<br>            <span class="hljs-keyword">if</span> (logger.isInfoEnabled()) &#123;<br>                logger.info(<span class="hljs-string">&quot;Run shutdown hook now.&quot;</span>);<br>            &#125;<br>            ProtocolConfig.destroyAll();<br>        &#125;<br>    &#125;, <span class="hljs-string">&quot;DubboShutdownHook&quot;</span>));<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>  于是在本地测试，发现是会执行，最后发现外面还有一层pandora，刚开始对pandora并不是很了解，最后认真了解了一下<a target="_blank" rel="noopener" href="https://blog.hufeifei.cn/2020/05/Alibaba/Pandora/">pandora解释</a>,它其实是做到类隔离容器，当我加上-XX:+TraceClassLoading,发现它并不是直接用dubbo2.6.2来加载类数据，从而不会执行这段静态代码块，从这里开始，又把我的视线拉到pandora上，为什么要使用pandora呢，于是就引出了本篇主题----类加载</p>
+<h3 id="类加载器">类加载器</h3>
+<p>  Java虚拟机设计团队有意把类加载阶段中的“通过一个类的全限定名来获取描述该类的二进制字节流”这个动作放到Java虚拟机外部去实现，以便让应用程序自己决定如何去获取所需的类。实现这个动作的代码被称为“类加载器”</p>
+<p>  类加载器虽然只用于实现类的加载动作，但它在Java程序中起到的作用却远超类加载阶段。对于任意一个类，都必须由加载它的类加载器和这个类本身一起共同确立其在Java虚拟机中的唯一性，每一个类加载器，都拥有一个独立的类名称空间。也就是说，两个类是否“相等”，就是来自于同一个class文件同时是被同一类加载器加载的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">ClassLoaderTest</span> &#123;<br>        <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">main</span><span class="hljs-params">(String[] args)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br><br>            <span class="hljs-type">ClassLoader</span> <span class="hljs-variable">myLoader</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ClassLoader</span>() &#123;<br>                <span class="hljs-meta">@Override</span><br>                <span class="hljs-keyword">public</span> Class&lt;?&gt; loadClass(String name) <span class="hljs-keyword">throws</span> ClassNotFoundException &#123;<br>                    <span class="hljs-keyword">try</span> &#123;<br>                        <span class="hljs-type">String</span> <span class="hljs-variable">fileName</span> <span class="hljs-operator">=</span> name.substring(name.lastIndexOf(<span class="hljs-string">&quot;.&quot;</span>) + <span class="hljs-number">1</span>)<br>                                + <span class="hljs-string">&quot;.class&quot;</span>;<br>                        <span class="hljs-type">InputStream</span> <span class="hljs-variable">is</span> <span class="hljs-operator">=</span> getClass().getResourceAsStream(fileName);<br>                        <span class="hljs-keyword">if</span> (is == <span class="hljs-literal">null</span>) &#123;<br>                            <span class="hljs-keyword">return</span> <span class="hljs-built_in">super</span>.loadClass(name);<br>                        &#125;<br><br>                        <span class="hljs-type">byte</span>[] b = <span class="hljs-keyword">new</span> <span class="hljs-title class_">byte</span>[is.available()];<br>                        is.read(b);<br>                        <span class="hljs-keyword">return</span> defineClass(name, b, <span class="hljs-number">0</span>, b.length);<br>                    &#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>                        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ClassNotFoundException</span>(name);<br>                    &#125;<br>                &#125;<br>            &#125;;<br><br>            <span class="hljs-type">Object</span> <span class="hljs-variable">obj</span> <span class="hljs-operator">=</span> myLoader.loadClass(<span class="hljs-string">&quot;org.demo.test.ClassLoaderTest&quot;</span>)<br>                    .newInstance();<br><br>            System.out.println(obj.getClass());<br>            System.out.println(obj <span class="hljs-keyword">instanceof</span> org.demo.test.ClassLoaderTest);<br><br>        &#125;<br><br>    &#125;<br></code></pre></td></tr></table></figure>
+<blockquote>
+<p>运行结果：<br>
+org.demo.test.ClassLoaderTest<br>
+false</p>
+</blockquote>
+<p>可以看出虽然来自同一个文件，但在Java虚拟机中仍然是两个互相独立的类。</p>
+<h3 id="双亲委派模型">双亲委派模型</h3>
+<p>  站在Java虚拟机的角度来看，只存在两种不同的类加载器：一种是启动类加载器(Bootstrap ClassLoader),这个类加载器使用C++实现，是虚拟机自身的一部分；另外一种就是其他所有的类加载器，这些类加载器都由Java语言实现，独立存在于虚拟机外部，并且全都继承自抽象类java.lang.ClassLoader。</p>
+<p>  本文讨论的是JDK8及之前版本的Java，其一直保持着三层类加载器、双亲委派的类加载架构，不过在JDK9模块化后，有一些调整。不过本文会关注在三层类加载器：</p>
+<ol>
+<li>启动类加载器</li>
+</ol>
+<p>  这个类加载器负责加载存放在&lt;JAVA_HOME&gt;\lib 目录，或者被-Xbootclasspath参数指定的路径中存放的，而且是被Java虚拟机能够识别的(rt.jar、tools.jar)类库加载。</p>
+<ol start="2">
+<li>扩展类加载器</li>
+</ol>
+<p>  这个类加载器是在类sun.misc.Launcher$ExtClassLoader中以Java代码的形式实现的。它负责加载&lt;JAVA_HOME&gt;\lib\ext目录中，或者被java.ext.dirs系统变量所指定的路径中所有的类库。根据“扩展类加载器”这个名称，就可以推断出这是一种Java系统类库的扩展机制，JDK的开发团队允许用户将具有通用性的类库放置在ext目录里以扩展Java SE的功能，在JDK9之后，这种扩展机制被模块化带来的天然的扩展能力取代。</p>
+<ol start="3">
+<li>应用程序类加载器</li>
+</ol>
+<p>  这个类加载器由sun.misc.Launcher$AppClassLoader来实现。它负责加载用户类路径(ClassPath)上所有的类库，开发者同样可以直接在代码中使用这个类加载。如果应用程序中没有自定义过自己的类加载器，一般情况下这个就是程序中默认的类加载器。</p>
+<p>JDK9之前的Java应用都是由这三种类加载器互相配合来完成加载的，用户也可以自定义加载器来进行拓展。</p>
+<img src="/2024/01/03/classLoader/IMG-20231226232143503.png" class="">
+<p>  图中展示的各种类加载器之间的层次关系被称为类加载器的“双亲委派模型”，双亲委派模型要求除了顶层的启动类加载器外，其余的类加载器都应有自己的父类加载器外。</p>
+<p>  双亲委派模型的工作过程是：如果一个类加载器收到了类加载的请求，它首先不会自己去尝试加载这个类，而是把这个请求委派给父类加载器去完成，每一个层次的类加载器都是如此，因此所有的加载请求最终都应该传送到最顶层的启动类加载器中，只有当副加载反馈自己无法完成这个加载请求时，子加载器才会尝试自己去完成加载。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">synchronized</span> Class&lt;?&gt; loadClass(String name, <span class="hljs-type">boolean</span> resolve)<br>        <span class="hljs-keyword">throws</span> ClassNotFoundException &#123;<br>    <span class="hljs-type">Class</span> <span class="hljs-variable">c</span> <span class="hljs-operator">=</span> findLoadedClass(name);<br><br>    <span class="hljs-keyword">if</span> (c == <span class="hljs-literal">null</span>) &#123;<br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-keyword">if</span> (parent != <span class="hljs-literal">null</span>) &#123;<br>                c = parent.loadClass(name, <span class="hljs-literal">false</span>);<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                c = findBootstrapClassOrNull(name);<br>            &#125;<br>        &#125; <span class="hljs-keyword">catch</span> (ClassNotFoundException e) &#123;<br><br>        &#125;<br><br>        <span class="hljs-keyword">if</span> (c == <span class="hljs-literal">null</span>) &#123;<br>            c = findClass(name);<br>        &#125;<br>    &#125;<br><br>    <span class="hljs-keyword">if</span> (resolve) &#123;<br>        resolveClass(c);<br>    &#125;<br><br>    <span class="hljs-keyword">return</span> c;<br>&#125;<br></code></pre></td></tr></table></figure>
+<h3 id="破坏双亲委派模型">破坏双亲委派模型</h3>
+<p>  双亲委派模型并不是一个具有强制性约束的模型，而是Java设计者推荐给开发者们的类加载器实现方式，下面举个破坏双亲委派模型的例子：</p>
+<p>  双亲委派模型很好地解决了各个类加载器协作时基础类型的一致性问题(越基础的类由越上层的加载器进行加载)，基础类型之所以被称为“基础”，是因为它们总是作为被用户代码继承、调用的API存在，但程序设计往往没有绝对不变的完美规则，如果有基础类型又要调用回用户的代码，那该怎么办呢？</p>
+<p>下面浅析一下JDBC的加载过程：</p>
+<p>  DriverManager会尝试加载在&quot;jdbc.drivers&quot;系统属性中引用的驱动程序类，这允许用户定制由他们的应用程序使用的JDBC Driver。比如在META-INF/services/下放置驱动加载器：com.mysql.cj.jdbc.Driver。</p>
+<img src="/2024/01/03/classLoader/IMG-20231230143830268.png" class="">
+<ol>
+<li>ServiceLoader会加载所有META-INF/services/实现Driver的class</li>
+<li>迭代next()方法去加载实际的实现</li>
+</ol>
+<p>其中迭代器的部分就是ServiceLoader的实现,调用Class.forName去加载类</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">private</span> Class&lt;?&gt; nextProviderClass() &#123;<br>        String fullName;<br>        <span class="hljs-keyword">if</span> (<span class="hljs-built_in">this</span>.configs == <span class="hljs-literal">null</span>) &#123;<br>            <span class="hljs-keyword">try</span> &#123;<br>                fullName = <span class="hljs-string">&quot;META-INF/services/&quot;</span> + ServiceLoader.<span class="hljs-built_in">this</span>.service.getName();<br>                <span class="hljs-keyword">if</span> (ServiceLoader.<span class="hljs-built_in">this</span>.loader == <span class="hljs-literal">null</span>) &#123;<br>                    <span class="hljs-built_in">this</span>.configs = ClassLoader.getSystemResources(fullName);<br>                &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (ServiceLoader.<span class="hljs-built_in">this</span>.loader == ClassLoaders.platformClassLoader()) &#123;<br>                    <span class="hljs-keyword">if</span> (BootLoader.hasClassPath()) &#123;<br>                        <span class="hljs-built_in">this</span>.configs = BootLoader.findResources(fullName);<br>                    &#125; <span class="hljs-keyword">else</span> &#123;<br>                        <span class="hljs-built_in">this</span>.configs = Collections.emptyEnumeration();<br>                    &#125;<br>                &#125; <span class="hljs-keyword">else</span> &#123;<br>                    <span class="hljs-built_in">this</span>.configs = ServiceLoader.<span class="hljs-built_in">this</span>.loader.getResources(fullName);<br>                &#125;<br>            &#125; <span class="hljs-keyword">catch</span> (IOException var4) &#123;<br>                ServiceLoader.fail(ServiceLoader.<span class="hljs-built_in">this</span>.service, <span class="hljs-string">&quot;Error locating configuration files&quot;</span>, var4);<br>            &#125;<br>        &#125;<br><br>        <span class="hljs-keyword">while</span> (<span class="hljs-built_in">this</span>.pending == <span class="hljs-literal">null</span> || !<span class="hljs-built_in">this</span>.pending.hasNext()) &#123;<br>            <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">this</span>.configs.hasMoreElements()) &#123;<br>                <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;<br>            &#125;<br><br>            <span class="hljs-built_in">this</span>.pending = <span class="hljs-built_in">this</span>.parse((URL) <span class="hljs-built_in">this</span>.configs.nextElement());<br>        &#125;<br><br>        fullName = (String) <span class="hljs-built_in">this</span>.pending.next();<br><br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-keyword">return</span> Class.forName(fullName, <span class="hljs-literal">false</span>, ServiceLoader.<span class="hljs-built_in">this</span>.loader);<br>        &#125; <span class="hljs-keyword">catch</span> (ClassNotFoundException var3) &#123;<br>            ServiceLoader.fail(ServiceLoader.<span class="hljs-built_in">this</span>.service, <span class="hljs-string">&quot;Provider &quot;</span> + fullName + <span class="hljs-string">&quot; not found&quot;</span>);<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;<br>        &#125;<br>    &#125;<br></code></pre></td></tr></table></figure>
+<p>而在最开始调用ServiceLoader.load方法时，使用的线程上下文类加载器</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java">ServiceLoader&lt;Driver&gt; loadedDrivers = ServiceLoader.load(Driver.class);<br><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> &lt;S&gt; ServiceLoader&lt;S&gt; <span class="hljs-title function_">load</span><span class="hljs-params">(Class&lt;S&gt; service)</span> &#123;<br>    <span class="hljs-type">ClassLoader</span> <span class="hljs-variable">cl</span> <span class="hljs-operator">=</span> Thread.currentThread().getContextClassLoader();<br>    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ServiceLoader</span>&lt;&gt;(Reflection.getCallerClass(), service, cl);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>  JDBC使用线程上下文类加载器去加载所需的SPI代码，这是一种父类加载器去请求子类加载器完成类加载的行为，这种行为实际上是打通了双亲委派模型的层次结构来逆向使用类加载器，已经违背了双亲委派模型的一般性原则。（具体细节代码可以看网上的剖析）</p>
+<p>实现过程：<br>
+  可以看到实现SPI，是通过调用ServiceLoader.load方法，然后通过迭代器来实例化所有在META-INF/services/下面的实现类，并放入缓存中。</p>
+<p>  但是它不能按需加载，如果META-INF/services/下面有多个实现，那么就会将多个实现通过迭代器的方式同时进行加载，同时不能直接根据某个参数直接获取某个具体的实现，而是通过遍历的方式获取。</p>
+<h3 id="dubbo-spi机制">Dubbo SPI机制</h3>
+<p>  可扩展性的优点主要表现模块之间解耦，它符合开闭原则，对扩展开放，对修改关闭。当系统增加新功能时，不需要对现有系统的结构和代码进行修改，仅仅新增一个扩展即可。</p>
+<p>用户能够基于 Dubbo 提供的扩展能力，很方便基于自身需求扩展其他协议、过滤器、路由等。Dubbo 扩展能力的特性：</p>
+<ul>
+<li>按需加载。Dubbo 的扩展能力不会一次性实例化所有实现，而是用扩展类实例化，减少资源浪费。</li>
+<li>增加扩展类的 IOC 能力。Dubbo 的扩展能力并不仅仅只是发现扩展服务实现类，而是在此基础上更进一步，如果该扩展类的属性依赖其他对象，则 Dubbo 会自动的完成该依赖对象的注入功能。</li>
+<li>增加扩展类的 AOP 能力。Dubbo 扩展能力会自动的发现扩展类的包装类，完成包装类的构造，增强扩展类的功能。</li>
+<li>具备动态选择扩展实现的能力。Dubbo 扩展会基于参数，在运行时动态选择对应的扩展类，提高了 Dubbo 的扩展能力。</li>
+<li>可以对扩展实现进行排序。能够基于用户需求，指定扩展实现的执行顺序。</li>
+<li>提供扩展点的 Adaptive 能力。该能力可以使的一些扩展类在 consumer 端生效，一些扩展类在 provider 端生效。</li>
+</ul>
+<p>Dubbo 实现的一些例如动态选择扩展实现、IOC、AOP 等特性，能够为用户提供非常灵活的扩展能力。</p>
+<p>Dubbo 扩展能力使得 Dubbo 项目很方便的切分成一个一个的子模块，实现热插拔特性。用户完全可以基于自身需求，替换 Dubbo 原生实现，来满足自身业务需求。下面是Dubbo官网上关于可扩展的地方：</p>
+<img src="/2024/01/03/classLoader/IMG-20240102215616199.png" class="">
+<h3 id="规范定义">规范定义</h3>
+<ul>
+<li>接口名：可以随意定义，但接口必须被<code>@SPI 注解修饰</code></li>
+<li>提供者配置文件路径：在依次查找的目录为
+<ul>
+<li>META-INF/dubbo/internal</li>
+<li>META-INF/dubbo</li>
+<li>META-INF/services</li>
+</ul>
+</li>
+<li>提供者配置文件名称：接口的全限定性类名，无需扩展名</li>
+<li>提供者配置文件内容： 文件的内容为 <code>key=value 形式</code>， value 为该接口的实现类的全限类性类名， key 可以随意，但一般为该实现类的“标识前辍”（首字母小写）。一个类名占一行。</li>
+<li>提供者加载： ExtensionLoader 类相当于 JDK SPI 中的 ServiceLoader 类，用于加载提供者配置文件中所有的实现类，并创建相应的实例。</li>
+<li>增加了对扩展点 IoC 和 AOP 的支持，一个扩展点可以直接使用 setter() 方法注入其他扩展点 ，也可 以对扩展点使用 Wrapper 类进行功能增强。</li>
+</ul>
+<p>下面举个例子：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@SPI</span>  <br><span class="hljs-keyword">public</span> <span class="hljs-keyword">interface</span> <span class="hljs-title class_">Car</span> &#123;  <br>    String <span class="hljs-title function_">engineStart</span><span class="hljs-params">()</span>;  <br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Porsche</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Car</span> &#123;  <br>    <span class="hljs-meta">@Override</span>  <br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">engineStart</span><span class="hljs-params">()</span> &#123;  <br>        System.out.println(<span class="hljs-string">&quot;Porsche start&quot;</span>);  <br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Porsche start&quot;</span>;  <br>    &#125;  <br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Volvo</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Car</span> &#123;  <br>    <span class="hljs-meta">@Override</span>  <br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">engineStart</span><span class="hljs-params">()</span> &#123;  <br>        System.out.println(<span class="hljs-string">&quot;Volvo start&quot;</span>);  <br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Volvo start&quot;</span>;  <br>    &#125;  <br>&#125;<br></code></pre></td></tr></table></figure>
+<p>在META-INF/dubbo下面添加两行：</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs stylus">porsche=com<span class="hljs-selector-class">.yonhoo</span><span class="hljs-selector-class">.dubbo_server</span><span class="hljs-selector-class">.spi</span><span class="hljs-selector-class">.Porsche</span>  <br>volvo=com<span class="hljs-selector-class">.yonhoo</span><span class="hljs-selector-class">.dubbo_server</span><span class="hljs-selector-class">.spi</span>.Volvo<br></code></pre></td></tr></table></figure>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">DubboSpiTest</span> &#123;<br>        <span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">main</span><span class="hljs-params">(String[] args)</span> &#123;<br>            ExtensionLoader&lt;Car&gt; loader = ExtensionLoader.getExtensionLoader(Car.class);<br><br>            <span class="hljs-type">Car</span> <span class="hljs-variable">alipay</span> <span class="hljs-operator">=</span> loader.getExtension(<span class="hljs-string">&quot;volvo&quot;</span>);<br>            System.out.println(alipay.engineStart());<br>        &#125;<br>    &#125;<br></code></pre></td></tr></table></figure>
+<blockquote>
+<p>output :<br>
+Volvo start<br>
+Volvo start</p>
+</blockquote>
+<h3 id="自适应机制adaptive">自适应机制Adaptive</h3>
+<p>Adaptive 机制，即扩展类的自适应机制。即其可以指定想要加载的扩展名，也可以不指定。若不指定，则直接加载默认的扩展类。即其会自动匹配，做到自适应。其是通过@Adaptive注解实现的</p>
+<h3 id="@adaptive-修饰方法">@Adaptive 修饰方法</h3>
+<p>被@Adapative修饰的 SPI 接口中的方法称为Adaptive方法。会根据Adaptive方法自动为该SPI接口动态生成一个Adaptive扩展类，并自动将其编译。</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><code class="hljs haxe"><br><span class="hljs-keyword">package</span> &lt;SPI 接口所在包&gt;;<br><span class="hljs-keyword">public</span> <span class="hljs-title class_"><span class="hljs-keyword">class</span> <span class="hljs-title">SPI</span> 接口名</span>$Adpative implements SPI 接口 &#123;<br>    <span class="hljs-keyword">public</span> adaptiveMethod (arg0, arg1, ...) &#123;<br>        <span class="hljs-comment">// 注意，下面的判断仅对 URL 类型，或可以获取到 URL 类型值的参数进行判断</span><br>        <span class="hljs-comment">// 例如， dubbo 的 Invoker 类型中就包含有 URL 属性</span><br>        <span class="hljs-keyword">if</span>(arg1==<span class="hljs-literal">null</span>) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-type">IllegalArgumentException</span>(异常信息)；<br>        <span class="hljs-keyword">if</span>(arg1.getUrl()==<span class="hljs-literal">null</span>) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-type">IllegalArgumentException</span>(异常信息)；<br>        URL url = arg1.getUrl();<br>        <br>        <span class="hljs-comment">// 其会根据@Adaptive 注解上声明的 Key 的顺序，从 URL 获取 Value，</span><br>        <span class="hljs-comment">// 作为实际扩展类。若有默认扩展类，则获取默认扩展类名；否则获取</span><br>        <span class="hljs-comment">// 指定扩展名名。</span><br>        <span class="hljs-keyword">String</span> extName = url.<span class="hljs-keyword">get</span> 接口名() == <span class="hljs-literal">null</span>?默认扩展前辍名:<span class="hljs-type">url</span>.<span class="hljs-keyword">get</span> 接口名();<br>        <span class="hljs-keyword">if</span>(extName==<span class="hljs-literal">null</span>) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-type">IllegalStateException</span>(异常信息);<br>        SPI 接口 extension = ExtensionLoader.getExtensionLoader(SPI 接口.class)<br>            .getExtension(extName);<br>            <br>        <span class="hljs-keyword">return</span> extension. adaptiveMethod(arg0, arg1, ...);<br>    &#125;<br>    <span class="hljs-keyword">public</span> unAdaptiveMethod( arg0, arg1, ...) &#123;<br>        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-type">UnsupportedOperationException</span>(异常信息);<br>    &#125;<br>&#125;<br><br></code></pre></td></tr></table></figure>
+<p>举个例子：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs aspectj"><span class="hljs-meta">@SPI</span><br><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">Car</span> </span>&#123;<br>    <span class="hljs-function">String <span class="hljs-title">engineStart</span><span class="hljs-params">()</span></span>;<br><br>    <span class="hljs-meta">@Adaptive</span><br>    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">type</span><span class="hljs-params">(URL url)</span></span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs typescript"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Porsche</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Car</span> &#123;<br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-title class_">String</span> <span class="hljs-title function_">engineStart</span>(<span class="hljs-params"></span>) &#123;<br>        <span class="hljs-title class_">System</span>.<span class="hljs-property">out</span>.<span class="hljs-title function_">println</span>(<span class="hljs-string">&quot;Porsche start&quot;</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Porsche start&quot;</span>;<br>    &#125;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-built_in">void</span> <span class="hljs-title function_">type</span>(<span class="hljs-params">URL url</span>) &#123;<br>        <span class="hljs-title class_">System</span>.<span class="hljs-property">out</span>.<span class="hljs-title function_">println</span>(<span class="hljs-string">&quot;Porsche&quot;</span>);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs typescript"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">Volvo</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Car</span> &#123;<br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-title class_">String</span> <span class="hljs-title function_">engineStart</span>(<span class="hljs-params"></span>) &#123;<br>        <span class="hljs-title class_">System</span>.<span class="hljs-property">out</span>.<span class="hljs-title function_">println</span>(<span class="hljs-string">&quot;Volvo start&quot;</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Volvo start&quot;</span>;<br>    &#125;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-built_in">void</span> <span class="hljs-title function_">type</span>(<span class="hljs-params">URL url</span>) &#123;<br>        <span class="hljs-title class_">System</span>.<span class="hljs-property">out</span>.<span class="hljs-title function_">println</span>(<span class="hljs-string">&quot;Volvo&quot;</span>);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs abnf">public static void main(String[] args) &#123;<br>    ExtensionLoader&lt;Car&gt; loader <span class="hljs-operator">=</span> ExtensionLoader.getExtensionLoader(Car.class)<span class="hljs-comment">;</span><br><br>    Car car <span class="hljs-operator">=</span> loader.getAdaptiveExtension()<span class="hljs-comment">;</span><br>    URL url <span class="hljs-operator">=</span> URL.valueOf(<span class="hljs-string">&quot;dubbo://localhost:20880?car=volvo&quot;</span>)<span class="hljs-comment">;</span><br>    car.type(url)<span class="hljs-comment">;</span><br>&#125;<br><br></code></pre></td></tr></table></figure>
+<blockquote>
+<p>output :<br>
+Volvo start</p>
+</blockquote>
+<h3 id="@adaptive-修饰类">@Adaptive 修饰类</h3>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs haxe"><span class="hljs-meta">@SPI</span>(<span class="hljs-string">&quot;volvo&quot;</span>)<br><span class="hljs-keyword">public</span> <span class="hljs-title class_"><span class="hljs-keyword">interface</span> <span class="hljs-title">Car</span> </span>&#123;<br>    <span class="hljs-keyword">String</span> engineStart();<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs haxe"><span class="hljs-keyword">public</span> <span class="hljs-title class_"><span class="hljs-keyword">class</span> <span class="hljs-title">Porsche</span> <span class="hljs-keyword"><span class="hljs-keyword">implements</span> <span class="hljs-type">Car</span></span> </span>&#123;<br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">String</span> engineStart() &#123;<br>        System.out.println(<span class="hljs-string">&quot;Porsche start&quot;</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Porsche start&quot;</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs haxe"><span class="hljs-keyword">public</span> <span class="hljs-title class_"><span class="hljs-keyword">class</span> <span class="hljs-title">Volvo</span> <span class="hljs-keyword"><span class="hljs-keyword">implements</span> <span class="hljs-type">Car</span></span> </span>&#123;<br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">String</span> engineStart() &#123;<br>        System.out.println(<span class="hljs-string">&quot;Volvo start&quot;</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Volvo start&quot;</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs typescript"><span class="hljs-meta">@Adaptive</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">AdaptiveCar</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Car</span> &#123;<br><br>    <span class="hljs-keyword">private</span> <span class="hljs-title class_">String</span> <span class="hljs-keyword">type</span>;<br><br>    <span class="hljs-keyword">public</span> <span class="hljs-built_in">void</span> <span class="hljs-title function_">setType</span>(<span class="hljs-params"><span class="hljs-built_in">String</span> <span class="hljs-keyword">type</span></span>) &#123;<br>        <span class="hljs-variable language_">this</span>.<span class="hljs-property">type</span> = <span class="hljs-keyword">type</span>;<br>    &#125;<br><br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-title class_">String</span> <span class="hljs-title function_">engineStart</span>(<span class="hljs-params"></span>) &#123;<br>        <span class="hljs-title class_">ExtensionLoader</span>&lt;<span class="hljs-title class_">Car</span>&gt; loader = <span class="hljs-title class_">ExtensionLoader</span>.<span class="hljs-title function_">getExtensionLoader</span>(<span class="hljs-title class_">Car</span>.<span class="hljs-property">class</span>);<br>        <span class="hljs-title class_">Car</span> car;<br><br>        <span class="hljs-keyword">if</span> (<span class="hljs-title class_">Strings</span>.<span class="hljs-title function_">isBlank</span>(<span class="hljs-keyword">type</span>)) &#123;<br>            car = loader.<span class="hljs-title function_">getDefaultExtension</span>();<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            car = loader.<span class="hljs-title function_">getExtension</span>(<span class="hljs-keyword">type</span>);<br>        &#125;<br><br>        <span class="hljs-keyword">return</span> car.<span class="hljs-title function_">engineStart</span>();<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs abnf">public class DubboSpiTest &#123;<br>    public static void main(String[] args) &#123;<br>        ExtensionLoader&lt;Car&gt; loader <span class="hljs-operator">=</span> ExtensionLoader.getExtensionLoader(Car.class)<span class="hljs-comment">;</span><br><br>        Car car <span class="hljs-operator">=</span> loader.getAdaptiveExtension()<span class="hljs-comment">;</span><br><br>        car.engineStart()<span class="hljs-comment">;</span><br><br>        ((AdaptiveCar) car).setType(<span class="hljs-string">&quot;porsche&quot;</span>)<span class="hljs-comment">;</span><br><br>        car.engineStart()<span class="hljs-comment">;</span><br><br>        System.out.println(loader.getSupportedExtensions())<span class="hljs-comment">;</span><br>    &#125;<br>&#125;<br><br></code></pre></td></tr></table></figure>
+<blockquote>
+<p>output :<br>
+Volvo start<br>
+Porsche start<br>
+[porsche, volvo]</p>
+</blockquote>
+<p>下面看Dubbo是如何通过Adaptive实现SPI的IOC：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs haxe"><span class="hljs-meta">@SPI</span><br><span class="hljs-keyword">public</span> <span class="hljs-title class_"><span class="hljs-keyword">interface</span> <span class="hljs-title">Car</span> </span>&#123;<br>    <span class="hljs-keyword">String</span> engineStart();<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs aspectj"><span class="hljs-meta">@SPI</span><br><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">CarFactory</span> </span>&#123;<br>    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">goingForADrive</span><span class="hljs-params">()</span></span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs haxe"><span class="hljs-meta">@Adaptive</span><br><span class="hljs-keyword">public</span> <span class="hljs-title class_"><span class="hljs-keyword">class</span> <span class="hljs-title">Nio</span> <span class="hljs-keyword"><span class="hljs-keyword">implements</span> <span class="hljs-type">Car</span></span> </span>&#123;<br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">String</span> engineStart() &#123;<br>        System.out.println(<span class="hljs-string">&quot;Nio start&quot;</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Nio start&quot;</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight typescript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs typescript"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">DreamCarFactory</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">CarFactory</span> &#123;<br><br>    <span class="hljs-keyword">private</span> <span class="hljs-title class_">Car</span> nio;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-built_in">void</span> <span class="hljs-title function_">goingForADrive</span>(<span class="hljs-params"></span>) &#123;<br>        <span class="hljs-title class_">System</span>.<span class="hljs-property">out</span>.<span class="hljs-title function_">println</span>(<span class="hljs-string">&quot;start&quot;</span>);<br>        <span class="hljs-keyword">if</span> (nio != <span class="hljs-literal">null</span>) &#123;<br>            nio.<span class="hljs-title function_">engineStart</span>();<br>        &#125;<br>        <span class="hljs-title class_">System</span>.<span class="hljs-property">out</span>.<span class="hljs-title function_">println</span>(<span class="hljs-string">&quot;end&quot;</span>);<br>    &#125;<br><br>    <span class="hljs-keyword">public</span> <span class="hljs-built_in">void</span> <span class="hljs-title function_">setCar</span>(<span class="hljs-params">Car nio</span>) &#123;<br>        <span class="hljs-variable language_">this</span>.<span class="hljs-property">nio</span> = nio;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs arduino"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">DubboSpiTest</span> &#123;<br>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-type">static</span> <span class="hljs-type">void</span> <span class="hljs-title">main</span><span class="hljs-params">(<span class="hljs-type">String</span>[] args)</span> </span>&#123;<br><br>        ExtensionLoader&lt;CarFactory&gt; extensionLoader = ExtensionLoader.<span class="hljs-built_in">getExtensionLoader</span>(CarFactory.<span class="hljs-keyword">class</span>);<br><br>        CarFactory dream = extensionLoader.<span class="hljs-built_in">getExtension</span>(<span class="hljs-string">&quot;dream&quot;</span>);<br><br>        dream.<span class="hljs-built_in">goingForADrive</span>();<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<img src="/2024/01/03/classLoader/IMG-20240103223854562.png" class="">
+<img src="/2024/01/03/classLoader/IMG-20240103223927465.png" class="">
+<blockquote>
+<p>output:<br>
+start<br>
+Nio start<br>
+end</p>
+</blockquote>
+<p>简单描述一下源码,<code>injectExtension</code>会在createExtension中为依赖的其他对象进行注入</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><code class="hljs kotlin"><span class="hljs-keyword">private</span> T injectExtension(T instance) &#123;<br>    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.injector == <span class="hljs-literal">null</span>) &#123;<br>        <span class="hljs-keyword">return</span> instance;<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-keyword">try</span> &#123;<br>            Method[] var2 = instance.getClass().getMethods();<br>            int var3 = var2.length;<br><br>            <span class="hljs-keyword">for</span>(int var4 = <span class="hljs-number">0</span>; var4 &lt; var3; ++var4) &#123;<br>                Method method = var2[var4];<br>                <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.isSetter(method) &amp;&amp; !method.isAnnotationPresent(DisableInject.<span class="hljs-keyword">class</span>) &amp;&amp; method.getDeclaringClass() != ScopeModelAware.<span class="hljs-keyword">class</span> &amp;&amp; (!(instance instanceof ScopeModelAware) &amp;&amp; !(instance instanceof ExtensionAccessorAware) || !ignoredInjectMethodsDesc.contains(ReflectUtils.getDesc(method)))) &#123;<br>                    Class&lt;?&gt; pt = method.getParameterTypes()[<span class="hljs-number">0</span>];<br>                    <span class="hljs-keyword">if</span> (!ReflectUtils.isPrimitives(pt)) &#123;<br>                        <span class="hljs-keyword">try</span> &#123;<br>                            String property = <span class="hljs-keyword">this</span>.getSetterProperty(method);<br>                            Object <span class="hljs-keyword">object</span> = <span class="hljs-keyword">this</span>.injector.getInstance(pt, property);<br>                            <span class="hljs-keyword">if</span> (<span class="hljs-keyword">object</span> != <span class="hljs-literal">null</span>) &#123;<br>                                method.invoke(instance, <span class="hljs-keyword">object</span>);<br>                            &#125;<br>                        &#125; <span class="hljs-keyword">catch</span> (Exception var9) &#123;<br>                            logger.error(<span class="hljs-string">&quot;0-15&quot;</span>, <span class="hljs-string">&quot;&quot;</span>, <span class="hljs-string">&quot;&quot;</span>, <span class="hljs-string">&quot;Failed to inject via method &quot;</span> + method.getName() + <span class="hljs-string">&quot; of interface &quot;</span> + <span class="hljs-keyword">this</span>.type.getName() + <span class="hljs-string">&quot;: &quot;</span> + var9.getMessage(), var9);<br>                        &#125;<br>                    &#125;<br>                &#125;<br>            &#125;<br>        &#125; <span class="hljs-keyword">catch</span> (Exception var10) &#123;<br>            logger.error(<span class="hljs-string">&quot;0-15&quot;</span>, <span class="hljs-string">&quot;&quot;</span>, <span class="hljs-string">&quot;&quot;</span>, var10.getMessage(), var10);<br>        &#125;<br><br>        <span class="hljs-keyword">return</span> instance;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>this.injector.getInstance(pt, property); 会将这遍历ScopeBeanExtensionInjector、SpringExtensionInjector、SpiExtensionInjector来将不同的对象进行注入</p>
+<p>这里重点说一下SpiExtensionInjector</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs kotlin"><span class="hljs-keyword">public</span> &lt;T&gt; T getInstance(<span class="hljs-keyword">final</span> Class&lt;T&gt; type, <span class="hljs-keyword">final</span> String name) &#123;<br>        <span class="hljs-keyword">if</span> (type.isInterface() &amp;&amp; type.isAnnotationPresent(SPI.<span class="hljs-keyword">class</span>)) &#123;<br>            ExtensionLoader&lt;T&gt; loader = <span class="hljs-keyword">this</span>.extensionAccessor.getExtensionLoader(type);<br>            <span class="hljs-keyword">if</span> (loader == <span class="hljs-literal">null</span>) &#123;<br>                <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                <span class="hljs-keyword">return</span> !loader.getSupportedExtensions().isEmpty() ? loader.getAdaptiveExtension() : <span class="hljs-literal">null</span>;<br>            &#125;<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;<br>        &#125;<br>    &#125;<br></code></pre></td></tr></table></figure>
+<p>它会将set方法,这里demo中的是setCar，将扫描Car.class的package，然后从实现interface的@Adaptive标注的实现类进行注入</p>
+<h3 id="包装机制-wrapper">包装机制 Wrapper</h3>
+<p>Wrapper通过实现interface，并且将interface的class作为构造参数，来实现interceptor</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs haxe"><span class="hljs-meta">@SPI</span><br><span class="hljs-keyword">public</span> <span class="hljs-title class_"><span class="hljs-keyword">interface</span> <span class="hljs-title">Car</span> </span>&#123;<br>    <span class="hljs-keyword">String</span> engineStart();<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs haxe"><span class="hljs-keyword">public</span> <span class="hljs-title class_"><span class="hljs-keyword">class</span> <span class="hljs-title">Porsche</span> <span class="hljs-keyword"><span class="hljs-keyword">implements</span> <span class="hljs-type">Car</span></span> </span>&#123;<br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">String</span> engineStart() &#123;<br>        System.out.println(<span class="hljs-string">&quot;Porsche start&quot;</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Porsche start&quot;</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs haxe"><span class="hljs-keyword">public</span> <span class="hljs-title class_"><span class="hljs-keyword">class</span> <span class="hljs-title">CustomizedCar</span> <span class="hljs-keyword"><span class="hljs-keyword">implements</span> <span class="hljs-type">Car</span></span> </span>&#123;<br>    <span class="hljs-keyword">private</span> Car car;<br><br>    <span class="hljs-keyword">public</span> CustomizedCar(Car car) &#123;<br>        <span class="hljs-built_in">this</span>.car = car;<br>    &#125;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">String</span> engineStart() &#123;<br>        System.out.println(<span class="hljs-string">&quot;begin customized&quot;</span>);<br>        <span class="hljs-keyword">String</span> result = car.engineStart();<br>        System.out.println(<span class="hljs-string">&quot;end customized&quot;</span>);<br>        <span class="hljs-keyword">return</span> result;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs arduino"><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">DubboSpiTest</span> &#123;<br>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-type">static</span> <span class="hljs-type">void</span> <span class="hljs-title">main</span><span class="hljs-params">(<span class="hljs-type">String</span>[] args)</span> </span>&#123;<br><br><br>        ExtensionLoader&lt;Car&gt; loader = ExtensionLoader.<span class="hljs-built_in">getExtensionLoader</span>(Car.<span class="hljs-keyword">class</span>);<br><br>        Car car = loader.<span class="hljs-built_in">getExtension</span>(<span class="hljs-string">&quot;porsche&quot;</span>);<br><br>        car.<span class="hljs-built_in">engineStart</span>();<br><br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<img src="/2024/01/03/classLoader/IMG-20240103225804916.png" class="">
+<blockquote>
+<p>output:<br>
+begin customized<br>
+Porsche start<br>
+end customized</p>
+</blockquote>
+<h3 id="激活机制-activate">激活机制 Activate</h3>
+<figure class="highlight less"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs less"><span class="hljs-variable">@Documented</span><br><span class="hljs-variable">@Retention</span>(RetentionPolicy.RUNTIME)<br><span class="hljs-variable">@Target</span>(&#123;ElementType.TYPE, ElementType.METHOD&#125;)<br>public <span class="hljs-variable">@interface</span> Activate &#123;<br>    <span class="hljs-selector-tag">String</span><span class="hljs-selector-attr">[]</span> <span class="hljs-selector-tag">group</span>() <span class="hljs-selector-tag">default</span> &#123;&#125;;<br><br>    <span class="hljs-selector-tag">String</span><span class="hljs-selector-attr">[]</span> <span class="hljs-selector-tag">value</span>() <span class="hljs-selector-tag">default</span> &#123;&#125;;<br><br>    <span class="hljs-comment">/** @deprecated */</span><br>    <span class="hljs-variable">@Deprecated</span><br>    String[] <span class="hljs-built_in">before</span>() default &#123;&#125;;<br><br>    <span class="hljs-comment">/** @deprecated */</span><br>    <span class="hljs-variable">@Deprecated</span><br>    String[] <span class="hljs-built_in">after</span>() default &#123;&#125;;<br><br>    <span class="hljs-selector-tag">int</span> <span class="hljs-selector-tag">order</span>() <span class="hljs-selector-tag">default</span> <span class="hljs-number">0</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>@Activate 有三个还在使用的field：</p>
+<ul>
+<li>group<br>
+为扩展类指定所属的组别</li>
+<li>value<br>
+为当前扩展类指定key，只有特定key的扩展来才会生效，如果group和key同时设定，则只有key会生效</li>
+<li>order<br>
+给当前扩展类设定优先级</li>
+</ul>
+<p>具体例子就不再详解</p>
+<p>  可以看到Dubbo的SPI机制有很多可定制化的扩展，比如loadExtensionByName，通过Adaptive来实现动态加载以及IOC，通过Wrapper来实现Interceptor，可以非常灵活的使用，其底层实现方式差不太多，但是会比ServiceLoader更加灵活和强大</p>
+<p>reference：</p>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://juejin.cn/post/7112764945120362526">dubbo SPI机制 demo和源码详解</a></li>
+<li><a target="_blank" rel="noopener" href="https://cn.dubbo.apache.org/zh-cn/blog/java/codeanalysis/3.0.8/">dubbo 官网源码解析</a></li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/ClassLoader/" rel="tag">ClassLoader</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JVM%E5%8E%9F%E7%90%86/" rel="tag">JVM原理</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E7%B1%BB%E5%8A%A0%E8%BD%BD/" rel="tag">类加载</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/monstache-elasticsearch-sync-tutorial/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          monstache 同步 es 学习
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2023/11/27/Kafka-fetch/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          Kafka-Fetch
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2025 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="/js/clipboard.min.js"></script>
+<script src="/js/jquery-1.4.3.min.js"></script>
+
+<script src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="/mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+  
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
+</body>
+</html>

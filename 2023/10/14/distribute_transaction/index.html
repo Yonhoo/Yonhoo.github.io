@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>分布式事务 | Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SEO Meta Tags -->
+  
+  <meta name="description" content="  在如今的项目实践中，存在多个微服务之间互相通信，对于一个外卖服务，涉及到订单支付，优惠券扣减，餐厅下单，外卖配送等，在微服务设计下，就需要保证多个系统之间的数据一致性，这个时候就需要考虑到分布式事务来处理一致性问题。">
+  
+  
+  <!-- Keywords -->
+  
+  <meta name="keywords" content="programming, database, mongodb, elasticsearch, monstache, tech blog, development, tutorial">
+  
+  
+  <!-- Author -->
+  <meta name="author" content="epic">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="分布式事务 | Yonhoo">
+  <meta property="og:url" content="https://Yonhoo.github.io/2023/10/14/distribute_transaction/">
+  <meta property="og:site_name" content="Yonhoo">
+  
+  <meta property="og:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="分布式事务 | Yonhoo">
+  
+  <meta name="twitter:description" content="A tech blog recording development experiences, tutorials, and personal insights on programming, databases, and technology trends.">
+  
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://Yonhoo.github.io/2023/10/14/distribute_transaction/">
+  
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+  
+    <link rel="alternate" href="/atom.xml" title="Yonhoo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+  <!-- 额外的favicon格式支持 -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="/" id="logo">Yonhoo</a>
+  </h1>
+  
+    <h2 id="subtitle-wrap">
+      <a href="/" id="subtitle">Tech Blog &amp; Personal Journey</a>
+    </h2>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-distribute_transaction" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2023/10/14/distribute_transaction/" class="article-date">
+  <time class="dt-published" datetime="2023-10-13T16:00:00.000Z" itemprop="datePublished">2023-10-14</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E4%BA%8B%E5%8A%A1/">事务</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      分布式事务
+    </h1>
+  
+
+      </header>
+    
+    
+<!-- 鼠标悬停触发区域 -->
+<div class="toc-hover-trigger"></div>
+
+<!-- 左侧边栏TOC -->
+<div id="sidebar-toc" class="sidebar-toc">
+    <div class="toc-toggle" id="toc-toggle">
+        <i class="fa fa-list"></i>
+        <span>目录</span>
+    </div>
+    <div class="toc-content" id="toc-content">
+        <div class="toc-header">
+            <h3 class="toc-title">Table Of Contents</h3>
+        </div>
+        <div class="toc-body">
+            <ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#atomicity%EF%BC%88%E5%8E%9F%E5%AD%90%E6%80%A7%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">Atomicity（原子性）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#consistency%EF%BC%88%E4%B8%80%E8%87%B4%E6%80%A7%EF%BC%89"><span class="toc-number">2.</span> <span class="toc-text">Consistency（一致性）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#isolation%EF%BC%88%E9%9A%94%E7%A6%BB%E6%80%A7%EF%BC%89"><span class="toc-number">3.</span> <span class="toc-text">Isolation（隔离性）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#durability%EF%BC%88%E6%8C%81%E4%B9%85%E6%80%A7%EF%BC%89"><span class="toc-number">4.</span> <span class="toc-text">Durability（持久性）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#c-%E4%B8%80%E8%87%B4%E6%80%A7"><span class="toc-number">5.</span> <span class="toc-text">C 一致性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#a-%E5%8F%AF%E7%94%A8%E6%80%A7"><span class="toc-number">6.</span> <span class="toc-text">A 可用性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#p-%E5%88%86%E5%8C%BA%E5%AE%B9%E9%94%99%E6%80%A7"><span class="toc-number">7.</span> <span class="toc-text">P 分区容错性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E7%B1%BB%E5%9E%8B"><span class="toc-number">8.</span> <span class="toc-text">分布式事务类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#xa%E4%BA%8B%E5%8A%A1%E6%A8%A1%E5%BC%8F-(%E4%BA%8C%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4)"><span class="toc-number">9.</span> <span class="toc-text">XA事务模式 (二阶段提交)</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%AC%AC%E4%B8%80%E9%98%B6%E6%AE%B5"><span class="toc-number">9.1.</span> <span class="toc-text">第一阶段</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%AC%AC%E4%BA%8C%E9%98%B6%E6%AE%B5"><span class="toc-number">9.2.</span> <span class="toc-text">第二阶段</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%AF%B9%E4%BA%8E%E7%AC%AC%E4%B8%80%E7%A7%8D%E6%83%85%E5%86%B5"><span class="toc-number">9.2.1.</span> <span class="toc-text">对于第一种情况</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%AF%B9%E4%BA%8E%E5%A4%B1%E8%B4%A5%E5%92%8C%E8%B6%85%E6%97%B6%E6%83%85%E5%86%B5"><span class="toc-number">9.2.2.</span> <span class="toc-text">对于失败和超时情况</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%8C%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4%E7%9A%84%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF%EF%BC%9Amysql-%E6%98%AF%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E4%B8%8D%E4%B8%A2%E5%A4%B1%E7%9A%84"><span class="toc-number">10.</span> <span class="toc-text">二阶段提交的使用场景：MySQL 是怎么保证数据不丢失的</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#redo-log"><span class="toc-number">10.1.</span> <span class="toc-text">redo log</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#bin-log"><span class="toc-number">10.2.</span> <span class="toc-text">bin log</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#update%E7%9A%84%E4%BA%8C%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4"><span class="toc-number">11.</span> <span class="toc-text">update的二阶段提交</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#tcc%E4%BA%8B%E5%8A%A1%E6%A8%A1%E5%BC%8F"><span class="toc-number">12.</span> <span class="toc-text">TCC事务模式</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AF%B9%E4%BA%8E%E5%A4%B1%E8%B4%A5%E6%83%85%E5%86%B5"><span class="toc-number">12.1.</span> <span class="toc-text">对于失败情况</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%9B%AE%E5%89%8Dtcc%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E5%BC%82%E5%B8%B8%E5%87%A0%E7%A7%8D%E6%83%85%E5%86%B5"><span class="toc-number">12.2.</span> <span class="toc-text">目前TCC分布式事务异常几种情况</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E7%A9%BA%E8%A1%A5%E5%81%BF"><span class="toc-number">12.2.1.</span> <span class="toc-text">空补偿</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%82%AC%E6%8C%82"><span class="toc-number">12.2.2.</span> <span class="toc-text">悬挂</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%B9%82%E7%AD%89"><span class="toc-number">12.2.3.</span> <span class="toc-text">幂等</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%A7%A3%E5%86%B3%E6%96%B9%E6%A1%88"><span class="toc-number">12.3.</span> <span class="toc-text">解决方案</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#saga%E6%A8%A1%E5%BC%8F"><span class="toc-number">13.</span> <span class="toc-text">Saga模式</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#xa%E6%A8%A1%E5%BC%8F"><span class="toc-number">13.1.</span> <span class="toc-text">XA模式</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#tcc"><span class="toc-number">13.2.</span> <span class="toc-text">TCC</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#saga"><span class="toc-number">13.3.</span> <span class="toc-text">Saga</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%9A%E5%8A%A1%E4%B8%AD%E5%85%B3%E4%BA%8E%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1%E7%9A%84%E6%80%9D%E8%80%83"><span class="toc-number">14.</span> <span class="toc-text">业务中关于分布式事务的思考</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="toc-number">15.</span> <span class="toc-text">参考资料</span></a></li></ol>
+        </div>
+    </div>
+</div>
+
+<!-- TOC遮罩层 -->
+<div id="toc-overlay" class="toc-overlay"></div>
+
+<!-- TOC JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocContent = document.getElementById('toc-content');
+    const tocOverlay = document.getElementById('toc-overlay');
+    const sidebarToc = document.getElementById('sidebar-toc');
+    const tocLinks = tocContent.querySelectorAll('.toc-link');
+    
+    // 切换TOC显示状态
+    function toggleToc() {
+        sidebarToc.classList.toggle('active');
+        tocOverlay.classList.toggle('active');
+        document.body.classList.toggle('toc-open');
+    }
+    
+    // 关闭TOC
+    function closeToc() {
+        sidebarToc.classList.remove('active');
+        tocOverlay.classList.remove('active');
+        document.body.classList.remove('toc-open');
+    }
+    
+    // 事件监听
+    tocToggle.addEventListener('click', toggleToc);
+    tocOverlay.addEventListener('click', closeToc);
+    
+    // TOC链接点击后自动关闭（移动端）
+    tocLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(closeToc, 300); // 延迟关闭，让滚动完成
+            }
+        });
+    });
+    
+    // 键盘ESC关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeToc();
+        }
+    });
+    
+    // 窗口大小变化时的处理
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeToc();
+        }
+    });
+    
+    // 滚动监听，高亮当前章节
+    let headings = [];
+    tocLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                headings.push({
+                    link: link,
+                    target: target,
+                    offset: target.offsetTop
+                });
+            }
+        }
+    });
+    
+    function updateActiveHeading() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        let activeHeading = null;
+        
+        // 找到当前可视区域内的标题
+        for (let i = headings.length - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (scrollTop >= heading.offset - 100) {
+                activeHeading = heading;
+                break;
+            }
+        }
+        
+        // 更新高亮状态
+        tocLinks.forEach(link => link.classList.remove('active'));
+        if (activeHeading) {
+            activeHeading.link.classList.add('active');
+            
+            // 滚动TOC到当前项
+            const tocBody = document.querySelector('.toc-body');
+            if (tocBody && sidebarToc.classList.contains('active')) {
+                const linkTop = activeHeading.link.offsetTop;
+                const tocBodyHeight = tocBody.offsetHeight;
+                const linkHeight = activeHeading.link.offsetHeight;
+                
+                if (linkTop < tocBody.scrollTop || linkTop > tocBody.scrollTop + tocBodyHeight - linkHeight) {
+                    tocBody.scrollTop = linkTop - tocBodyHeight / 2;
+                }
+            }
+        }
+    }
+    
+    // 节流函数
+    function throttle(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 绑定滚动事件
+    window.addEventListener('scroll', throttle(updateActiveHeading, 100));
+    
+    // 初始化高亮
+    updateActiveHeading();
+});
+</script>
+
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>  在如今的项目实践中，存在多个微服务之间互相通信，对于一个外卖服务，涉及到订单支付，优惠券扣减，餐厅下单，外卖配送等，在微服务设计下，就需要保证多个系统之间的数据一致性，这个时候就需要考虑到分布式事务来处理一致性问题。</p>
+<span id="more"></span>
+<p> 单个数据库事务提供了原子性、一致性、隔离性、持久性，这四个属性通常称为 ACID 特性。</p>
+<h3 id="atomicity（原子性）">Atomicity（原子性）</h3>
+<p>一个事务中的所有操作，要么全部完成，要么全部不完成，不会结束在中间某个环节。事务在执行过程中发生错误，会被恢复到事务开始前的状态，就像这个事务从来没有执行过一样。</p>
+<h3 id="consistency（一致性）">Consistency（一致性）</h3>
+<p>在事务开始之前和事务结束以后，数据库的完整性没有被破坏。完整性包括外键约束、应用定义的等约束不会被破坏。</p>
+<h3 id="isolation（隔离性）">Isolation（隔离性）</h3>
+<p>数据库允许多个并发事务同时对其数据进行读写和修改的能力，隔离性可以防止多个事务并发执行时由于交叉执行而导致数据的不一致。</p>
+<h3 id="durability（持久性）">Durability（持久性）</h3>
+<p>事务处理结束后，对数据的修改就是永久的，即便系统故障也不会丢失。</p>
+<p>  分布式事务涉及多个节点，是一个典型的分布式系统，与单机系统有非常大的差别。一个分布式系统最多只能同时满足一致性（Consistency）、可用性（Availability）和分区容错性（Partition tolerance）这三项中的两项，这被称为CAP理论。</p>
+<h3 id="c-一致性">C 一致性</h3>
+<p>分布式系统中，数据一般会存在不同节点的副本中，如果对第一个节点的数据成功进行了更新操作，而第二个节点上的数据却没有得到相应更新，这时候读取第二个节点的数据依然是更新前的数据，即脏数据，这就是分布式系统数据不一致的情况。</p>
+<p>在分布式系统中，如果能够做到针对一个数据项的更新操作执行成功后，所有的用户都能读取到最新的值，那么这样的系统就被认为具有强一致性（或严格的一致性）。</p>
+<p>请注意CAP中的一致性和ACID中的一致性，虽然单词相同，但实际含义不同，请注意区分。</p>
+<h3 id="a-可用性">A 可用性</h3>
+<p>在集群中一部分节点故障后，集群整体是否还能响应客户端的读写请求。</p>
+<p>在现代的互联网应用中，如果因为服务器宕机等问题，导致服务长期不可用，是不可接受的。</p>
+<h3 id="p-分区容错性">P 分区容错性</h3>
+<p>以实际效果而言，分区相当于对通信的时限要求。系统如果不能在时限内达成数据一致性，就意味着发生了分区的情况，就会导致C和A不能同时满足。</p>
+<p>提高分区容忍性的办法就是一个数据项复制到多个节点上，那么出现分区之后，这一数据项仍然能在其他区中读取，容忍性就提高了。然而，把数据复制到多个节点，就会带来一致性的问题，就是多个节点上面的数据可能是不一致的。</p>
+<h3 id="分布式事务类型">分布式事务类型</h3>
+<p>由于不能同时满足CAP，目前在跨库、跨服务的分布式实际应用中，有这几种方法，我们以银行跨行转账作为例子：</p>
+<blockquote>
+<p>A需要转100元给B，那么需要给A的余额-100元，给B的余额+100元，整个转账要保证，A-100和B+100同时成功，或者同时失败</p>
+</blockquote>
+<img src="/2023/10/14/distribute_transaction/image_1696854563129_0.png" class="">
+<h3 id="xa事务模式-(二阶段提交)">XA事务模式 (二阶段提交)</h3>
+<p>  XA定义了(全局)事务管理器(TM)和(局部)资源管理器(RM)之间的接口。本地的数据库如mysql在XA中扮演的是RM角色</p>
+<h4 id="第一阶段">第一阶段</h4>
+<p>应用程序先向全局事务管理器(TM)注册开启全局事务</p>
+<p><strong>prepare阶段：</strong></p>
+<ol>
+<li>应用程序开始调用参与者</li>
+<li>参与者先注册子事务记录到全局事务管理器(TM)</li>
+<li>本地开始进行update</li>
+</ol>
+<p>当所有参与者完成，上报全局事务管理器(TM)所有参与者已经完成prepare（本地事务还未提交）</p>
+<img src="/2023/10/14/distribute_transaction/image_1697208520472_0.png" class="">
+<h4 id="第二阶段">第二阶段</h4>
+<p>在经过第一阶段协调者的询盘之后，各个参与者会回复自己事务的执行情况，这时候存在 3 种可能性：</p>
+<ol>
+<li>所有的参与者都回复能够正常执行事务</li>
+<li>一个或多个参与者回复事务执行失败</li>
+<li>协调者等待超时</li>
+</ol>
+<h5 id="对于第一种情况">对于第一种情况</h5>
+<ol>
+<li>协调者向各个参与者发送 commit通知，请求提交事务</li>
+<li>参与者收到事务提交通知之后执行 commit 操作，然后释放占有的资源</li>
+<li>参与者向协调者返回事务 commit 结果信息<br>
+<img src="/2023/10/14/distribute_transaction/image_1697208762383_0.png" class=""></li>
+</ol>
+<h5 id="对于失败和超时情况">对于失败和超时情况</h5>
+<p>协调者均认为参与者无法成功执行事务，为了整个集群数据的一致性，所以要向各个参与者发送事务回滚通知，具体步骤如下：</p>
+<ol>
+<li>协调者向各个参与者发送事务 rollback 通知，请求回滚事务</li>
+<li>参与者收到事务回滚通知之后执行 rollback 操作，然后释放占有的资源</li>
+<li>参与者向协调者返回事务 rollback 结果信息</li>
+</ol>
+<img src="/2023/10/14/distribute_transaction/image_1697208982925_0.png" class="">
+<p>  但是可以发现，在全局事务完成之前，会在数据库层面锁住所有资源，从而并发度就会降低。而且当事务协调者出现问题，就会出现资源一直锁住的情况！</p>
+<p>  </p>
+<h3 id="二阶段提交的使用场景：mysql-是怎么保证数据不丢失的">二阶段提交的使用场景：MySQL 是怎么保证数据不丢失的</h3>
+<p>我们先从一条SQL更新语句是如何执行的开始：</p>
+<blockquote>
+<p>mysql&gt; update T set c=c+1 where ID=2;</p>
+</blockquote>
+<p>更新流程涉及两个重要的日志模块：redo log（重做日志）和 binlog（归档日志）</p>
+<h4 id="redo-log">redo log</h4>
+<p>redo log 是 InnoDB 引擎特有的日志，InnoDB 的 redo log 是固定大小的，比如可以配置为一组 4 个文件，每个文件的大小是 1GB，那么总共可以记录 4GB 的操作。从头开始写，写到末尾就又回到开头循环写。</p>
+<img src="/2023/10/14/distribute_transaction/image_1697269981237_0.png" class="">
+<p>有了 redo log，InnoDB 就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个能力称为 crash-safe。</p>
+<h4 id="bin-log">bin log</h4>
+<p>bin log是MySQL server层的日志，是逻辑日志，用来记录每次更新操作的语句。</p>
+<p>redo log 和 bin log 的主要区别：</p>
+<ol>
+<li><strong>实现层面</strong>：redo log 是 InnoDB 引擎特有的；bin log 是 MySQL 的 Server 层实现的，所有引擎都可以使用</li>
+<li><strong>日志类型</strong>：redo log 是物理日志，记录的是&quot;在某个数据页上做了什么修改&quot;；binlog 是逻辑日志，记录的是这个语句的原始逻辑，比如&quot;给 ID=2 这一行的 c 字段加 1&quot;</li>
+<li><strong>写入方式</strong>：redo log 是循环写的，空间固定会用完；binlog 是可以追加写入的。&quot;追加写&quot;是指 binlog 文件写到一定大小后会切换到下一个，并不会覆盖以前的日志</li>
+</ol>
+<h3 id="update的二阶段提交">update的二阶段提交</h3>
+<img src="/2023/10/14/distribute_transaction/image_1697271395463_0.png" class="">
+<p>这样的二阶段提交可以保证binlog 与redolog 日志保证数据的一致性：</p>
+<ul>
+<li>redolog 可以在数据库崩溃后，根据写入到磁盘的日志进行引擎层的磁盘页的恢复</li>
+<li>由于redo log 并没有记录数据页的完整数据，从而可以根据binlog 归档的作用，进行数据库的备份和复制</li>
+</ul>
+<p>更加具体的原理可以看<a target="_blank" rel="noopener" href="https://time.geekbang.org/column/article/73161">Mysql实战45讲</a></p>
+<h3 id="tcc事务模式">TCC事务模式</h3>
+<p>  TCC 模式需要用户根据自己的业务场景实现 Try、Confirm 和 Cancel 三个操作；事务发起方在一阶段执行 Try 方式，在二阶段提交执行 Confirm 方法，二阶段回滚执行 Cancel 方法。</p>
+<p>  以扣钱场景为例，try阶段将预留资源，冻结30元，保证在confirm阶段一定能成功，confirm阶段就是扣减预留资源。如果出现业务问题，需要回滚，那么cancel阶段就会释放预留资源。</p>
+<img src="/2023/10/14/distribute_transaction/image_1696949248073_0.png" class="">
+<p>我们看一下当存在多个微服务同时处于分布式事务时:<br>
+  </p>
+<img src="/2023/10/14/distribute_transaction/image_1697210088342_0.png" class="">
+<h4 id="对于失败情况">对于失败情况</h4>
+<img src="/2023/10/14/distribute_transaction/image_1697210286703_0.png" class="">
+<p>  对于try阶段，需要提交全局事务，保证所有资源都已经预留了，confirm/cancel 可以进行异步执行，从而提高性能</p>
+<p>但是对于TCC模式来说，会存在几种异常情况：</p>
+<ol>
+<li><strong>空补偿：</strong> 因为网络问题，在执行第3步时，已经超时，从而进行Cancel，而第三步的Try未执行，事务分支的Cancel操作需要判断出Try未执行，这时需要忽略Cancel中的业务数据更新，直接返回</li>
+<li><strong>悬挂：</strong> 因为网络问题，在Try未执行时，Cancel已执行完成，之后try操作将开始执行，那么事务分支的Try操作需要判断出Cancel已执行，这时需要忽略Try中的业务数据更新，直接返回</li>
+<li><strong>重复请求：</strong> 分布式事务还有一类需要处理的常见问题，就是重复请求</li>
+<li><strong>幂等：</strong> 在进行confirm/cancel阶段，TC 没有收到分支事务的响应，或者出现网络问题，出现重复请求，所有的分布式事务分支操作，都需要保证幂等性</li>
+</ol>
+<h4 id="目前tcc分布式事务异常几种情况">目前TCC分布式事务异常几种情况</h4>
+<h5 id="空补偿">空补偿</h5>
+<p>当执行try的时候，因为网络问题直接丢包，导致超时执行cancel，此时就会发生空补偿</p>
+<img src="/2023/10/14/distribute_transaction/image_1697277797711_0.png" class="">
+<h5 id="悬挂">悬挂</h5>
+<p>因为网络问题，try时发生网络拥堵，导致超时先执行cancel，之后try请求到来，此时会造成悬挂问题</p>
+<img src="/2023/10/14/distribute_transaction/image_1697277855926_0.png" class="">
+<h5 id="幂等">幂等</h5>
+<p>在try阶段完成后，执行confirm时因为网络问题，造成ack没有响应回事务管理器，事务管理器会重复发送confirm请求</p>
+<img src="/2023/10/14/distribute_transaction/image_1697278082775_0.png" class="">
+<h4 id="解决方案">解决方案</h4>
+<p>创建一个事务记录表，在每次执行try/cancel/confirm 时，都往其中插入一条记录</p>
+<ol>
+<li>在执行<strong>try</strong>的时候，先检查有没有<code>STATUS_SUSPENDED</code>记录, 如果没有，则往table中插入<code>STATUS_TRIED</code>记录，如果有，就直接返回避免悬挂</li>
+<li>当<strong>cancel</strong>进来时，就先检查是否有<code>STATUS_TRIED</code>的记录，如果没有，就不进行<strong>cancel</strong>，并且插入<code>STATUS_SUSPENDED</code>记录，如果有，则插入<code>STATUS_TRIED</code>记录</li>
+<li>当执行<strong>confirm</strong>时，先检查是否已经有<code>STATUS_COMMITTED</code>记录，如果没有，则往其中插入<code>STATUS_COMMITTED</code>记录，当有重复请求时，就直接跳过</li>
+</ol>
+<p>  可以看到TCC也是一个二阶段处理，二阶段要么是confirm，要么就是cancel，并且有try阶段，那么就不会存在二阶段提交，一直锁住资源，等待全部完成，TCC的try阶段就提前将需要的资源进行预占，从而大大的提高并发。</p>
+<h3 id="saga模式">Saga模式</h3>
+<p>  Saga模式看起来比较简单，且容易上手编写，其核心思想是将长事务拆分为多个短事务，由Saga事务协调器协调，如果每个短事务都成功提交完成，那么全局事务就正常完成，如果某个步骤失败，则根据相反顺序分别调用补偿操作。</p>
+<p>  假如我们要进行买票服务，那么在下订单的过程中，首先需要锁住库存，使用优惠券，进行支付，支付成功后进行库存的扣减，从而完成一笔订单。</p>
+<img src="/2023/10/14/distribute_transaction/image_1697273125396_0.png" class="">
+<p>  如果其中最后一步扣减库存失败，那么就需要按照相反顺序，进行回滚，先退款，然后回滚优惠券，然后是释放库存</p>
+<img src="/2023/10/14/distribute_transaction/image_1697273377403_0.png" class="">
+<p>  saga 可能也会出现如TCC模式的异常情况，如幂等，悬挂，空补偿，从而也需要做同样的处理</p>
+<p>  关于saga模式的分布式事务框架，可以参考<a target="_blank" rel="noopener" href="https://dtm.pub/practice/saga.html">DTM-Saga</a>提供的方式</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs stylus">  <span class="hljs-comment">// request body</span><br>req := &amp;gin.H&#123;<span class="hljs-string">&quot;ticket&quot;</span>: <span class="hljs-string">&quot;museum&quot;</span>,<span class="hljs-string">&quot;nums&quot;</span>: <span class="hljs-number">3</span>,<span class="hljs-string">&quot;unitPrice&quot;</span>: <span class="hljs-number">2.99</span>&#125; <br><br>  <span class="hljs-comment">// DtmServer as server address of DTM service</span><br>saga := dtmcli<span class="hljs-selector-class">.NewSaga</span>(DtmServer, shortuuid<span class="hljs-selector-class">.New</span>()).<br>  <span class="hljs-comment">// add holdInventory &amp; Compensate releaseInventory</span><br>  <span class="hljs-built_in">Add</span>(<span class="hljs-string">&quot;/holdInventory&quot;</span>, <span class="hljs-string">&quot;/releaseInventory&quot;</span>, req).<br>  <span class="hljs-comment">// add useVoucher &amp; Compensate backVoucher</span><br>  <span class="hljs-built_in">Add</span>(<span class="hljs-string">&quot;/useVoucher&quot;</span>, <span class="hljs-string">&quot;/backVoucher&quot;</span>, req)<br>  <span class="hljs-comment">// add pay &amp; Compensate refund</span><br>  <span class="hljs-built_in">Add</span>(<span class="hljs-string">&quot;/pay&quot;</span>, <span class="hljs-string">&quot;/refund&quot;</span>, req)<br>  <span class="hljs-comment">// add confirmInventory &amp; Compensate nothing</span><br>  <span class="hljs-built_in">Add</span>(<span class="hljs-string">&quot;/useVoucher&quot;</span>, <span class="hljs-string">&quot;&quot;</span>, req)<br><br>  <span class="hljs-comment">// commit transaction</span><br>err := saga<span class="hljs-selector-class">.Submit</span>()<br></code></pre></td></tr></table></figure>
+<p>  如上所示，目前分布式事务的方式，可以通过二阶段提交，XA，TCC，Saga不同的方式来保证分布式事务的数据一致性，当然每种方式所使用的场景也是不同的：</p>
+<h4 id="xa模式">XA模式</h4>
+<p>通过在preapre锁住资源，等待全局事务完成才提交，保证了数据要么都提交成功，要么全局事务失败，且在数据库层面就可以支持。但是这种方式由于各资源要等全局事务都完成才提交，从而降低了并发。</p>
+<p>假如业务中包含集成第三方系统，那么很明显第三方系统未必支持这种等待提交的方式，从而并不适用，并且当业务在同一资源并发度较高时，且一致性要求没那么高时，这种方式并不适用。</p>
+<h4 id="tcc">TCC</h4>
+<p>通过在try阶段直接预留资源，进行本地事务提交，然后可以等所有本地事务提交后，可以异步的进行commit，从而大大的提高了并发度，且数据一致性比较高，不过需要考虑异常和幂等处理。</p>
+<p><a target="_blank" rel="noopener" href="https://seata.io/zh-cn/blog/tcc-mode-applicable-scenario-analysis">关于TCC模式适用场景</a></p>
+<p>但是对于业务来说，一个资源需要编写try, commit, cancel三个interface，从而增加了开发成本，同样并不是全部的第三方都是支持的。</p>
+<h4 id="saga">Saga</h4>
+<p>通过对每种资源编写正向处理和补偿机制，当出现失败时，只需要反向回滚即可，每种资源都是本地事务提交，从而提高了并发度，但数据一致性没有那么强，同时如TCC模式一样需要考虑异常和幂等处理。</p>
+<p>对于业务来说，多个资源的处理，可能会存在不同的状态，业务流程较长，利用Saga模式可以减少开发成本，理解上也比较简单。</p>
+<p>对于有些业务并不是每个资源在失败时都需要进行立马的回滚操作，可以继续重试来保证数据的最终一致性。</p>
+<h3 id="业务中关于分布式事务的思考">业务中关于分布式事务的思考</h3>
+<p>假设在定票业务中，有这几个阶段：</p>
+<ol>
+<li>create order</li>
+<li>hold inventory</li>
+<li>use voucher</li>
+<li>pay</li>
+<li>confirm inventory</li>
+<li>add member points</li>
+<li>audit</li>
+<li>send email</li>
+</ol>
+<p>对于支付网关，一般都会支持异步callback，从而进行剩下的steps，从而需要考虑payment timeout的场景，此时就可能会存在悬挂的场景：</p>
+<img src="/2023/10/14/distribute_transaction/image_1697280180879_0.png" class="">
+<p>可以通过在cancel时插入ignore pay success record 到DB中，防止悬挂：</p>
+<img src="/2023/10/14/distribute_transaction/image_1697280230655_0.png" class="">
+<p>对于后续的审计和增加会员积分，发邮件等，需要结合业务考虑，是否在调用第三方失败时，是进行后续重试补偿还是直接失败回滚。</p>
+<h3 id="参考资料">参考资料</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://dtm.pub/guide/start.html">DTM 分布式事务框架</a></li>
+<li><a target="_blank" rel="noopener" href="https://seata.io/zh-cn/blog">Seata 分布式事务框架</a></li>
+<li><a target="_blank" rel="noopener" href="https://time.geekbang.org/column/intro/100020801">Mysql实战45讲</a></li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" rel="tag">分布式事务</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" rel="tag">微服务</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%95%B0%E6%8D%AE%E4%B8%80%E8%87%B4%E6%80%A7/" rel="tag">数据一致性</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2023/10/15/netty_write/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Netty write 流程
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2023/05/20/zookeeper_utilize/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          Zookeeper 简介与使用场景
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2025 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="/js/clipboard.min.js"></script>
+<script src="/js/jquery-1.4.3.min.js"></script>
+
+<script src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="/mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+  
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
+</body>
+</html>

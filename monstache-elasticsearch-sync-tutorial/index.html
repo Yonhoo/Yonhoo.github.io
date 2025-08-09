@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>monstache 同步 es 学习 | Yonhoo</title>
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/ChineseMono-normal-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-italic-normal.min.css">
+  <link rel="stylesheet" href="/css/fonts/Chinese-normal-bold.min.css">
+
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- SEO Meta Tags -->
+  
+  <meta name="description" itemprop="description" content="深入学习monstache工具实现MongoDB到Elasticsearch的数据同步，包括全量同步、增量同步、高可用集群、断点续传等核心功能的实现原理和最佳实践。">
+  
+  
+  <!-- Keywords -->
+  
+  <meta name="keywords" content="monstache, MongoDB, Elasticsearch, 数据同步, oplog, change stream, 全量同步, 增量同步, 高可用, 断点续传, golang, 搜索引擎">
+  
+  
+  <!-- Author -->
+  <meta name="author" content="epic">
+  
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="monstache 同步 es 学习 | Yonhoo">
+  <meta property="og:url" content="https://Yonhoo.github.io//monstache-elasticsearch-sync-tutorial/">
+  <meta property="og:site_name" content="Yonhoo">
+  
+  <meta property="og:description" content="深入学习monstache工具实现MongoDB到Elasticsearch的数据同步，包括全量同步、增量同步、高可用集群、断点续传等核心功能的实现原理和最佳实践。">
+  
+  
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="monstache 同步 es 学习 | Yonhoo">
+  
+  <meta name="twitter:description" content="深入学习monstache工具实现MongoDB到Elasticsearch的数据同步，包括全量同步、增量同步、高可用集群、断点续传等核心功能的实现原理和最佳实践。">
+  
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://Yonhoo.github.io//monstache-elasticsearch-sync-tutorial/">
+  
+  <!-- Language -->
+  <meta http-equiv="content-language" content="en">
+  
+    <link rel="alternate" href="/atom.xml" title="Yonhoo" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+  <!-- 额外的favicon格式支持 -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+  
+    <link rel="stylesheet" href="/fancybox/jquery.fancybox-1.3.4.css">
+  
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <div id="nav-outer">
+  <nav id="main-nav" class="outer">
+    <a id="main-nav-toggle" class="nav-icon"></a>
+    
+      <a class="main-nav-link" href="/archives">Home</a>
+    
+      <a class="main-nav-link" href="/archives">Archives</a>
+    
+      <a class="main-nav-link" href="/about">About</a>
+    
+    <div class="main-nav-space-between"></div>
+    
+      <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+    
+  </nav>
+</div>
+
+<div id="header-title">
+  <h1 id="logo-wrap">
+    <a href="/" id="logo">Yonhoo</a>
+  </h1>
+  
+    <h2 id="subtitle-wrap">
+      <a href="/" id="subtitle">Tech Blog &amp; Personal Journey</a>
+    </h2>
+  
+</div>
+
+      <div id="content" class="outer">
+        <section id="main"><article id="post-monstache" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/monstache-elasticsearch-sync-tutorial/" class="article-date">
+  <time class="dt-published" datetime="2025-06-08T02:00:00.000Z" itemprop="datePublished">2025-06-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/">数据库</a>►<a class="article-category-link" href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/%E6%8A%80%E6%9C%AF%E6%95%99%E7%A8%8B/">技术教程</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      monstache 同步 es 学习
+    </h1>
+  
+
+      </header>
+    
+    
+<!-- 鼠标悬停触发区域 -->
+<div class="toc-hover-trigger"></div>
+
+<!-- 左侧边栏TOC -->
+<div id="sidebar-toc" class="sidebar-toc">
+    <div class="toc-toggle" id="toc-toggle">
+        <i class="fa fa-list"></i>
+        <span>目录</span>
+    </div>
+    <div class="toc-content" id="toc-content">
+        <div class="toc-header">
+            <h3 class="toc-title">Table Of Contents</h3>
+        </div>
+        <div class="toc-body">
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#1-%E6%95%B0%E6%8D%AE%E5%A4%84%E7%90%86"><span class="toc-number">1.</span> <span class="toc-text">1. 数据处理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2-%E7%AE%A1%E9%81%93%E4%BB%A5%E5%8F%8A%E5%A4%84%E7%90%86%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F"><span class="toc-number">2.</span> <span class="toc-text">2. 管道以及处理生命周期</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3-%E5%9B%9E%E9%80%80%E5%A4%84%E7%90%86"><span class="toc-number">3.</span> <span class="toc-text">3. 回退处理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4-%E6%96%AD%E7%82%B9%E7%BB%AD%E4%BC%A0"><span class="toc-number">4.</span> <span class="toc-text">4. 断点续传</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#5-%E6%8F%92%E4%BB%B6%E7%AE%A1%E7%90%86"><span class="toc-number">5.</span> <span class="toc-text">5. 插件管理</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#6-%E9%AB%98%E5%8F%AF%E7%94%A8%E5%A4%84%E7%90%86"><span class="toc-number">6.</span> <span class="toc-text">6. 高可用处理</span></a></li></ol>
+        </div>
+    </div>
+</div>
+
+<!-- TOC遮罩层 -->
+<div id="toc-overlay" class="toc-overlay"></div>
+
+<!-- TOC JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tocToggle = document.getElementById('toc-toggle');
+    const tocContent = document.getElementById('toc-content');
+    const tocOverlay = document.getElementById('toc-overlay');
+    const sidebarToc = document.getElementById('sidebar-toc');
+    const tocLinks = tocContent.querySelectorAll('.toc-link');
+    
+    // 切换TOC显示状态
+    function toggleToc() {
+        sidebarToc.classList.toggle('active');
+        tocOverlay.classList.toggle('active');
+        document.body.classList.toggle('toc-open');
+    }
+    
+    // 关闭TOC
+    function closeToc() {
+        sidebarToc.classList.remove('active');
+        tocOverlay.classList.remove('active');
+        document.body.classList.remove('toc-open');
+    }
+    
+    // 事件监听
+    tocToggle.addEventListener('click', toggleToc);
+    tocOverlay.addEventListener('click', closeToc);
+    
+    // TOC链接点击后自动关闭（移动端）
+    tocLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            if (window.innerWidth <= 768) {
+                setTimeout(closeToc, 300); // 延迟关闭，让滚动完成
+            }
+        });
+    });
+    
+    // 键盘ESC关闭
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeToc();
+        }
+    });
+    
+    // 窗口大小变化时的处理
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768) {
+            closeToc();
+        }
+    });
+    
+    // 滚动监听，高亮当前章节
+    let headings = [];
+    tocLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href && href.startsWith('#')) {
+            const target = document.querySelector(href);
+            if (target) {
+                headings.push({
+                    link: link,
+                    target: target,
+                    offset: target.offsetTop
+                });
+            }
+        }
+    });
+    
+    function updateActiveHeading() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        let activeHeading = null;
+        
+        // 找到当前可视区域内的标题
+        for (let i = headings.length - 1; i >= 0; i--) {
+            const heading = headings[i];
+            if (scrollTop >= heading.offset - 100) {
+                activeHeading = heading;
+                break;
+            }
+        }
+        
+        // 更新高亮状态
+        tocLinks.forEach(link => link.classList.remove('active'));
+        if (activeHeading) {
+            activeHeading.link.classList.add('active');
+            
+            // 滚动TOC到当前项
+            const tocBody = document.querySelector('.toc-body');
+            if (tocBody && sidebarToc.classList.contains('active')) {
+                const linkTop = activeHeading.link.offsetTop;
+                const tocBodyHeight = tocBody.offsetHeight;
+                const linkHeight = activeHeading.link.offsetHeight;
+                
+                if (linkTop < tocBody.scrollTop || linkTop > tocBody.scrollTop + tocBodyHeight - linkHeight) {
+                    tocBody.scrollTop = linkTop - tocBodyHeight / 2;
+                }
+            }
+        }
+    }
+    
+    // 节流函数
+    function throttle(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // 绑定滚动事件
+    window.addEventListener('scroll', throttle(updateActiveHeading, 100));
+    
+    // 初始化高亮
+    updateActiveHeading();
+});
+</script>
+
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <img src="/monstache-elasticsearch-sync-tutorial/monstache_process.jpg" class="">
+<p>  最近在做一个 mongoDB 的存储数据到 es 中进行检索的工作，也是通过此文学习一下 monstache 是如何做同步，以及管理可用性和一致性的，同时学习 golang 相关的 chan 的生命周期</p>
+<span id="more"></span>
+<p>  当我们想实现检索 mongoDB 中的数据，通过 like 的方式在 DB 中检索肯定是不行的，如何根据关键词搜索出对应用户之前相关的记录，最好的方式还是放到搜索引擎 es 中，由于之前数据从没有同步到 monstache 过，所以需要使用一些工具来实现同步数据的功能，可能在 mongoDB 中的数据，不一定是检索想要的，也可以通过编写工具来进行多个集合的关联处理，在mapping 过数据之后，再同步到 es 中来方便检索。</p>
+<p>使用工具到 es 有多种方式：</p>
+<ol>
+<li>
+<p>monstache<br>
+Monstache基于MongoDB的oplog实现实时数据同步及订阅，支持MongoDB与高版本Elasticsearch之间的数据同步，同时支持MongoDB的变更流和聚合管道功能，并且拥有丰富的特性。</p>
+<div class="highlight"><pre class="code" ><code> Monstache不仅支持软删除和硬删除，还支持数据库删除和集合删除，能够确保Elasticsearch端实时与源端数据保持一致。
+</code></pre></div>
+</li>
+<li>
+<p>flink cdc<br>
+支持数据的全量同步和增量同步，同时支持灵活的多目标源数据库的写入，</p>
+</li>
+<li>
+<p>logstache<br>
+支持数据的全量同步或增量同步，不够灵活的处理多数据的关联处理和映射。</p>
+</li>
+</ol>
+<p>使用 cursor 对<a target="_blank" rel="noopener" href="https://github.com/rwynn/monstache">monstache</a> 进行总结:</p>
+<ol>
+<li>
+<p>全量同步</p>
+<ol>
+<li>可以在 config.toml 中配置<code>toml:&quot;direct-read-namespaces&quot;</code>，使用 mongoDB 客户端直接查询指定的 namespace</li>
+<li>将查询结果按批次处理并索引到 Elasticsearch</li>
+</ol>
+</li>
+<li>
+<p>增量同步</p>
+<ol>
+<li>支持 oplog 和 change stream 两种增量同步方式。</li>
+</ol>
+</li>
+<li>
+<p>文档处理流程<br>
+mongoDB 文档经过以下处理后同步到 ES：</p>
+<ol>
+<li>筛选: 通过 filterWithRegex 等函数确定哪些文档需要处理</li>
+<li>转换: 通过 JavaScript 脚本、Go 插件或内联规则转换文档</li>
+<li>关联: 处理关联的文档</li>
+<li>索引: 最终将文档批量发送到 Elasticsearch</li>
+</ol>
+</li>
+<li>
+<p>高可用/集群实现</p>
+<ol>
+<li>clusterName 配置: 同一集群的节点共享 ClusterName</li>
+<li>worker 配置: 同一集群不同worker 节点就是 clusterName + workerName</li>
+<li>leader election: 同一 worker 可以有多个备用节点，使用 mongoDB 作为锁(使用 index ttl ) + 心跳来实现领导选举</li>
+<li>状态管理: 共享最后同步的时间戳(lastTs)到 mongoDB 集合中</li>
+</ol>
+</li>
+<li>
+<p>断点续传</p>
+<ol>
+<li>monstache 支持断点续传，保证重启后能从上次处理的位置继续:
+<ol>
+<li>根据 ResumeStrategy 选择时间戳或 token 方式</li>
+<li>将处理状态(lastTs或 token)存储在 mongoDB，重启时进行检索</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>
+<p>监控服务器</p>
+<ol>
+<li>提供 http 服务器用于监控和管理
+<ol>
+<li>健康检查</li>
+<li>同步统计</li>
+<li>实例信息</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>
+<p>eventLoop 处理</p>
+<ol>
+<li>处理各种事件和信号</li>
+</ol>
+</li>
+<li>
+<p>回退处理</p>
+<ol>
+<li>当 es 同步数据出错后，会基于熔断的机制，进行恢复</li>
+</ol>
+</li>
+</ol>
+<p>下面基于这几个模块进行分析：</p>
+<ol>
+<li>数据处理</li>
+<li>管道处理以及优雅下线</li>
+<li>回退处理</li>
+<li>断点续传</li>
+<li>插件管理</li>
+<li>高可用处理</li>
+</ol>
+<h2 id="1-数据处理">1. 数据处理</h2>
+<p>不管是 directNamespace 进行全量同步，还是监听增量的变更，都会写入到同一管道进行处理:</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br>   <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> eventLoop() &#123;<br><br>...<br><br>    <span class="hljs-keyword">for</span> &#123;<br>        <span class="hljs-keyword">select</span> &#123;<br>        ...<br><br>           <span class="hljs-comment">// 监听到有数据过来</span><br>        <span class="hljs-keyword">case</span> op, open := &lt;-ic.gtmCtx.OpC:<br>            <span class="hljs-keyword">if</span> !ic.enabled &#123;<br>                <span class="hljs-keyword">break</span><br>            &#125;<br>            <span class="hljs-keyword">if</span> op == <span class="hljs-literal">nil</span> &#123;<br>                <span class="hljs-keyword">if</span> !open &amp;&amp; !allOpsVisited &#123;<br>                    allOpsVisited = <span class="hljs-literal">true</span><br>                    ic.opsConsumed &lt;- <span class="hljs-literal">true</span><br>                &#125;<br>                <span class="hljs-keyword">break</span><br>            &#125;<br>            <span class="hljs-comment">// 判断是不是增量变更</span><br>            <span class="hljs-keyword">if</span> op.IsSourceOplog() &#123;<br>                   <span class="hljs-comment">// 每次增量变更，都会保存赋值最新处理的时间戳</span><br>                ic.lastTs = op.Timestamp<br>                <span class="hljs-keyword">if</span> ic.config.ResumeStrategy == tokenResumeStrategy &#123;<br>                    ic.tokens[op.ResumeToken.StreamID] = op.ResumeToken.ResumeToken<br>                &#125;<br>            &#125;<br>               <span class="hljs-comment">// 根据更新的类型，进行不同的 route 来处理</span><br>            <span class="hljs-keyword">if</span> err = ic.routeOp(op); err != <span class="hljs-literal">nil</span> &#123;<br>                ic.processErr(err)<br>            &#125;<br>        &#125;<br>    &#125;<br>   &#125;<br><br><br>   <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> routeOp(op *gtm.Op) (err <span class="hljs-type">error</span>) &#123;<br>    <span class="hljs-keyword">if</span> processPlugin != <span class="hljs-literal">nil</span> &#123;<br>           <span class="hljs-comment">// 插件处理数据</span><br>        err = ic.routeProcess(op)<br>    &#125;<br>    <span class="hljs-keyword">if</span> op.IsDrop() &#123;<br>        err = ic.routeDrop(op)<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> op.IsDelete() &#123;<br>        err = ic.routeDelete(op)<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> op.Data != <span class="hljs-literal">nil</span> &#123;<br>        err = ic.routeData(op)<br>    &#125;<br>    <span class="hljs-keyword">return</span><br>   &#125;<br><br>   <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> routeData(op *gtm.Op) (err <span class="hljs-type">error</span>) &#123;<br>    skip := <span class="hljs-literal">false</span><br>    <span class="hljs-keyword">if</span> op.IsSourceOplog() &amp;&amp; <span class="hljs-built_in">len</span>(ic.config.Relate) &gt; <span class="hljs-number">0</span> &#123;<br>        skip, err = ic.routeDataRelate(op)<br>    &#125;<br>    <span class="hljs-keyword">if</span> !skip &#123;<br>        <span class="hljs-keyword">if</span> ic.hasFileContent(op) &#123;<br>            ic.fileC &lt;- op<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            ic.indexC &lt;- op<br>        &#125;<br>    &#125;<br>    <span class="hljs-keyword">return</span><br>   &#125;<br><br>   <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> startIndex() &#123;<br>    <span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">5</span>; i++ &#123;<br>        ic.indexWg.Add(<span class="hljs-number">1</span>)<br>        <span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>               <span class="hljs-comment">//  这里会开 5 个线程进行处理</span><br>            <span class="hljs-keyword">defer</span> ic.indexWg.Done()<br>            <span class="hljs-keyword">for</span> op := <span class="hljs-keyword">range</span> ic.indexC &#123;<br>                <span class="hljs-keyword">if</span> err := ic.doIndex(op); err != <span class="hljs-literal">nil</span> &#123;<br>                    ic.processErr(err)<br>                &#125;<br>            &#125;<br>        &#125;()<br>    &#125;<br>   &#125;<br><br></code></pre></td></tr></table></figure>
+<h2 id="2-管道以及处理生命周期">2. 管道以及处理生命周期</h2>
+<p>这里涉及多管道数据处理，以及 graceful shut down 等处理，需了解到各管道之间的数据流向和处理关系，下面是一个大概的管道数据关系</p>
+<p><img src="chan_process.png" alt="chan_process"></p>
+<p>这里重点说明一下优雅关闭下的各管道处理流程，首先，是在什么情况下会进行优雅关闭:</p>
+<ol>
+<li>设置了全量读取完成后，直接退出</li>
+</ol>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> startReadWait() &#123;<br>    directReadsEnabled := <span class="hljs-built_in">len</span>(ic.config.DirectReadNs) &gt; <span class="hljs-number">0</span><br>    <span class="hljs-keyword">if</span> directReadsEnabled &#123;<br>        exitAfterDirectReads := ic.config.ExitAfterDirectReads<br>        <span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>            ic.gtmCtx.DirectReadWg.Wait()<br>            <span class="hljs-keyword">if</span> ic.config.Resume &#123;<br>                ic.saveTimestampFromReplStatus()<br>            &#125;<br>            <span class="hljs-keyword">if</span> exitAfterDirectReads &#123;<br>                <span class="hljs-keyword">var</span> exit <span class="hljs-type">bool</span><br>                ic.rwmutex.RLock()<br>                exit = !ic.externalShutdown<br>                ic.rwmutex.RUnlock()<br>                <span class="hljs-keyword">if</span> exit &#123;<br>                    <span class="hljs-comment">// 先等待所有 worker 处理，在关闭客户端和服务端</span><br>                    ic.stopAllWorkers()<br>                    ic.doneC &lt;- <span class="hljs-number">30</span><br>                &#125;<br>            &#125;<br>        &#125;()<br>    &#125;<br>&#125;<br><br></code></pre></td></tr></table></figure>
+<ol start="2">
+<li>monstache 会在最开始的时候，监听系统信号，当监听到退出信号，也会进行优雅退出</li>
+</ol>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(sh *sigHandler)</span></span> start() &#123;<br>    <span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>        sigs := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> os.Signal, <span class="hljs-number">1</span>)<br>        signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)<br>        <span class="hljs-keyword">select</span> &#123;<br>        <span class="hljs-keyword">case</span> &lt;-sigs:<br>            <span class="hljs-comment">// 当客户端还未开始，则直接退出</span><br>            <span class="hljs-comment">// we never got started so simply exit</span><br>            os.Exit(<span class="hljs-number">0</span>)<br>        <span class="hljs-keyword">case</span> ic := &lt;-sh.clientStartedC:<br>            <span class="hljs-comment">// 当客户端已经开始，则需要等待处理完成数据后，优雅退出</span><br>            &lt;-sigs<br>            ic.onExternalShutdown()<br>            <span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>                <span class="hljs-comment">// forced shutdown on 2nd signal</span><br>                &lt;-sigs<br>                infoLog.Println(<span class="hljs-string">&quot;Forcing shutdown, bye bye...&quot;</span>)<br>                os.Exit(<span class="hljs-number">1</span>)<br>            &#125;()<br>            <span class="hljs-comment">// we started processing events so do a clean shutdown</span><br>            infoLog.Println(<span class="hljs-string">&quot;Starting clean shutdown&quot;</span>)<br>            ic.stopAllWorkers()<br>            ic.doneC &lt;- <span class="hljs-number">10</span><br>        &#125;<br>    &#125;()<br>&#125;<br><br><br></code></pre></td></tr></table></figure>
+<p>onExternalShutdown处理的是当意外退出后，需要根据是否开启全量写入状态，等待 500ms 后，在停止所有 workers 和客户端</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> onExternalShutdown() &#123;<br>    ic.rwmutex.Lock()<br>    <span class="hljs-keyword">defer</span> ic.rwmutex.Unlock()<br>    ic.externalShutdown = <span class="hljs-literal">true</span><br>    ic.checkDirectReads()<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> checkDirectReads() &#123;<br>    <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(ic.config.DirectReadNs) == <span class="hljs-number">0</span> &#123;<br>        <span class="hljs-keyword">return</span><br>    &#125;<br>    drc := ic.directReadChan()<br>    t := time.NewTimer(time.Duration(<span class="hljs-number">500</span>) * time.Millisecond)<br>    <span class="hljs-keyword">defer</span> t.Stop()<br>    <span class="hljs-keyword">select</span> &#123;<br>    <span class="hljs-keyword">case</span> &lt;-t.C:<br>        ic.directReadsPending = <span class="hljs-literal">true</span><br>    <span class="hljs-keyword">case</span> &lt;-drc:<br>    &#125;<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> directReadChan() <span class="hljs-keyword">chan</span> <span class="hljs-keyword">struct</span>&#123;&#125; &#123;<br>    c := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-keyword">struct</span>&#123;&#125;)<br>    <span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>        ic.gtmCtx.DirectReadWg.Wait()<br>        <span class="hljs-built_in">close</span>(c)<br>    &#125;()<br>    <span class="hljs-keyword">return</span> c<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>stopAllWorkers 做的事情就是:</p>
+<ol>
+<li>先停止监听数据变化</li>
+<li>直到没有数据会过来后，等待关闭相关的文档处理chan</li>
+</ol>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> stopAllWorkers() &#123;<br>    infoLog.Println(<span class="hljs-string">&quot;Stopping all workers&quot;</span>)<br>    ic.gtmCtx.Stop()<br>    &lt;-ic.opsConsumed<br>    <span class="hljs-built_in">close</span>(ic.relateC)<br>    ic.relateWg.Wait()<br>    <span class="hljs-built_in">close</span>(ic.fileC)<br>    ic.fileWg.Wait()<br>    <span class="hljs-built_in">close</span>(ic.indexC)<br>    ic.indexWg.Wait()<br>    <span class="hljs-built_in">close</span>(ic.processC)<br>    ic.processWg.Wait()<br>&#125;<br><br></code></pre></td></tr></table></figure>
+<p>doneC 就是一个监听开始关闭客户端的信道，同时设置超时关闭时间,当收到要关闭客户端后，进行超时关闭</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br><span class="hljs-comment">// main 的 eventLoop 会监听 doneC</span><br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> eventLoop() &#123;<br>    ...<br>    <span class="hljs-keyword">for</span> &#123;<br>        <span class="hljs-keyword">select</span> &#123;<br>        ...<br>        <span class="hljs-keyword">case</span> timeout := &lt;-ic.doneC:<br>            ic.enabled = <span class="hljs-literal">false</span><br>            ic.shutdown(timeout)<br>            <span class="hljs-keyword">return</span><br><br>        &#125;<br>    &#125;<br>&#125;<br><br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> shutdown(timeout <span class="hljs-type">int</span>) &#123;<br>    infoLog.Println(<span class="hljs-string">&quot;Shutting down&quot;</span>)<br>    <span class="hljs-comment">// 关闭客户端</span><br>    <span class="hljs-keyword">go</span> ic.closeClient()<br>    doneC := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-type">bool</span>)<br>    <span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>        closeT := time.NewTimer(time.Duration(timeout) * time.Second)<br>        <span class="hljs-keyword">defer</span> closeT.Stop()<br>        done := <span class="hljs-literal">false</span><br>        <span class="hljs-keyword">for</span> !done &#123;<br>            <span class="hljs-keyword">select</span> &#123;<br>            <span class="hljs-keyword">case</span> &lt;-ic.closeC:<br>                done = <span class="hljs-literal">true</span><br>                <span class="hljs-built_in">close</span>(doneC)<br>            <span class="hljs-comment">//  超时直接关闭</span><br>            <span class="hljs-keyword">case</span> &lt;-closeT.C:<br>                done = <span class="hljs-literal">true</span><br>                <span class="hljs-built_in">close</span>(doneC)<br>            &#125;<br>        &#125;<br>    &#125;()<br>    &lt;-doneC<br>    os.Exit(exitStatus)<br>&#125;<br><br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> closeClient() &#123;<br>    <span class="hljs-keyword">if</span> ic.mongo != <span class="hljs-literal">nil</span> &amp;&amp; ic.config.ClusterName != <span class="hljs-string">&quot;&quot;</span> &#123;<br>        ic.resetClusterState()<br>    &#125;<br>    <span class="hljs-comment">// 关闭 开启的服务端状态响应</span><br>    <span class="hljs-keyword">if</span> ic.hsc != <span class="hljs-literal">nil</span> &#123;<br>        ic.hsc.shutdown = <span class="hljs-literal">true</span><br>        ic.hsc.httpServer.Shutdown(context.Background())<br>    &#125;<br>    <span class="hljs-comment">// 关闭 es 客户端</span><br>    <span class="hljs-keyword">if</span> ic.bulk != <span class="hljs-literal">nil</span> &#123;<br>        ic.bulk.Close()<br>    &#125;<br>    <span class="hljs-comment">// 关闭 es 状态统计 客户端</span><br>    <span class="hljs-keyword">if</span> ic.bulkStats != <span class="hljs-literal">nil</span> &#123;<br>        ic.bulkStats.Close()<br>    &#125;<br>    <span class="hljs-comment">// 如果全量写入完成，则会根据是否开启全量写入状态，来保存写入状态</span><br>    <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(ic.config.DirectReadNs) &gt; <span class="hljs-number">0</span> &#123;<br>        ic.rwmutex.RLock()<br>        <span class="hljs-keyword">if</span> !ic.directReadsPending &#123;<br>            infoLog.Println(<span class="hljs-string">&quot;Direct reads completed&quot;</span>)<br>            <span class="hljs-keyword">if</span> ic.config.DirectReadStateful &#123;<br>                <span class="hljs-keyword">if</span> err := ic.saveDirectReadNamespaces(); err != <span class="hljs-literal">nil</span> &#123;<br>                    errorLog.Printf(<span class="hljs-string">&quot;Error saving direct read state: %s&quot;</span>, err)<br>                &#125;<br>            &#125;<br>        &#125;<br>        ic.rwmutex.RUnlock()<br>    &#125;<br>    <span class="hljs-built_in">close</span>(ic.closeC)<br>&#125;<br><br></code></pre></td></tr></table></figure>
+<h2 id="3-回退处理">3. 回退处理</h2>
+<div class="highlight"><pre class="code" ><code>es <span class="hljs-keyword">bulk </span>server 设置 <span class="hljs-keyword">backoff </span>函数
+</code></pre></div>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br>    <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> newBulkProcessor(client *elastic.Client) (bulk *elastic.BulkProcessor,   err <span class="hljs-type">error</span>) &#123;<br>        config := ic.config<br>        bulkService := client.BulkProcessor().Name(<span class="hljs-string">&quot;monstache&quot;</span>)<br>        bulkService.Workers(config.ElasticMaxConns)   <span class="hljs-comment">//初始化elastic 连接数</span><br>        bulkService.Stats(config.Stats)  <span class="hljs-comment">// 开启统计</span><br>        bulkService.BulkActions(config.ElasticMaxDocs) <span class="hljs-comment">//批量 flush 进 elastic 的数量</span><br>        bulkService.BulkSize(config.ElasticMaxBytes) <span class="hljs-comment">// 批量 flush 进 elastic 的最大 size</span><br>        <span class="hljs-keyword">if</span> config.ElasticRetry == <span class="hljs-literal">false</span> &#123;<br>            bulkService.Backoff(&amp;elastic.StopBackoff&#123;&#125;)<br>        &#125;<br>        bulkService.After(ic.afterBulk()) <span class="hljs-comment">// 回退处理，其实也是熔断处理</span><br>        <span class="hljs-comment">// 设置 flush 的间隔</span><br>        bulkService.FlushInterval(time.Duration(config.ElasticMaxSeconds) * time.Second)<br>        <span class="hljs-keyword">return</span> bulkService.Do(context.Background())<br>    &#125;<br><br>    <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> afterBulk() <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(<span class="hljs-type">int64</span>, []elastic.BulkableRequest, *elastic.BulkResponse, <span class="hljs-type">error</span>)</span></span> &#123;<br>    <span class="hljs-keyword">return</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(executionID <span class="hljs-type">int64</span>, requests []elastic.BulkableRequest, response *elastic.BulkResponse, err <span class="hljs-type">error</span>)</span></span> &#123;<br>        <span class="hljs-keyword">if</span> response == <span class="hljs-literal">nil</span> || !response.Errors &#123;<br>            ic.bulkErrs.Store(<span class="hljs-number">0</span>)<br>            <span class="hljs-keyword">return</span><br>        &#125;<br>        <span class="hljs-keyword">if</span> failed := response.Failed(); failed != <span class="hljs-literal">nil</span> &#123;<br>            backoff := <span class="hljs-literal">false</span><br>            <span class="hljs-keyword">for</span> _, item := <span class="hljs-keyword">range</span> failed &#123;<br>                <span class="hljs-keyword">if</span> item.Status == http.StatusConflict &#123;<br>                    <span class="hljs-comment">// ignore version conflict since this simply means the doc</span><br>                    <span class="hljs-comment">// is already in the index</span><br>                    <span class="hljs-keyword">continue</span><br>                &#125;<br>                logFailedResponseItem(item)<br>                <span class="hljs-keyword">if</span> item.Status == http.StatusNotFound &#123;<br>                    <span class="hljs-comment">// status not found should not initiate back off</span><br>                    <span class="hljs-keyword">continue</span><br>                &#125;<br>                backoff = <span class="hljs-literal">true</span><br>            &#125;<br>            <span class="hljs-comment">//  主要是在这里，会给 bulkBackoffC 管道 传递信号，告诉主进程需要等待一段时间，再处理</span><br>            <span class="hljs-keyword">if</span> backoff &#123;<br>                wait := ic.backoffDuration()<br>                infoLog.Printf(<span class="hljs-string">&quot;Backing off for %.1f minutes after bulk indexing failures.&quot;</span>, wait.Minutes())<br>                <span class="hljs-comment">// signal the event loop to pause pulling new events for a duration</span><br>                ic.bulkBackoffC &lt;- wait<br>                <span class="hljs-comment">// pause the bulk worker for a duration</span><br>                ic.backoff(wait)<br>                ic.bulkErrs.Add(<span class="hljs-number">1</span>)<br>            &#125;<br>        &#125;<br>    &#125;<br>&#125;<br><br><br></code></pre></td></tr></table></figure>
+<p>主进程 eventLoop 中会监听这个 bulkBackoffC ，当监听到之后，会根据设置的超时时间，自旋一段时间, 当收到信号，也会主动退出自旋，然后主进程监听到信号，也会主动进行 shutdown，也会响应状态探测函数</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> backoffDuration() time.Duration &#123;<br>    consecutiveErrors := <span class="hljs-type">int</span>(ic.bulkErrs.Load())<br>    wait, ok := ic.bulkBackoff.Next(consecutiveErrors)<br>    <span class="hljs-keyword">if</span> !ok &#123;<br>        wait = ic.bulkBackoffMax<br>    &#125;<br>    <span class="hljs-keyword">return</span> wait<br>&#125;<br><br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> backoff(wait time.Duration) &#123;<br>    timer := time.NewTimer(wait)<br>    <span class="hljs-keyword">defer</span> timer.Stop()<br>    sigs := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> os.Signal, <span class="hljs-number">1</span>)<br>    signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)<br>    <span class="hljs-keyword">defer</span> signal.Stop(sigs)<br>    <span class="hljs-keyword">for</span> &#123;<br>        <span class="hljs-keyword">select</span> &#123;<br>        <span class="hljs-keyword">case</span> &lt;-timer.C:<br>            <span class="hljs-keyword">return</span><br>        <span class="hljs-keyword">case</span> &lt;-sigs:<br>            <span class="hljs-keyword">return</span><br>        <span class="hljs-keyword">case</span> req := &lt;-ic.statusReqC:<br>            enabled, lastTs := ic.enabled, ic.lastTs<br>            statusResp := &amp;statusResponse&#123;<br>                enabled: enabled,<br>                lastTs:  lastTs,<br>                backoff: <span class="hljs-literal">true</span>,<br>            &#125;<br>            req.responseC &lt;- statusResp<br>        &#125;<br>    &#125;<br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> eventLoop() &#123;<br><br><br>    ...<br><br>    <span class="hljs-keyword">for</span> &#123;<br>        <span class="hljs-keyword">select</span> &#123;<br>        <span class="hljs-keyword">case</span> wait := &lt;-ic.bulkBackoffC:<br>            ic.backoff(wait)<br>        &#125;<br>    &#125;<br><br>&#125;<br><br><br></code></pre></td></tr></table></figure>
+<h2 id="4-断点续传">4. 断点续传</h2>
+<p>保存时间戳的核心函数: saveTimestamp() , 每次保存最新的时间戳到ConfigDatabaseName = cluster + worker</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> saveTimestamp() <span class="hljs-type">error</span> &#123;<br>    col := ic.mongoWriter.Database(ic.config.ConfigDatabaseName).Collection(<span class="hljs-string">&quot;monstache&quot;</span>)<br>    doc := <span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;&#123;<br>        <span class="hljs-string">&quot;ts&quot;</span>: ic.lastTs,<br>    &#125;<br>    opts := options.Update()<br>    opts.SetUpsert(<span class="hljs-literal">true</span>)<br>    _, err := col.UpdateOne(context.Background(), bson.M&#123;<br>        <span class="hljs-string">&quot;_id&quot;</span>: ic.config.ResumeName,<br>    &#125;, bson.M&#123;<br>        <span class="hljs-string">&quot;$set&quot;</span>: doc,<br>    &#125;, opts)<br>    <span class="hljs-keyword">return</span> err<br>&#125;<br><br><br></code></pre></td></tr></table></figure>
+<p>时间戳更新机制: 每隔 10s 执行一次，根据重启策略，来进行保存时间戳或是 token</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> eventLoop() &#123;<br><br>    timestampTicker := time.NewTicker(<span class="hljs-number">10</span> * time.Second)<br>    <span class="hljs-keyword">if</span> !ic.config.Resume &#123;<br>        timestampTicker.Stop()<br>    &#125;<br><br><br>    <span class="hljs-keyword">for</span> &#123;<br>        <span class="hljs-keyword">select</span> &#123;<br><br>        <span class="hljs-keyword">case</span> &lt;-timestampTicker.C:<br>            <span class="hljs-keyword">if</span> !ic.enabled &#123;<br>                <span class="hljs-keyword">break</span><br>            &#125;<br>            <span class="hljs-keyword">if</span> ic.config.ResumeStrategy == tokenResumeStrategy &#123;<br>                ic.nextTokens()<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                ic.nextTimestamp()<br>            &#125;<br>        &#125;<br>    &#125;<br>&#125;<br><br><br><br></code></pre></td></tr></table></figure>
+<p>主要解释时间戳机制: nextTimestamp()</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> nextTimestamp() &#123;<br>    <span class="hljs-keyword">if</span> ic.hasNewEvents() &#123;<br>        ic.bulk.Flush()<br>        <span class="hljs-keyword">if</span> err := ic.saveTimestamp(); err == <span class="hljs-literal">nil</span> &#123;<br>            ic.lastTsSaved = ic.lastTs<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            ic.processErr(err)<br>        &#125;<br>    &#125;<br>&#125;<br><br><span class="hljs-comment">// 只保存时间最新的时间，同时把数据 flush 进 es</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> hasNewEvents() <span class="hljs-type">bool</span> &#123;<br>    <span class="hljs-keyword">if</span> ic.lastTs.T &gt; ic.lastTsSaved.T ||<br>        (ic.lastTs.T == ic.lastTsSaved.T &amp;&amp; ic.lastTs.I &gt; ic.lastTsSaved.I) &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span><br>    &#125;<br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span><br>&#125;<br><br><br><br></code></pre></td></tr></table></figure>
+<p>在优雅关闭时，也会保存一次时间戳，避免心跳还没有执行</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> shutdown(timeout <span class="hljs-type">int</span>) &#123;<br>    <span class="hljs-comment">// ...</span><br>    <span class="hljs-keyword">if</span> ic.config.Resume &#123;<br>        <span class="hljs-keyword">if</span> ic.config.ResumeStrategy == tokenResumeStrategy &#123;<br>            <span class="hljs-keyword">if</span> err := ic.saveTokens(); err != <span class="hljs-literal">nil</span> &#123;<br>                errorLog.Printf(<span class="hljs-string">&quot;Unable to save tokens: %s&quot;</span>, err)<br>            &#125;<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-keyword">if</span> err := ic.saveTimestamp(); err != <span class="hljs-literal">nil</span> &#123;<br>                errorLog.Printf(<span class="hljs-string">&quot;Unable to save timestamp: %s&quot;</span>, err)<br>            &#125;<br>        &#125;<br>    &#125;<br>    <span class="hljs-comment">// ...</span><br>&#125;<br><br><br></code></pre></td></tr></table></figure>
+<p>什么时候获取lastTs 呢，在每次有新的更新数据来的时候，就会赋值 lastTs</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br>   <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> eventLoop() &#123;<br><br>...<br><br>    <span class="hljs-keyword">for</span> &#123;<br>        <span class="hljs-keyword">select</span> &#123;<br>        ...<br><br>           <span class="hljs-comment">// 监听到有数据过来</span><br>        <span class="hljs-keyword">case</span> op, open := &lt;-ic.gtmCtx.OpC:<br>            <span class="hljs-keyword">if</span> !ic.enabled &#123;<br>                <span class="hljs-keyword">break</span><br>            &#125;<br>            <span class="hljs-keyword">if</span> op == <span class="hljs-literal">nil</span> &#123;<br>                <span class="hljs-keyword">if</span> !open &amp;&amp; !allOpsVisited &#123;<br>                    allOpsVisited = <span class="hljs-literal">true</span><br>                    ic.opsConsumed &lt;- <span class="hljs-literal">true</span><br>                &#125;<br>                <span class="hljs-keyword">break</span><br>            &#125;<br>            <span class="hljs-comment">// 判断是不是增量变更</span><br>            <span class="hljs-keyword">if</span> op.IsSourceOplog() &#123;<br>                   <span class="hljs-comment">// 每次增量变更，都会保存赋值最新处理的时间戳</span><br>                ic.lastTs = op.Timestamp<br>                <span class="hljs-keyword">if</span> ic.config.ResumeStrategy == tokenResumeStrategy &#123;<br>                    ic.tokens[op.ResumeToken.StreamID] = op.ResumeToken.ResumeToken<br>                &#125;<br>            &#125;<br>               <span class="hljs-comment">// 根据更新的类型，进行不同的 route 来处理</span><br>            <span class="hljs-keyword">if</span> err = ic.routeOp(op); err != <span class="hljs-literal">nil</span> &#123;<br>                ic.processErr(err)<br>            &#125;<br>        &#125;<br>    &#125;<br>   &#125;<br><br></code></pre></td></tr></table></figure>
+<p>如果是全量同步时，则会在完成全量同步时，保存副本集中最小提交的时间戳，用于重启增量同步</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> startReadWait() &#123;<br>    directReadsEnabled := <span class="hljs-built_in">len</span>(ic.config.DirectReadNs) &gt; <span class="hljs-number">0</span><br>    <span class="hljs-keyword">if</span> directReadsEnabled &#123;<br>        exitAfterDirectReads := ic.config.ExitAfterDirectReads<br>        <span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span></span> &#123;<br>            ic.gtmCtx.DirectReadWg.Wait()<br>            <span class="hljs-comment">// 完成全量同步后，保存副本集最小时间戳</span><br>            <span class="hljs-keyword">if</span> ic.config.Resume &#123;<br>                ic.saveTimestampFromReplStatus()<br>            &#125;<br>            <span class="hljs-keyword">if</span> exitAfterDirectReads &#123;<br>                <span class="hljs-keyword">var</span> exit <span class="hljs-type">bool</span><br>                ic.rwmutex.RLock()<br>                exit = !ic.externalShutdown<br>                ic.rwmutex.RUnlock()<br>                <span class="hljs-keyword">if</span> exit &#123;<br>                    ic.stopAllWorkers()<br>                    ic.doneC &lt;- <span class="hljs-number">30</span><br>                &#125;<br>            &#125;<br>        &#125;()<br>    &#125;<br>&#125;<br><br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> saveTimestampFromReplStatus() &#123;<br>    <span class="hljs-keyword">if</span> rs, err := gtm.GetReplStatus(ic.mongo); err == <span class="hljs-literal">nil</span> &#123;<br>        <span class="hljs-keyword">if</span> ic.lastTs, err = rs.GetLastCommitted(); err == <span class="hljs-literal">nil</span> &#123;<br>            <span class="hljs-keyword">if</span> err = ic.saveTimestamp(); err != <span class="hljs-literal">nil</span> &#123;<br>                ic.processErr(err)<br>            &#125;<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            ic.processErr(err)<br>        &#125;<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>        ic.saveTimestampFromServerStatus()<br>    &#125;<br>&#125;<br><br></code></pre></td></tr></table></figure>
+<p>启动时，也会获取时间戳</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> buildTimestampGen() gtm.TimestampGenerator &#123;<br>    <span class="hljs-keyword">var</span> after gtm.TimestampGenerator<br>    config := ic.config<br>    <span class="hljs-keyword">if</span> config.ResumeStrategy != timestampResumeStrategy &#123;<br>        <span class="hljs-keyword">return</span> after<br>    &#125;<br>    <br>    <br>    ...<br><br>    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> config.Resume &#123;<br>        after = <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(client *mongo.Client, options *gtm.Options)</span></span> (primitive.Timestamp, <span class="hljs-type">error</span>) &#123;<br>            <span class="hljs-keyword">var</span> candidateTs primitive.Timestamp<br>            <span class="hljs-keyword">var</span> tsSource <span class="hljs-type">string</span><br>            <span class="hljs-keyword">var</span> err <span class="hljs-type">error</span><br>            col := client.Database(config.ConfigDatabaseName).Collection(<span class="hljs-string">&quot;monstache&quot;</span>)<br>            result := col.FindOne(context.Background(), bson.M&#123;<br>                <span class="hljs-string">&quot;_id&quot;</span>: config.ResumeName,<br>            &#125;)<br>            <span class="hljs-keyword">if</span> err = result.Err(); err == <span class="hljs-literal">nil</span> &#123;<br>                doc := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;)<br>                <span class="hljs-keyword">if</span> err = result.Decode(&amp;doc); err == <span class="hljs-literal">nil</span> &#123;<br>                    <span class="hljs-keyword">if</span> doc[<span class="hljs-string">&quot;ts&quot;</span>] != <span class="hljs-literal">nil</span> &#123;<br>                        candidateTs = doc[<span class="hljs-string">&quot;ts&quot;</span>].(primitive.Timestamp)<br>                        candidateTs.I++<br>                        tsSource = oplog.TS_SOURCE_MONSTACHE<br>                    &#125;<br>                &#125;<br>            &#125;<br>            <span class="hljs-comment">// 如果从 configDBName 中没有获取到时间戳，就取mongo 中最新的时间戳</span><br>            <span class="hljs-keyword">if</span> candidateTs.T == <span class="hljs-number">0</span> &#123;<br>                candidateTs, _ = gtm.LastOpTimestamp(client, options)<br>                tsSource = oplog.TS_SOURCE_OPLOG<br>            &#125;<br><br>            ts := &lt;-ic.oplogTsResolver.GetResumeTimestamp(candidateTs, tsSource)<br>            infoLog.Printf(<span class="hljs-string">&quot;Resuming from timestamp %+v&quot;</span>, ts)<br>            <span class="hljs-keyword">return</span> ts, <span class="hljs-literal">nil</span><br>        &#125;<br>    &#125;<br>    <span class="hljs-keyword">return</span> after<br>&#125;<br><br><br><br></code></pre></td></tr></table></figure>
+<p>startListen 后，当成为主节点，开始链接 mongo，同时配置数据，启动服务监听来自 mongo 的数据</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> startListen() &#123;<br>    config := ic.config<br>    conns := ic.buildConnections()<br><br>    <span class="hljs-keyword">if</span> config.ResumeStrategy == timestampResumeStrategy &#123;<br>        <span class="hljs-comment">// 从最早副本集的记录的时间戳开始恢复</span><br>        <span class="hljs-keyword">if</span> config.ResumeFromEarliestTimestamp &#123;<br>            ic.oplogTsResolver = oplog.NewTimestampResolverEarliest(<span class="hljs-built_in">len</span>(conns), infoLog)<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            ic.oplogTsResolver = oplog.TimestampResolverSimple&#123;&#125;<br>        &#125;<br>    &#125;<br><br><br>    gtmOpts := ic.buildGtmOptions()<br>    ic.gtmCtx = gtm.StartMulti(conns, gtmOpts)<br>    <span class="hljs-keyword">if</span> config.readShards() &amp;&amp; !config.DisableChangeEvents &#123;<br>        ic.gtmCtx.AddShardListener(ic.mongoConfig, gtmOpts, config.makeShardInsertHandler())<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>下面的时间戳处理器，是给分片集群使用的，此时connectionsTotal 会大于 1，然后算出最小的时间戳，每个分片连接都会调用这个 after 函数，此时会给每个mongo分片传递这个最早的时间戳（有可能每个分片的数据有关联，然后使用最小时间戳，会把关联的文档都会处理了），从最小时间戳开始同步</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(resolver *TimestampResolverEarliest)</span></span> GetResumeTimestamp(candidateTs primitive.Timestamp, source <span class="hljs-type">string</span>) <span class="hljs-keyword">chan</span> primitive.Timestamp &#123;<br>    resolver.m.Lock()<br>    <span class="hljs-keyword">defer</span> resolver.m.Unlock()<br><br>    <span class="hljs-keyword">if</span> resolver.connectionsQueried &gt;= resolver.connectionsTotal &#123;<br>        <span class="hljs-comment">// in this case, an earliest timestamp is already calculated,</span><br>        <span class="hljs-comment">// so it is just returned in a temporary channel</span><br>        resolver.logger.Printf(<br>            <span class="hljs-string">&quot;Earliest oplog resume timestamp is already calculated: %s&quot;</span>,<br>            tsToString(resolver.earliestTs),<br>        )<br>        tmpResultChan := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> primitive.Timestamp, <span class="hljs-number">1</span>)<br>        tmpResultChan &lt;- resolver.earliestTs<br>        <span class="hljs-keyword">return</span> tmpResultChan<br>    &#125;<br><br>    resolver.connectionsQueried++<br>    resolver.updateEarliestTs(source, candidateTs)<br><br>    <span class="hljs-comment">// if this function has been called for every mongodb connection,</span><br>    <span class="hljs-comment">// then a final earliest resume timestamp can be returned to every caller</span><br>    <span class="hljs-keyword">if</span> resolver.connectionsQueried == resolver.connectionsTotal &#123;<br>        resolver.logger.Printf(<br>            <span class="hljs-string">&quot;Earliest oplog resume timestamp calculated: %s, source: %s&quot;</span>,<br>            tsToString(resolver.earliestTs),<br>            resolver.earliestTsSource,<br>        )<br><br>        <span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; resolver.connectionsTotal; i++ &#123;<br>            resolver.resultChan &lt;- resolver.earliestTs<br>        &#125;<br>    &#125;<br><br>    <span class="hljs-keyword">return</span> resolver.resultChan<br>&#125;<br></code></pre></td></tr></table></figure>
+<ol>
+<li>monstache 保存的时间戳 &gt; oplog 最新时间戳</li>
+<li>buildConnections 处理监听比如分片集群的connection，副本集不会出现这种场景</li>
+<li>处理恢复时间戳的策略
+<ol>
+<li>NewTimestampResolverEarliest 处理基于副本集最早时间戳开始恢复</li>
+<li>TimestampResolverSimple 从记录的时间戳后面开始恢复</li>
+</ol>
+</li>
+<li>buildGtmOptions
+<ol>
+<li>配置各种 filter chain， 直接读取的 namespace</li>
+<li>开始同步数据的时间戳生成器
+<ol start="3">
+<li>ResumeFromTimestamp 基于给定的时间戳开始同步</li>
+<li>Resume 为 true，从上次保存的时间戳开始同步
+<ol start="5">
+<li>基于时间戳策略，读取 opLog 的时间戳，然后进行同步</li>
+</ol>
+</li>
+<li>Replay 则是从 mongo 记录的 oplog 的时间戳开始同步</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>StartMulti 开启多个 client 的监听</li>
+<li>如果配置了分片，则监听分片集群AddShardListener</li>
+</ol>
+<h2 id="5-插件管理">5. 插件管理</h2>
+<p>monstache 支持使用自定义的插件，来处理数据流</p>
+<p><strong>各插件的作用</strong></p>
+<ul>
+<li><strong>Pipeline</strong>: 作用于数据源端（MongoDB 侧），在数据被读取之前应用，修改从 MongoDB 获取的数据流</li>
+<li><strong>Map</strong>: 作用于单个文档上，在文档读取后、索引前应用</li>
+<li><strong>Filter</strong>: 决定是否处理某个文档，在读取文档后立即应用</li>
+<li><strong>Process</strong>: 对clone 的文档做处理</li>
+</ul>
+<p>在有数据更新时，会进行 routeOp 处理:</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> routeOp(op *gtm.Op) (err <span class="hljs-type">error</span>) &#123;<br>    <span class="hljs-comment">//  如果设置了 processPlugin</span><br>    <span class="hljs-keyword">if</span> processPlugin != <span class="hljs-literal">nil</span> &#123;<br>        err = ic.routeProcess(op)<br>    &#125;<br>    <span class="hljs-keyword">if</span> op.IsDrop() &#123;<br>        err = ic.routeDrop(op)<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> op.IsDelete() &#123;<br>        err = ic.routeDelete(op)<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> op.Data != <span class="hljs-literal">nil</span> &#123;<br>        err = ic.routeData(op)<br>    &#125;<br>    <span class="hljs-keyword">return</span><br>&#125;<br><br></code></pre></td></tr></table></figure>
+<p>在 routeData 中，会使用 mapperPlugin 来处理数据:</p>
+ <figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br></pre></td><td class="code"><pre><code class="hljs golang"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> routeData(op *gtm.Op) (err <span class="hljs-type">error</span>) &#123;<br>    skip := <span class="hljs-literal">false</span><br>    <span class="hljs-keyword">if</span> op.IsSourceOplog() &amp;&amp; <span class="hljs-built_in">len</span>(ic.config.Relate) &gt; <span class="hljs-number">0</span> &#123;<br>        skip, err = ic.routeDataRelate(op)<br>    &#125;<br>    <span class="hljs-keyword">if</span> !skip &#123;<br>        <span class="hljs-keyword">if</span> ic.hasFileContent(op) &#123;<br>            ic.fileC &lt;- op<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            ic.indexC &lt;- op<br>        &#125;<br>    &#125;<br>    <span class="hljs-keyword">return</span><br>&#125;<br><br><br><span class="hljs-comment">// 在 indexC 有数据后，就会执行doIndex</span><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> doIndex(op *gtm.Op) (err <span class="hljs-type">error</span>) &#123;<br>    <span class="hljs-keyword">if</span> err = ic.mapData(op); err == <span class="hljs-literal">nil</span> &#123;<br>        <span class="hljs-keyword">if</span> op.Data != <span class="hljs-literal">nil</span> &#123;<br>            err = ic.doIndexing(op)<br>        &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> op.IsUpdate() &#123;<br>            ic.doDelete(op)<br>        &#125;<br>    &#125;<br>    <span class="hljs-keyword">return</span><br>&#125;<br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> mapData(op *gtm.Op) <span class="hljs-type">error</span> &#123;<br>    <span class="hljs-keyword">if</span> mapperPlugin != <span class="hljs-literal">nil</span> &#123;<br>        <span class="hljs-keyword">return</span> ic.mapDataGolang(op)<br>    &#125;<br>    <span class="hljs-keyword">return</span> ic.mapDataJavascript(op)<br>&#125;<br><br><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> mapDataGolang(op *gtm.Op) <span class="hljs-type">error</span> &#123;<br>    input := &amp;monstachemap.MapperPluginInput&#123;<br>        Document:          op.Data,<br>        Namespace:         op.Namespace,<br>        Database:          op.GetDatabase(),<br>        Collection:        op.GetCollection(),<br>        Operation:         op.Operation,<br>        MongoClient:       ic.mongo,<br>        UpdateDescription: op.UpdateDescription,<br>    &#125;<br>    <span class="hljs-comment">// 这里会执行 mapperPlugin</span><br>    output, err := mapperPlugin(input)<br>    <span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>        <span class="hljs-keyword">return</span> err<br>    &#125;<br>    <span class="hljs-keyword">if</span> output == <span class="hljs-literal">nil</span> &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span><br>    &#125;<br>    <span class="hljs-keyword">if</span> output.Drop &#123;<br>        op.Data = <span class="hljs-literal">nil</span><br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-keyword">if</span> output.Skip &#123;<br>            op.Data = <span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;&#123;&#125;<br>        &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> !output.Passthrough &#123;<br>            <span class="hljs-keyword">if</span> output.Document == <span class="hljs-literal">nil</span> &#123;<br>                <span class="hljs-keyword">return</span> errors.New(<span class="hljs-string">&quot;Map function must return a non-nil document&quot;</span>)<br>            &#125;<br>            op.Data = output.Document<br>        &#125;<br>        meta := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">map</span>[<span class="hljs-type">string</span>]<span class="hljs-keyword">interface</span>&#123;&#125;)<br>        <span class="hljs-keyword">if</span> output.Skip &#123;<br>            meta[<span class="hljs-string">&quot;skip&quot;</span>] = <span class="hljs-literal">true</span><br>        &#125;<br>        <span class="hljs-keyword">if</span> output.Index != <span class="hljs-string">&quot;&quot;</span> &#123;<br>            meta[<span class="hljs-string">&quot;index&quot;</span>] = output.Index<br>        &#125;<br>        <span class="hljs-keyword">if</span> output.ID != <span class="hljs-string">&quot;&quot;</span> &#123;<br>            meta[<span class="hljs-string">&quot;id&quot;</span>] = output.ID<br>        &#125;<br>        <span class="hljs-keyword">if</span> output.Type != <span class="hljs-string">&quot;&quot;</span> &#123;<br>            meta[<span class="hljs-string">&quot;type&quot;</span>] = output.Type<br>        &#125;<br>        <span class="hljs-keyword">if</span> output.Routing != <span class="hljs-string">&quot;&quot;</span> &#123;<br>            meta[<span class="hljs-string">&quot;routing&quot;</span>] = output.Routing<br>        &#125;<br>        <span class="hljs-keyword">if</span> output.Parent != <span class="hljs-string">&quot;&quot;</span> &#123;<br>            meta[<span class="hljs-string">&quot;parent&quot;</span>] = output.Parent<br>        &#125;<br>        <span class="hljs-keyword">if</span> output.Version != <span class="hljs-number">0</span> &#123;<br>            meta[<span class="hljs-string">&quot;version&quot;</span>] = output.Version<br>        &#125;<br>        <span class="hljs-keyword">if</span> output.VersionType != <span class="hljs-string">&quot;&quot;</span> &#123;<br>            meta[<span class="hljs-string">&quot;versionType&quot;</span>] = output.VersionType<br>        &#125;<br>        <span class="hljs-keyword">if</span> output.Pipeline != <span class="hljs-string">&quot;&quot;</span> &#123;<br>            meta[<span class="hljs-string">&quot;pipeline&quot;</span>] = output.Pipeline<br>        &#125;<br>        <span class="hljs-keyword">if</span> output.RetryOnConflict != <span class="hljs-number">0</span> &#123;<br>            meta[<span class="hljs-string">&quot;retryOnConflict&quot;</span>] = output.RetryOnConflict<br>        &#125;<br>        <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(meta) &gt; <span class="hljs-number">0</span> &#123;<br>            op.Data[<span class="hljs-string">&quot;_meta_monstache&quot;</span>] = meta<br>        &#125;<br>    &#125;<br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">nil</span><br>&#125;<br><br></code></pre></td></tr></table></figure>
+<p>filter plugin 会在开始的时候，在读取 directNameSpace 和 监听新来的数据是作为 filter chain 进行处理</p>
+ <figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br> <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> buildGtmOptions() *gtm.Options &#123;<br>    <span class="hljs-keyword">var</span> nsFilter, filter, directReadFilter gtm.OpFilter<br>    config := ic.config<br>    filterChain := ic.buildFilterChain()<br>    filterArray := ic.buildFilterArray()<br>    nsFilter = gtm.ChainOpFilters(filterChain...)<br>    filter = gtm.ChainOpFilters(filterArray...)<br>    directReadFilter = gtm.ChainOpFilters(filterArray...)<br><br> &#125;<br><br><br> <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> buildFilterArray() []gtm.OpFilter &#123;<br>    config := ic.config<br>    filterArray := []gtm.OpFilter&#123;&#125;<br>    <span class="hljs-keyword">var</span> pluginFilter gtm.OpFilter<br>    <span class="hljs-keyword">if</span> config.Worker != <span class="hljs-string">&quot;&quot;</span> &#123;<br>        workerFilter, err := consistent.ConsistentHashFilter(config.Worker, config.Workers)<br>        <span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>            errorLog.Fatalln(err)<br>        &#125;<br>        filterArray = <span class="hljs-built_in">append</span>(filterArray, workerFilter)<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> config.Workers != <span class="hljs-literal">nil</span> &#123;<br>        errorLog.Fatalln(<span class="hljs-string">&quot;Workers configured but this worker is undefined. worker must be set to one of the workers.&quot;</span>)<br>    &#125;<br>    <span class="hljs-keyword">if</span> filterPlugin != <span class="hljs-literal">nil</span> &#123;<br>        <span class="hljs-comment">// 设置 filter plugin</span><br>        pluginFilter = filterWithPlugin(ic.mongo)<br>        filterArray = <span class="hljs-built_in">append</span>(filterArray, pluginFilter)<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(filterEnvs) &gt; <span class="hljs-number">0</span> &#123;<br>        pluginFilter = filterWithScript()<br>        filterArray = <span class="hljs-built_in">append</span>(filterArray, pluginFilter)<br>    &#125;<br>    <span class="hljs-keyword">if</span> pluginFilter != <span class="hljs-literal">nil</span> &#123;<br>        ic.filter = pluginFilter<br>    &#125;<br>    <span class="hljs-keyword">return</span> filterArray<br>&#125;<br><br><br></code></pre></td></tr></table></figure>
+<h2 id="6-高可用处理">6. 高可用处理</h2>
+<p>可以在启动时，设置不同的 workers 来并行处理不同的 opLog 的更新，这个时候需要将 opLog 分派给不同的 worker，使得数据一致性，不能重复处理，这个是通过设置 hash 来进行处理</p>
+<p>在 buildFilterArray 的时候，通过设置 workerFilter，opLog 经过hash 函数处理后，只会被路由到某一个 worker</p>
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><code class="hljs golang"><br><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(ic *indexClient)</span></span> buildFilterArray() []gtm.OpFilter &#123;<br>    config := ic.config<br>    filterArray := []gtm.OpFilter&#123;&#125;<br>    <span class="hljs-keyword">var</span> pluginFilter gtm.OpFilter<br>    <span class="hljs-keyword">if</span> config.Worker != <span class="hljs-string">&quot;&quot;</span> &#123;<br>        <span class="hljs-comment">// opLog 经过hash 函数处理后，只会被路由到某一个 worker</span><br>        workerFilter, err := consistent.ConsistentHashFilter(config.Worker, config.Workers)<br>        <span class="hljs-keyword">if</span> err != <span class="hljs-literal">nil</span> &#123;<br>            errorLog.Fatalln(err)<br>        &#125;<br>        filterArray = <span class="hljs-built_in">append</span>(filterArray, workerFilter)<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> config.Workers != <span class="hljs-literal">nil</span> &#123;<br>        errorLog.Fatalln(<span class="hljs-string">&quot;Workers configured but this worker is undefined. worker must be set to one of the workers.&quot;</span>)<br>    &#125;<br>    <span class="hljs-keyword">if</span> filterPlugin != <span class="hljs-literal">nil</span> &#123;<br>        <span class="hljs-comment">// 设置 filter plugin</span><br>        pluginFilter = filterWithPlugin(ic.mongo)<br>        filterArray = <span class="hljs-built_in">append</span>(filterArray, pluginFilter)<br>    &#125; <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> <span class="hljs-built_in">len</span>(filterEnvs) &gt; <span class="hljs-number">0</span> &#123;<br>        pluginFilter = filterWithScript()<br>        filterArray = <span class="hljs-built_in">append</span>(filterArray, pluginFilter)<br>    &#125;<br>    <span class="hljs-keyword">if</span> pluginFilter != <span class="hljs-literal">nil</span> &#123;<br>        ic.filter = pluginFilter<br>    &#125;<br>    <span class="hljs-keyword">return</span> filterArray<br>&#125;<br><br><br></code></pre></td></tr></table></figure>
+<p>最后在赋一张 cursor 生成的全流程图的描述:</p>
+<p><img src="detail_sequence.svg" alt="detail_process"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Elasticsearch/" rel="tag">Elasticsearch</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MongoDB/" rel="tag">MongoDB</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/golang/" rel="tag">golang</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/monstache/" rel="tag">monstache</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%90%9C%E7%B4%A2%E5%BC%95%E6%93%8E/" rel="tag">搜索引擎</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5/" rel="tag">数据同步</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/ddd-domain-driven-design-guide/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          领域驱动设计 DDD 实践指南
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2024/01/03/classLoader/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">
+        
+          ClassLoader
+        
+      </div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2025 epic<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
+      
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/archives" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="/js/clipboard.min.js"></script>
+<script src="/js/jquery-1.4.3.min.js"></script>
+
+<script src="/fancybox/jquery.fancybox-1.3.4.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+
+<script>
+  MathJax = {
+    options: {
+      enableMenu: false
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']],
+    }
+  };
+</script>
+<!-- <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]},
+    CommonHTML: {
+      linebreaks: false
+    }
+  });
+  </script> -->
+<script type="text/javascript" id="MathJax-script" async
+  src="/mathjax/tex-chtml.js">
+</script>
+<!-- <script type="text/javascript"
+   src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_CHTML">
+</script> -->
+
+  </div>
+  
+  <!-- 回到顶部按钮 -->
+  <button id="back-to-top" title="回到顶部" aria-label="回到顶部">
+    <i class="fa fa-chevron-up" aria-hidden="true"></i>
+  </button>
+</body>
+</html>

@@ -97,6 +97,779 @@
       <div id="content" class="outer">
         <section id="main">
   
+    <article id="post-skill-context-engineering" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2026/05/20/skill-context-engineering/" class="article-date">
+  <time class="dt-published" datetime="2026-05-19T16:00:00.000Z" itemprop="datePublished">2026-05-20</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/AI-Agent/">AI Agent</a>►<a class="article-category-link" href="/categories/AI-Agent/%E4%B8%8A%E4%B8%8B%E6%96%87%E5%B7%A5%E7%A8%8B/">上下文工程</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="p-name article-title" href="/2026/05/20/skill-context-engineering/">Skill + 上下文工程：从 Prompt Engineering 到 Context Engineering 的实践</a>
+    </h1>
+  
+
+      </header>
+    
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <p>智能硬件设备多年迭代已存在<strong>多种</strong>机型，涉及包含语音处理、会议处理等<strong>7种以上</strong>核心业务场景，每个业务场景都需要下发语言对级别的语音识别、处理、合成能力地址、特定参数配置</p>
+<p>早期多语言配置需要对将近<strong>20张表</strong>进行手工配置和关联，涉及顺序、新增，需要全局分析涉及各种表之间自增的关联。OTA期间，多语言信息变更需要摸排当前灰度版本以及分类配置，确认修改边界及范围，同时不能影响已下发的版本。以某型号智能硬件设备为例，多语言配置新增或变更流程如下图所示：</p>
+<p><img src="image-1.png" alt=""></p>
+<ol start="2">
+<li>
+<h2 id="优化措施">优化措施</h2>
+</li>
+</ol>
+<p>为了避免每次人工分析以及手搓SQL，我们基于Dify Agent 打造了 打造了基于不同表结合MCP的多语言配置agent，来摆脱部分<strong>人力分析与手动配置</strong>的成本：</p>
+<p><img src="image-2.png" alt=""></p>
+<p>实现方式：</p>
+<ol>
+<li>实现prompt 进行多语言配置分析</li>
+<li>基于dify agent 编排 ，通过调用MCP 进行sql自动生成</li>
+</ol>
+<p><img src="image-3.png" alt=""></p>
+<p><img src="image-4.png" alt=""></p>
+<p><strong>已实现功能如下：</strong></p>
+<ol>
+<li>已实现不同场景的MCP tools</li>
+<li>基于大模型进行数据清洗</li>
+<li>意图判断和function call</li>
+<li>国内版、国际版设备新增场景多语言配置</li>
+</ol>
+<p><strong>缺点：</strong></p>
+<ol>
+<li>不能从多语言列表接口背后代码逻辑理解的角度，知道每个表的作用以及如何使用每个表</li>
+<li>一些分析策略和手段是基于dify 的分支编排和MCP的理解</li>
+<li>本质上还是利用研发对代码以及表的理解来进行编排与生成</li>
+<li>通过提示词工程来进行静态定义，聚焦于单次交互，缺乏对对话历史和外部信息的系统管理</li>
+<li>
+<h2 id="从提示词工程到上下文工程">从提示词工程到上下文工程</h2>
+</li>
+</ol>
+<p><strong>提示词工程</strong>（Prompt Engineering）是指通过精心设计输入给模型的文本指令，来引导模型产生期望输出的技术。</p>
+<p>提示词工程的典型技巧包括：</p>
+<ul>
+<li><strong>角色设定</strong>：如“你是一位专业的高级服务端工程师”</li>
+<li><strong>任务描述</strong>：清晰说明期望模型完成的任务</li>
+<li><strong>输出格式</strong>：指定 JSON、Markdown 等结构化输出</li>
+<li><strong>少样本学习</strong>：提供几个示例引导模型行为</li>
+<li><strong>思维链提示</strong>：要求模型逐步推理</li>
+</ul>
+<p>这些技巧在许多场景下效果显著，但随着应用场景的复杂化，提示词工程的局限也逐渐显现：</p>
+<table>
+<thead>
+<tr>
+<th>局限性</th>
+<th>具体表现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>静态性</td>
+<td>提示词通常是预定义的，难以适应动态变化的需求</td>
+</tr>
+<tr>
+<td>孤立性</td>
+<td>聚焦于单次交互，缺乏对对话历史和外部信息的系统管理</td>
+</tr>
+<tr>
+<td>可扩展性差</td>
+<td>随着任务复杂度增加，提示词变得冗长且难以维护</td>
+</tr>
+<tr>
+<td>缺乏工程化</td>
+<td>更多依赖直觉和试错，缺乏系统化的方法论</td>
+</tr>
+</tbody>
+</table>
+<h3 id="31-上下文工程的演进">3.1 上下文工程的演进</h3>
+<p>上下文工程是提示词工程的自然演进和扩展。如果说提示词工程关注的是“写什么指令”，那么上下文工程关注的是“如何构建完整的信息环境”。</p>
+<p><img src="image-5.png" alt=""></p>
+<table>
+<thead>
+<tr>
+<th>局限性</th>
+<th>提示词工程</th>
+<th>上下文工程</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>关注点</td>
+<td>单次指令的措辞和格式</td>
+<td>完整信息环境的设计</td>
+</tr>
+<tr>
+<td>范围</td>
+<td>提示词文本</td>
+<td>指令、数据、工具、记忆、策略</td>
+</tr>
+<tr>
+<td>时间维度</td>
+<td>静态、一次性</td>
+<td>动态、跨会话</td>
+</tr>
+<tr>
+<td>信息来源</td>
+<td>手工编写</td>
+<td>多源融合、自动检索</td>
+</tr>
+<tr>
+<td>工程化进度</td>
+<td>技巧驱动、经验依赖</td>
+<td>系统化、可量化、可测试</td>
+</tr>
+<tr>
+<td>应用场景</td>
+<td>简单任务、单论对话</td>
+<td>复杂任务、多轮交互、智能体</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-为什么需要这种演进">3.2 为什么需要这种演进</h3>
+<ol>
+<li>
+<p>复杂度的提升</p>
+<p>随着大模型的能力逐渐提升，上下文窗口逐渐增加，我们对大模型的要求从简单的提示词+问答和文本生成，到需求分析、任务拆解、代码编写、数据分析等</p>
+</li>
+<li>
+<p>智能体的兴起</p>
+<p>AI 智能体需要在长时间跨度内持续工作，处理多个子任务，协调多个工具，维护工作状态。这种场景下，静态的提示词远远不够，需要系统化的记忆管理和上下文编排。</p>
+</li>
+<li>
+<p>质量要求</p>
+</li>
+</ol>
+<p>大模型在和用户进行多轮对话后，随着上下文积累过多，以及LLM的推理特性，会产生幻觉，从而需要对可靠性、一致性等一系列工程化有要求。从而需要对agent 应用场景进行系统方法的架构设计。</p>
+<p>As Andrej Karpathy puts it, LLMs are like a <a target="_blank" rel="noopener" href="https://www.youtube.com/watch?si=-aKY-x57ILAmWTdw&amp;t=620&amp;v=LCEmiRjPEtQ&amp;feature=youtu.be">new kind of operating system</a>. The LLM is like the CPU and its <a target="_blank" rel="noopener" href="https://docs.anthropic.com/en/docs/build-with-claude/context-windows">context window</a> is like the RAM, serving as the model’s working memory. Just like RAM, the LLM context window has limited <a target="_blank" rel="noopener" href="https://lilianweng.github.io/posts/2023-06-23-agent/">capacity</a> to handle various sources of context. And just as an operating system curates what fits into a CPU’s RAM, “context engineering” plays a similar role. <a target="_blank" rel="noopener" href="https://x.com/karpathy/status/1937902205765607626">Karpathy summarizes this well</a>: 正如 Andrej Karpathy 所说，LLMs 就像是一种新的操作系统。LLM 就像是 CPU，而它的上下文窗口就像是 RAM，作为模型的工作内存。就像 RAM 一样，LLM 的上下文窗口也有有限的容量来处理各种上下文来源。而正如操作系统将适合 CPU RAM 的内容进行整理一样，“上下文工程”也扮演着类似的角色。Karpathy 很好地总结了这一点：</p>
+<blockquote>
+<p><em>[Context engineering is the] ”…delicate art and science of filling the context window with just the right information for the next step.”</em> <em>[</em><em>上下文__工程是] “……为下一步填充上下文窗口的正确信息的精细艺术和科学。”</em></p>
+</blockquote>
+<ol start="4">
+<li>
+<h2 id="多语言智能体skill的搭建">多语言智能体skill的搭建</h2>
+<ol>
+<li>
+<h3 id="[agent-skill](https://githubcom/datawhalechina/hello-agents/blob/main/extra-chapter/extra05-agentskills%e8%a7%a3%e8%af%bb.md)"><a target="_blank" rel="noopener" href="https://github.com/datawhalechina/hello-agents/blob/main/Extra-Chapter/Extra05-AgentSkills%E8%A7%A3%E8%AF%BB.md">Agent skill</a></h3>
+</li>
+</ol>
+</li>
+</ol>
+<p>Agent Skills 是一种标准化的程序性知识封装格式。如果说 MCP 为智能体提供了&quot;手&quot;来操作工具，那么 Skills 就提供了&quot;操作手册&quot;或&quot;SOP（标准作业程序）&quot;，教导智能体如何正确使用这些工具。</p>
+<p>这种设计理念源于一个简单但深刻的洞察：连接性（Connectivity）与能力（Capability）应该分离。MCP 专注于前者，Skills 专注于后者。这种职责分离带来了清晰的架构优势：</p>
+<ul>
+<li>MCP 的职责：提供标准化的访问接口，让智能体能够&quot;够得着&quot;外部世界的数据和工具</li>
+<li>Skills 的职责：提供领域专业知识，告诉智能体在特定场景下&quot;如何组合使用这些工具&quot;</li>
+</ul>
+<p>用一个类比来理解：MCP 像是 USB 接口或驱动程序，它定义了设备如何连接；而 Skills 像是软件应用程序，它定义了如何使用这些连接的设备来完成具体任务。你可以拥有一个功能完善的打印机驱动（MCP），但如果没有告诉你如何在 Word 里设置页边距和双面打印（Skill），你仍然无法高效地完成打印任务。</p>
+<h3 id="渐进式披露：破解上下文困境">渐进式披露：破解上下文困境</h3>
+<p>Agent Skills 最核心的创新是渐进式披露（Progressive Disclosure）机制。这种机制将技能信息分为三个层次，智能体按需逐步加载，既确保必要时不遗漏细节，又避免一次性将过多内容塞入上下文窗口。</p>
+<p><img src="image-6.png" alt=""></p>
+<p>例如，一个 PDF 处理技能的文件结构可能是：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs other">skills/pdf-processing/<br>├── SKILL.md              # 主技能文件<br>├── parse_pdf.py          # PDF 解析脚本<br>├── forms.md              # 表单填写指南（仅在填表任务时加载）<br>└── templates/            # PDF 模板文件<br>    ├── invoice.pdf<br>    └── report.pdf<br></code></pre></td></tr></table></figure>
+<p>在 <code>SKILL.md</code> 中，可以这样引用附加资源：</p>
+<ul>
+<li>当需要执行 PDF 解析时，智能体会运行 <code>parse_pdf.py</code> 脚本</li>
+<li>当遇到表单填写任务时，才会加载 <code>forms.md</code> 了解详细步骤</li>
+<li>模板文件只在需要生成特定格式文档时访问</li>
+</ul>
+<p>这种设计有两个关键优势：</p>
+<ol>
+<li>无限的知识容量：通过脚本和外部文件，技能可以&quot;携带&quot;远超上下文限制的知识。例如，一个数据分析技能可以附带一个 1GB 的数据文件和一个查询脚本，智能体通过执行脚本来访问数据，而无需将整个数据集加载到上下文中。</li>
+<li>确定性执行：复杂的计算、数据转换、格式解析等任务交给代码执行，避免了 LLM 生成过程中的不确定性和幻觉问题。</li>
+</ol>
+<h3 id="渐进式披露的效果：从-16k 到 500 token">渐进式披露的效果：从 16k 到 500 Token</h3>
+<p>社区开发者分享的实践案例充分证明了渐进式披露的威力。在一个真实场景中：</p>
+<ul>
+<li>传统 MCP 方式：直接连接一个包含大量工具定义的 MCP 服务器，初始加载消耗 16,000 个 token</li>
+<li>Skills 包装后：创建一个简单的 Skill 作为&quot;网关&quot;，仅在 Frontmatter 中描述功能，初始消耗仅 500 个 token</li>
+</ul>
+<p>当智能体确定需要使用该技能时，才会加载详细指令并按需调用底层的 MCP 工具。这种架构不仅大幅降低了初始成本，还使得对话过程中的上下文管理更加精准和高效。</p>
+<p>4.2 利用skill-creator 创建lang-generator-skill，以下是目录结构</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs other">skills/lang-generator-skill/<br>├── SKILL.md              # 主技能文件<br>├── evals/          # 测试用例，定义入参和期望输出，迭代几轮，最终改善skill 质量<br>|   └── evals.json <br>├── references/<br>|   ├── gray-routing-tables.md # 灰度路由相关表结构与规则，包含 gray_strategy、gray_user、gray_group、tbl_product_gray_config 的字段说明、getLangConfig 中的 8 个灰度模块详解、查询方式、JOIN 关系和灰度路由规则。<br>|   ├── idc-routing-tables.md # IDC 路由相关表结构与规则，包含 tbl_virtual_idc、tbl_domain_crt、tbl_virtual_idc_param 的字段说明、getLangConfig 中的 IDC 路由四步流程、查询方式、JOIN 关系、域名灰度和 Path 灰度的详细对比。<br>|   ├── lang-pair-tables.md  # 语言对相关表结构，包含 tbl_product_common 和 tbl_base_param 的字段说明、查询方式、JOIN 关系和 aiExtraParam 扩展参数详解。<br>|   ├── multi-v1-category-tables.md # V1 多语言展示与分类表结构，包含 tbl_product_multi、category_info 和 category_resource 的字段说明、module 命名规则、JOIN 查询逻辑。<br>|   └── multi-v2-category-tables.md # V2 多语言展示与分类表结构，包含 tbl_product_multi_config 和 category_index 的字段说明、COMMON 模块与特定模块的优先级规则、查询逻辑。<br>└── scripts/            # python 脚本<br>    ├── api_execute.py # 请求指定多语言列表接口，存储到josn 文件中<br>    └── db_precheck.py # 从数据库中查出指定参考产品型号的配置现状（idc、语言对、多语言分类、灰度策略、版本）<br></code></pre></td></tr></table></figure>
+<p>下面是skill 的内容</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br></pre></td><td class="code"><pre><code class="hljs other">---<br>name: lang-generator-v2-skill<br>description: 为 getLangConfig 接口生成完整的多语言配置 SQL 并验证。当用户提到多语言配置、语言对、getLangConfig、多语言展示、IDC路由、域名灰度、ROM版本灰度、分类配置、上线SQL，或给出 productId/modelId/scene 想新增或调整多语言返回结果时，使用此 skill。即使用户只说&quot;配一下语言&quot;或&quot;加个新语言&quot;也应触发。<br>---<br><br>Lang Generator V2 Skill<br><br>全流程：需求收集 → 数据库预检 → SQL 生成 → 执行 → API 验证 → 清理。<br><br><br>数据库连接<br><br>host: xxxxxx<br>port: 3306<br>username: xxxx<br>password: xxxxxxx<br>database: xxxxx<br><br>API 端点<br><br>POST http:xxxxxx<br>Content-Type: application/json<br><br>辅助脚本<br><br>脚本在 scripts/ 目录下，优先使用脚本而不是手动查大量数据：<br><br>db_precheck.py — 数据库预检，输出摘要<br>ai_execute.py — 执行SQL并调API验证<br><br>参考文件索引（按需加载）<br><br>根据场景读取对应参考文件，不要一次性全部加载：<br><br><br>参考文件均在 skill 根目录下：<br>idc-routing-tables.md — tbl_virtual_idc / tbl_domain_crt / tbl_virtual_idc_param 表结构<br>lang-pair-tables.md — tbl_product_common / tbl_base_param 表结构<br>gray-routing-tables.md — gray_strategy / gray_user / tbl_product_gray_config 表结构 + 灰度路由规则<br>multi-v2-category-tables.md — V2 分类：tbl_product_multi_config / category_index 表结构 + COMMON 与特定模块优先级规则<br>multi-v1-category-tables.md — V1 分类：tbl_product_multi / category_info / category_resource 三表结构 + JOIN 查询逻辑<br><br>核心工作流<br><br>第一步：需求收集<br><br>必填： `productId` / `modelId` / `transScene` — 目标三元组<br><br>常见场景：<br>复用已有配置：给参考来源（如 modelId=XXXXXXXX），复制到新目标<br>域名灰度：基于 romVer 切换域名<br>Path 灰度：基于 romVer 切换 svcPath<br>分类调整：修改语言分类归属和展示名称<br><br>第二步：数据库预检<br><br>运行 scripts/db_precheck.py 查目标和参考来源配置现状。用法：<br><br>python scripts/db_precheck.py \<br>  --target-pid PID --target-mid MID --target-scene SCENE \<br>  --ref-pid PID --ref-mid MID --ref-scene SCENE \<br>  --output precheck.json<br><br>预检输出包含每个三元组的 IDC 数量、语言对数量、分类数量、灰度策略等摘要。<br><br>第三步：SQL 生成<br><br>生成三个文件：<br>1. setup.sql — 配置 SQL（INSERT/UPDATE）<br>2. verify.sql — 验证查询（SELECT）<br>3. cleanup.sql — 回滚 SQL（DELETE）<br><br>关键原则：每个 setup.sql 都必须有对应的 cleanup.sql，以便回滚。<br><br>⛔ 强制前置动作：生成任何 SQL 前，必须先用 Read 工具加载对应场景的参考文件。禁止凭记忆或猜测使用表字段，否则会引入不存在的字段（如 updateTime）导致 SQL 报错。<br><br>参考文件加载规则见上方&quot;参考文件索引&quot;表格，涉及 tbl_product_common 必须先读 lang-pair-tables.md。<br><br>第四步：执行与验证<br><br>先执行 setup.sql<br>调用 API 验证返回结果<br>验证不通过则执行 cleanup.sql 回滚<br><br>常见错误清单<br><br><br>验证要点<br><br>调用 API 后检查返回 JSON：<br>code 为 000000<br>语言对数量正确<br>direction 和 respectTrans 正确<br>serverUrl 无重复协议头<br>crt 不为空<br>灰度验证：不同 romVer 返回不同域名/路径<br>langNewVer 不为空（如果配置了版本）<br>category 数据在 langMultiList 中可见<br>langMultiList 不为空且包含所有系统语言（zh-CN, en, zh-TW, ja-JP）<br>SRC 和 TARGET 的记录数分别正确<br><br>灰度场景的额外验证<br><br>灰度配置完成后，必须用至少两个 romVer 值调用 API 对比：<br>一个低于灰度阈值的 romVer（如 2630）<br>一个高于灰度阈值的 romVer（如 3630）<br><br>对比两个返回结果时确认：<br>两个返回都是 code=000000<br>两个返回的语言对数量一致<br>两个返回的 langMultiList 都完整<br>新灰度配置没有影响到其他已有灰度策略的行为<br></code></pre></td></tr></table></figure>
+<p>目前skill出现的问题：</p>
+<ol>
+<li>当一个多语言配置新需求来的时候，每次对话都需要加载整个<code>skill.md</code> ，包括验证点、注意事项、参考的references等</li>
+<li>对话多轮后，容易丢失之前需要注意的上下文，丢失需要参考的references，出现幻觉</li>
+<li>对于语言的配置流程：检查是否已存在，确认不存在后才执行插入，验证插入结果这些动作在对话几轮后，就很难达到效果</li>
+<li>对于之前执行过的cases，不能很好的沉淀，导致重复的配置流程不能遵循之前已执行好的效果进行产出，导致需要进行重新提问，以及重复提示需要注意的事项</li>
+<li>
+<h2 id="上下文工程理论与框架">上下文工程理论与框架</h2>
+</li>
+</ol>
+<h3 id="51-上下文窗口的本质">5.1 上下文窗口的本质</h3>
+<p><strong>上下文窗口</strong>（Context Window）是大语言模型一次能够处理的最大 Token 序列长度。它包括输入的提示词、对话历史、检索到的文档等所有信息，以及模型生成的输出。</p>
+<p>可以将上下文窗口类比为模型的“工作记忆”：</p>
+<ul>
+<li>它有固定的容量上限</li>
+<li>超出容量的内容无法被处理</li>
+<li>窗口内的所有信息相互可见、相互影响</li>
+</ul>
+<p><img src="image-7.png" alt=""></p>
+<p>输入与输出的关系</p>
+<p>上下文窗口容量需要同时容纳输入和输出：</p>
+<p>上下文窗口容量=输入Token数+输出Token数上下文窗口容量=输入_Token_数+输出_Token_数</p>
+<p>例如，一个 8K 窗口的模型：</p>
+<ul>
+<li>如果输入占用 6K Token</li>
+<li>则输出最多只剩 2K Token 的空间</li>
+</ul>
+<p>这意味着在实际应用中，需要谨慎规划输入内容的规模，为输出留出足够空间</p>
+<p><img src="image-8.png" alt=""></p>
+<h3 id="52-上下文的好标准">5.2 上下文的好标准</h3>
+<ol>
+<li>注意力机制与上下文</li>
+</ol>
+<p>Transfomer架构的计算过程决定了模型如何利用上下文：</p>
+<ol>
+<li><strong>Query、Key、Value</strong>：每个 Token 被转换为三个向量</li>
+<li><strong>注意力分数计算</strong>：Query 与所有 Key 计算相似度</li>
+<li><strong>加权求和</strong>：根据注意力分数对 Value 加权求和</li>
+<li><strong>输出表示</strong>：得到融合了上下文信息的 Token 表示</li>
+</ol>
+<p>关键点在于：每个 Token 的最终表示都包含了对整个上下文的“感知”。位置靠后的 Token 可以“看到”之前的所有 Token，这就是上下文窗口的技术基础。</p>
+<p>随着上下文窗口中token数量增加，模型对关键信息的提取与回忆稳定性可能下降，造成这一现象的原因：</p>
+<ol>
+<li>注意力预算是稀缺资源：
+<ol>
+<li>由于每个Token需要与上下文中所有其他Token计算注意力权重，随着上下文增长，每个Token分配到的平均注意力必然下降，从而导致边际效用递减</li>
+</ol>
+</li>
+<li>上下文腐烂：
+<ol>
+<li>Transfomer架构使每个Token都关注其他所有Token，产生 <div class="markdown-them-math-block">$$n^2$$</div>级别的成对关系</li>
+<li>上下文越长，模型捕获这些关系的能力越分散</li>
+</ol>
+</li>
+</ol>
+<p>从而，优秀的上下文工程意味着找到最小可能的高信号Token集，以最大化实现期望结果的可能性。</p>
+<p>以下是一些好的设计原则：</p>
+<ol>
+<li>相关性优先</li>
+</ol>
+<p>相关性是上下文质量的首要标准。经验上，无关信息不仅浪费上下文空间，还可能干扰模型判断，导致输出质量下降。最佳实践是只包含与当前任务直接相关的信息。</p>
+<p><img src="image-9.png" alt=""></p>
+<ol start="2">
+<li>信息密度优化</li>
+</ol>
+<p>信息密度定义为：有效信息量与 Token 数量的比值。高密度的上下文意味着：</p>
+<ul>
+<li>更高的空间利用效率</li>
+<li>更低的计算成本</li>
+<li>更快的响应速度</li>
+</ul>
+<p>提升信息密度的方法：</p>
+<ul>
+<li>删除冗余词汇和重复内容</li>
+<li>使用结构化格式替代散文</li>
+<li>压缩长文本为摘要</li>
+<li>提取关键事实而非全文</li>
+</ul>
+<ol start="3">
+<li>结构化组织</li>
+</ol>
+<p><strong>核心理念</strong>：用清晰的结构组织信息，便于模型理解和定位。</p>
+<p>结构化组织的优势：</p>
+<ul>
+<li>帮助模型快速定位相关信息</li>
+<li>明确不同信息块的角色和关系</li>
+<li>减少歧义和误解</li>
+<li>支持模块化更新和维护</li>
+</ul>
+<p>常用的结构化方法：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>适用场景</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>XML标签</td>
+<td>区分不同类型内容</td>
+<td>...</td>
+</tr>
+<tr>
+<td>Markdown</td>
+<td>层级化文档</td>
+<td>标题、列表、代码块</td>
+</tr>
+<tr>
+<td>JSON</td>
+<td>结构化数据</td>
+<td>配置、元数据</td>
+</tr>
+<tr>
+<td>分隔符</td>
+<td>简单内容分割</td>
+<td><code>---</code>、<code>===</code></td>
+</tr>
+</tbody>
+</table>
+<ol start="4">
+<li>上下文分层</li>
+</ol>
+<p><strong>核心理念</strong>：根据信息的重要性和稳定性，分层组织上下文。</p>
+<p><img src="image-10.png" alt=""></p>
+<ul>
+<li><strong>系统层</strong>：最稳定，定义模型的基本角色和行为边界</li>
+<li><strong>知识层</strong>：相对稳定，提供任务所需的背景知识</li>
+<li><strong>任务层</strong>：随任务变化，描述当前的具体目标</li>
+<li><strong>交互层</strong>：最动态，反映即时的用户输入和对话状态</li>
+</ul>
+<p>分层的好处：</p>
+<ul>
+<li>稳定层可以缓存复用</li>
+<li>动态层独立更新</li>
+<li>便于调试和维护</li>
+</ul>
+<ol start="5">
+<li>渐进式提供</li>
+</ol>
+<p><strong>核心理念</strong>：按需提供信息，避免一次性加载全部内容。</p>
+<p>这一原则在智能体系统中尤为重要。渐进式提供的方式：</p>
+<ul>
+<li><strong>即时加载</strong>：在需要时通过工具获取信息</li>
+<li><strong>分步展开</strong>：随着任务进展逐步添加细节</li>
+<li><strong>条件触发</strong>：基于特定条件加载相关内容</li>
+</ul>
+<p>渐进式方法的优势：</p>
+<ul>
+<li>避免上下文过载</li>
+<li>确保信息的时效性</li>
+<li>降低初始延迟</li>
+</ul>
+<ol start="6">
+<li>系统提示词的高度校准原则</li>
+</ol>
+<p>系统提示词是上下文的基础，它定义了模型的基本角色和行为。Anthropic 的实践表明，系统提示词的设计存在一个临界的高度校准（Altitude Calibration）问题。</p>
+<p><strong>两个常见失败模式</strong>：</p>
+<ol>
+<li><strong>过低的高度（Brittle Logic）</strong>：系统提示词中硬编码复杂的 if-else 逻辑，试图通过冗长的条件语句精确指定每种情况下的行为。这种方法：
+<ol>
+<li>导致提示词脆弱且难以维护</li>
+<li>增加了系统复杂度</li>
+<li>在面对未预见的情况时易于失败</li>
+<li>例：<code>“如果用户说 X，回答 Y；如果用户说 A，回答 B；...”</code>（包含大量嵌套条件）</li>
+</ol>
+</li>
+<li><strong>过高的高度（Vague Assumptions）</strong>：系统提示词过于宽泛或依赖隐含理解，导致模型无法获得足够的具体信号。这种方法：
+<ol>
+<li>假设了过多的上下文共享</li>
+<li>给予过少的具体指导</li>
+<li>可能导致行为不可控</li>
+<li>例：<code>“你是一个友好的助手”</code>（太笼统，缺乏任务具体性）</li>
+</ol>
+</li>
+</ol>
+<p><strong>黄金分割点（Goldilocks Zone）</strong>：</p>
+<p>最优的系统提示词应当：</p>
+<ul>
+<li><strong>足够具体</strong>：给出清晰的行为信号和决策准则</li>
+<li><strong>足够灵活</strong>：提供启发式原则而非硬规则，允许模型在框架内灵活推理</li>
+<li><strong>足够简洁</strong>：使用最少的高信号 Token，避免冗余</li>
+</ul>
+<p>复制</p>
+<p><strong>校准方法</strong>：</p>
+<ol>
+<li>从最小提示词开始，测试模型在你的目标任务上的表现</li>
+<li>识别失败模式，添加明确的指导原则（不是规则）</li>
+<li>测试新版本，迭代改进</li>
+<li>定期审视，移除不必要的条件和过度说明</li>
+<li>优先使用示例和启发式原则，而非 if-then 条件</li>
+</ol>
+<h3 id="53-设计策略概览">5.3 设计策略概览</h3>
+<p>上下文工程的实践可以归纳为四大核心策略：<strong>写入</strong>（Write）、<strong>选择</strong>（Select）、<strong>压缩</strong>（Compress）、<strong>隔离</strong>（Isolate）。这四大策略相互配合，共同构成上下文管理的完整方法论。</p>
+<h4 id="53.1-选择策略">5.3.1 选择策略</h4>
+<p>当信息存储在外部时，需要在执行任务时选择性地加载相关内容。如何从海量信息中获取与当前任务最相关的内容, 比如可以基于RAG技术：</p>
+<ul>
+<li><strong>语义检索</strong>：基于语义相似度搜索相关内容</li>
+<li><strong>关键词检索</strong>：基于关键词匹配的精确搜索</li>
+<li><strong>混合检索</strong>：结合语义和关键词的优势</li>
+<li><strong>重排序</strong>：对检索结果进行二次排序优化</li>
+</ul>
+<p>应用场景：</p>
+<ul>
+<li>文档问答系统</li>
+<li>知识库查询</li>
+<li>代码检索</li>
+</ul>
+<h4 id="53.2-压缩策略">5.3.2 压缩策略</h4>
+<p>经过筛选，需要放入上下文的信息仍可能超出限制，或占用过多空间导致成本上升。如何在有限的上下文空间中容纳更多有效信息, 压缩策略旨在提高信息密度。</p>
+<p>主要技术：</p>
+<ul>
+<li><strong>文本摘要</strong>：将长文档压缩为精练摘要</li>
+<li><strong>信息提取</strong>：提取关键事实和实体</li>
+<li><strong>对话压缩</strong>：压缩冗长的对话历史</li>
+<li><strong>递进式摘要</strong>：分层次逐步压缩</li>
+</ul>
+<p>应用场景：</p>
+<ul>
+<li>长文档处理</li>
+<li>对话历史管理</li>
+<li>成本优化</li>
+</ul>
+<h4 id="53.3-隔离策略">5.3.3 隔离策略</h4>
+<p>即使信息已经精选和压缩，如何组织这些信息同样重要。如何组织和结构化上下文中的不同信息, 隔离策略关注上下文的结构化设计。</p>
+<p>主要技术：</p>
+<ul>
+<li><strong>XML/标签标记</strong>：用标签区分不同类型内容</li>
+<li><strong>指令分层</strong>：分层组织系统指令</li>
+<li><strong>任务隔离</strong>：为不同任务创建独立上下文</li>
+<li>多<strong>智能体编排</strong>：在多智能体间分配上下文</li>
+</ul>
+<p>应用场景：</p>
+<ul>
+<li>复杂提示词设计</li>
+<li>多任务系统</li>
+<li>智能体协作</li>
+</ul>
+<h4 id="53.4-写入策略">5.3.4 写入策略</h4>
+<p>上下文窗口是有限的，但许多应用需要处理远超窗口容量的信息。如何在上下文窗口之外存储和管理信息, 写入策略解决的是信息的持久化存储问题。</p>
+<p>主要技术：</p>
+<ul>
+<li><strong>外部记忆系统</strong>：将信息存储到外部存储中供后续检索</li>
+<li><strong>知识库****构建</strong>：组织结构化的领域知识</li>
+<li><strong>向量数据库</strong>：将文本转换为向量进行存储和检索</li>
+<li><strong>记忆架构</strong>：设计多层次的记忆结构</li>
+</ul>
+<p>应用场景：</p>
+<ul>
+<li>构建企业知识库</li>
+<li>实现跨会话的长期记忆</li>
+<li>存储用户偏好和历史</li>
+</ul>
+<h3 id="54-应用场景">5.4 应用场景</h3>
+<p>四大策略不是孤立的，而是形成一个协作的工作流：</p>
+<ul>
+<li>检索后发现信息不足，触发新的写入</li>
+<li>压缩后发现关键信息丢失，调整压缩策略</li>
+<li>隔离过程中发现结构不合理，重新组织</li>
+</ul>
+<p>不同场景对策略的侧重不同：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>重点策略</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>知识密集型问答</td>
+<td>选择</td>
+<td>准确检索是关键</td>
+</tr>
+<tr>
+<td>长期助手</td>
+<td>写入</td>
+<td>需要持久记忆</td>
+</tr>
+<tr>
+<td>成本敏感应用</td>
+<td>压缩</td>
+<td>控制 Token 用量</td>
+</tr>
+<tr>
+<td>复杂指令系统</td>
+<td>隔离</td>
+<td>清晰的结构很重要</td>
+</tr>
+</tbody>
+</table>
+<p>大多数生产级应用需要综合应用所有四个策略，关键是找到适合具体场景的平衡点。</p>
+<ol start="6">
+<li>
+<h2 id="bmad-工作运行机制">Bmad 工作运行机制</h2>
+</li>
+</ol>
+<p>体验了bmad-method 流程的都知道，它有workflow的编排，同时有个工作笔记，会记住当前执行到哪一步，会约束LLM每一步需要执行的内容，以及每一步完成后，提示用户下一步要执行的菜单，会把每一步最终的结果都记录到md文档中。</p>
+<p>下面通过剖析bmad中其中一个dev agent 来看它的上下文管理与上下文token分层机制：</p>
+<p>整体工作流：</p>
+<p><img src="image-11.png" alt=""></p>
+<p>上下文token窗口</p>
+<p><img src="image-12.png" alt=""></p>
+<p>上下文机制</p>
+<ol>
+<li><code>dev.md</code> 本身只定义系统提示词层面需要遵循的强制约束</li>
+<li><code>workflow.xml</code> 本质上是一个 LLM 执行引擎——类似操作系统内核，通过定义&quot;如何加载程序、执行指令、跟用户交互&quot;</li>
+<li>Xml 定义llm的指令集</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>指令</th>
+<th>类比</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>action</code></td>
+<td>普通指令</td>
+<td>执行一个动作</td>
+</tr>
+<tr>
+<td><code>check if</code></td>
+<td>条件跳转</td>
+<td>if-else 分支</td>
+</tr>
+<tr>
+<td><code>ask</code></td>
+<td>系统调用（等待 I/O）</td>
+<td>阻塞等待用户输入</td>
+</tr>
+<tr>
+<td><code>invoke-workflow</code></td>
+<td>fork + exec</td>
+<td>启动另一个 workflow</td>
+</tr>
+<tr>
+<td><code>invoke-task</code></td>
+<td>函数调用</td>
+<td>调用一个 task</td>
+</tr>
+<tr>
+<td><code>invoke-protocol</code></td>
+<td>库函数调用</td>
+<td>调用可重用协议</td>
+</tr>
+<tr>
+<td><code>goto</code></td>
+<td>JMP 指令</td>
+<td>无条件跳转</td>
+</tr>
+</tbody>
+</table>
+<ol start="4">
+<li><code>instruction.xml</code> 定义具体story的workflow</li>
+<li>使用<code>spring-status.yml</code>、<code>checklist.md</code>、<code>story.md</code> 来进行外界记录执行状态</li>
+<li>
+<h2 id="多语言skill-上下文管理优化：">多语言skill 上下文管理优化：</h2>
+</li>
+</ol>
+<p>诸如上述所说，上下文管理，在进行多轮对话时是非常有效的，而之前关于多语言skill的设计存在很多问题：</p>
+<ol>
+<li><code>skill.md</code> 上混杂了workflow、instruction、domain schema</li>
+<li>历史对话、工具执行结果、历史需求等长期留在上下文导致上下文腐败</li>
+<li>Workflow 流程不够单一原则，LLM 不知道当前该执行“思考流程” 还是tools 执行流程</li>
+<li>工具执行结果完全留在上下文，导致信息没有隔离，LLM应该只关注执行的结果，而对中间执行过程并不关心，导致上下文token 中混杂了很多无效的信息，导致逐轮对话的边际效用递减</li>
+<li>没有工作笔记，当进行多轮对话后，那么注意力机制就会失效，从而并不能很好的遵循<code>skill.md</code> 和references 进行有效的工作，也不知道当前执行到哪一步了，缺少渐进式推理过程</li>
+</ol>
+<p>优化后：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><code class="hljs other">---<br>name: lang-generator-v2-skill<br>description: 为 getLangConfig 接口生成完整的多语言配置 SQL 并验证（V2轻量版）。当用户提到多语言配置、语言对、getLangConfig、多语言展示、IDC路由、域名灰度、ROM版本灰度、分类配置、上线SQL，或给出 productId/modelId/scene 想新增或调整多语言返回结果时，使用此 skill。即使用户只说&quot;配一下语言&quot;或&quot;加个新语言&quot;也应触发。<br>---<br><br>你必须完全扮演此 skill 的角色，并严格遵循所有激活指令。在用户明确退出前，绝不可打破角色。<br><br>语言配置专家<br><br>概览<br><br>此 skill 提供语言配置工程师角色，指导用户完成 getLangConfig API 的完整配置流程，包括 SQL 生成、数据库预检及 API 验证，失败时自动重试。<br><br>身份<br><br>熟悉 getLangConfig API 配置、SQL 生成和验证的专家。精确指导用户完成完整配置流程。<br><br>交流风格<br><br>清晰简洁。解释每一步操作，显示进度，在关键操作前请求确认。全程使用 &#123;communication_language&#125;，无不必要的冗长说明。<br><br>原则<br><br>- 始终在生成 SQL 前加载参考文件<br>- 每个 setup.sql 必须有对应的 cleanup.sql<br>- 验证 API 响应后再标记成功<br>- 验证失败最多重试 3 次<br>- 永不猜测表结构 — 始终从参考文件读取<br>- 永不捏造字段名 — 不确定时再次读取参考文件<br>- 保持角色，直至用户显式退出<br><br>激活时<br><br>1. 🚨 立即操作 - 在任何输出前：<br>  - 现在加载 &#123;project-root&#125;/lang-generator-v2-skill/config.yaml<br>  - 将所有字段存储为会话变量：&#123;user_name&#125;, &#123;communication_language&#125;, &#123;db_host&#125;, &#123;db_port&#125;, &#123;db_user&#125;, &#123;db_password&#125;, &#123;db_name&#125;, &#123;api_url&#125;<br>  - 验证：如果未加载配置，使用默认值：communication_language=zh-CN, user_name=User<br>  - 配置成功加载并存储变量前，不可继续<br><br>2. 记住：用户名称为 &#123;user_name&#125;<br><br>3. 使用 &#123;user_name&#125; 显示问候信息，使用 &#123;communication_language&#125; 交流，然后显示菜单<br><br>4. 停止并等待用户输入 — 不自动启动 workflow。接受编号、菜单代码或模糊命令匹配。<br><br>5. 用户输入：<br>   - 编号 → 执行对应菜单项[n]<br>   - 文本 → 不区分大小写的子字符串匹配<br>   - 多个匹配 → 提示用户进一步确认<br>   - 无匹配 → 显示“未识别”<br><br>菜单<br><br>Code   Description<br>[MH]   重新显示菜单帮助<br>[CH]   与专家聊天<br>[LC]   语言配置：完整工作流（需求收集 → 预检 → SQL生成 → 执行 → 验证 → 分析）<br>[EX]   退出：关闭此技能<br><br>规则<br><br>- 始终使用 &#123;communication_language&#125; 交流<br>- 保持角色，直至选择 [EX] — 所有对话都必须在该代理上下文中<br>- 按条目显示菜单并保持顺序<br>- 仅在执行 workflow 且步骤要求时加载参考文件 — 激活时不要预加载<br>- 总是完整读取文件 — 不使用偏移/限制<br>- [CH] 聊天模式下，仅在语言配置上下文中回答问题 — 不可脱离角色<br>- workflow 完成或失败后返回菜单 — 不自动关闭代理<br><br>当选择 [LC]<br><br>6. 读取 workflow.yaml 文件：&#123;project-root&#125;/lang-generator-v2-skill/workflows/lang-config/workflow.yaml<br>7. 从 config 和 workflow.yaml 解析所有变量<br>8. 读取 instructions.xml 文件：&#123;project-root&#125;/lang-generator-v2-skill/workflows/lang-config/instructions.xml<br>9. 按 instructions.xml 步骤逐条执行<br>10. 不可跳过任何步骤 — 对每一步执行负责<br>11. 生成 SQL 前，必须加载 &#123;project-root&#125;/lang-generator-v2-skill/workflows/lang-config/validation-rules.md<br></code></pre></td></tr></table></figure>
+<p>目录结构：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><code class="hljs other">/.claude<br>  ├── skills/<br>  │  └── /lang-generator-v2-skill<br>  │       └── SKILL.md<br>  /lang-generator-v2-skill/                                                                                                                                                           <br>  ├── config.yaml                                                 <br>  ├── agents/                                                                                                                                                                     <br>  │   └── lang-config.md                                          <br>  ├── workflows/<br>  │   └── lang-config/<br>  │       ├── workflow.yaml<br>  │       ├── instructions.xml<br>  │       ├── iteration-handler.xml<br>  │       └── validation-rules.md<br>  ├── scripts/<br>  │   ├── db_precheck.py<br>  │   └── execute_and_verify.py<br>  ├── references/<br>  │   ├── api-request-template.md<br>  │   ├── lang-pair-tables.md<br>  │   ├── idc-routing-tables.md<br>  │   ├── gray-routing-tables.md<br>  │   ├── version-config-tables.md<br>  │   ├── multi-v1-category-tables.md<br>  │   ├── multi-v2-category-tables.md<br>  │   └── reuse-validation.md<br>  └── evals/<br>      └── evals.json<br></code></pre></td></tr></table></figure>
+<h3 id="61-结构化设计">6.1 结构化设计</h3>
+<p>通过分层设计，将每个单一职责放置在单一文件中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs other">lang-generator-v2-skill/<br>├── config.yaml                        #  配置层：环境变量（DB、API、用户偏好）<br>├── agents/lang-config.md              #  人设层：角色 + 菜单 + 激活指令<br>├── workflows/lang-config/<br>│   ├── workflow.yaml                 #  编排层：变量解析 + 状态 + 路径<br>│   ├── instructions.xml              #       主流程（Step 0→4）<br>│   ├── iteration-handler.xml         #       子流程（SQL 迭代循环）<br>│   └── validation-rules.md           #       领域规则（表结构、错误清单）<br>├── scripts/                           #  执行层：确定性代码（Python）<br>│   ├── db_precheck.py                #       预检 → JSON<br>│   └── execute_and_verify.py         #       SQL 执行 + 验证<br>└── references/                        #  知识层：按表/场景拆分的表结构说明<br></code></pre></td></tr></table></figure>
+<ol>
+<li><code>workflow.yaml</code> 外置存储对应路径、执行状态、相关数据配置等</li>
+</ol>
+<p>`instructions.xml<code>用</code> 来控制llm执行逻辑，避免llm应上下文过多从而降低注意力</p>
+<ol start="3">
+<li><code>validation-rules.md</code>、references/*.md 声明执行和检查时需要遵循的逻辑</li>
+<li><code>iteration-handler.xml</code> 控制每一轮sql 生成的状态机控制</li>
+</ol>
+<h3 id="62-信息隔离">6.2 信息隔离</h3>
+<ol>
+<li><code>instructions.xml</code> 在预检当前多语言配置时，提供subagent 执行模式，通过总结返回预检结果，从而让预检的sql查询数据，不污染主上下文，通过subagent的压缩，将上下文窗口的内容提炼成高保真的摘要，使代理在对话变长时能够继续进行而不会明显降低性能。</li>
+<li>references/*.md 在sql 生成前，在<code>iteration-handler.xml</code> 中强制声明根据用户选择，进行按需加载，从而避免塞爆上下文，进而挤占系统提示词、llm输出token</li>
+<li>每次进行sql完成后的API 检查，都会将4 个系统语言 × N 个场景的大 JSON 存到 {output_dir}/api_response_*.json，后续按需读取，而不是重复调用</li>
+</ol>
+<p><code>iteration-handler.xml</code>的 通过声明传入迭代变量 |，子流程只看得见被显式传入的变量，主流程的其它状态不会泄漏进来，从而增加相关性，提高llm执行的注意力，避免多轮对话后，注意力分散</p>
+<h3 id="63-工作流设计">6.3 工作流设计</h3>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs other">instructions.xml  ← 主流程（线性）<br>  ├─ Step 0  初始化输出目录<br>  ├─ Step 1  需求收集（ask → store → flags）<br>  ├─ Step 2  数据库预检 ─── 返回 status=&#123;continue|complete&#125;<br>  ├─ Step 3  SQL 生成 ───── iteration-handler.xml  ← 子流程（循环）<br>  └─ Step 4  反馈沉淀               ├─ Step 1  按需加载参考文件<br>                                    ├─ Step 2  生成/修改 SQL<br>                                    ├─ Step 3  执行 SQL（可选）<br>                                    ├─ Step 4  API 验证（可选）<br>                                    ├─ Step 5  分析结果<br>                                    └─ Step 6  BLOCKING [C/D/R/B/H]<br>                                          │<br>                         返回 status=&#123;continue|complete|retry|rollback|pause|halt&#125;<br></code></pre></td></tr></table></figure>
+<ol>
+<li>通过主流程 + 子sql生成循环迭代 ，来控制llm的执行逻辑，避免应多轮对话后，llm自行决定，从而丧失注意力</li>
+<li>每次循环重新加载 <code>iteration-handler.xml</code>，因为上下文窗口中，最新的token位置，贡献的注意力权重是比较多的，确保所有约束、规则和参考文件都在上下文token窗口的最新位置，避免长对话下的相关性和注意力的丧失</li>
+<li>在<code>iteration-handler.xml</code> 中有每次sql生成完的BLOCKING 检查点（ <code>blocking=&quot;true&quot;</code> + <code>&lt;wait_for_user_input mandatory=&quot;true&quot;/&gt;</code>）：关键决策点强制等用户输入 [C/D/R/B/H]，禁止 LLM 自行决定，配合 <code>flow-control-rules</code>（<code>instructions.xml</code>）用 <code>FC-1</code>~<code>FC-5</code> 规则兜底</li>
+</ol>
+<h3 id="64-选择策略">6.4 选择策略</h3>
+<ol>
+<li>在<code>instructions.xml</code>的step1 让用户输入标签组合：</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs other">1. [R] 复用  2. [DG] 域名灰度  3. [PG] Path灰度  4. [LG] 语言对灰度<br>5. [CV1] V1分类  6. [CV2] V2分类  7. [VC] 版本配置  8. [NEW] 全量新建<br><br>输入 &quot;R,CV2&quot; → is_reuse=true, has_category_change=true, category_version=v2<br></code></pre></td></tr></table></figure>
+<ol start="2">
+<li>iteration-handler.xml` 用这些 flag 做<strong>条件加载</strong>：</li>
+</ol>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">load</span> <span class="hljs-attr">if</span>=<span class="hljs-string">&quot;&#123;is_reuse&#125; == true&quot;</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">action</span>&gt;</span>Read lang-pair-tables.md<span class="hljs-tag">&lt;/<span class="hljs-name">action</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">action</span>&gt;</span>Read reuse-validation.md<span class="hljs-tag">&lt;/<span class="hljs-name">action</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">load</span>&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">load</span> <span class="hljs-attr">if</span>=<span class="hljs-string">&quot;&#123;has_domain_gray&#125; OR &#123;has_path_gray&#125; OR &#123;has_lang_pair_gray&#125;&quot;</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">action</span>&gt;</span>Read idc-routing-tables.md<span class="hljs-tag">&lt;/<span class="hljs-name">action</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">action</span>&gt;</span>Read gray-routing-tables.md<span class="hljs-tag">&lt;/<span class="hljs-name">action</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">load</span>&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">load</span> <span class="hljs-attr">if</span>=<span class="hljs-string">&quot;&#123;has_category_change&#125; AND &#123;category_version&#125; == &#x27;v2&#x27;&quot;</span>&gt;</span><br>  <span class="hljs-tag">&lt;<span class="hljs-name">action</span>&gt;</span>Read multi-v2-category-tables.md<span class="hljs-tag">&lt;/<span class="hljs-name">action</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">load</span>&gt;</span><br></code></pre></td></tr></table></figure>
+<h3 id="65-工作笔记">6.5 工作笔记</h3>
+<p>把每一轮产出都写到磁盘，文件即记忆，对抗上下文窗口限制，同时代理将内容写入持久的外部存储，以便在任务和会话之间跟踪进度，而无需将所有内容都保留在活动上下文中。</p>
+<p>工具结果的文件保存，解决了工具使用本身带来的膨胀问题。当代理调用工具时，结果会堆积起来，决定保留多少工具输出成为管理上下文中越来越重要的部分。清理会删除旧的、可重新获取的结果，同时保留调用发生过的记录。</p>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>产出位置</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>precheck.json</code></td>
+<td>Step 2 预检 → <code>&#123;output_dir&#125;/precheck.json</code></td>
+<td>数据库当前状态快照</td>
+</tr>
+<tr>
+<td><code>setup.sql</code></td>
+<td>iteration Step 2</td>
+<td>可执行的变更</td>
+</tr>
+<tr>
+<td><code>cleanup.sql</code></td>
+<td>iteration Step 2（强制配套）</td>
+<td>回滚凭证，每次失败重试前先跑（iteration Step 3 <code>执行 cleanup</code> + Step 6 [B]）</td>
+</tr>
+<tr>
+<td><code>verify.sql</code></td>
+<td>iteration Step 2</td>
+<td>验证插入成功的 SELECT</td>
+</tr>
+<tr>
+<td><code>api_response_&#123;model&#125;_&#123;scene&#125;_&#123;lang&#125;.json</code></td>
+<td><code>validation-rules.md</code> 规则</td>
+<td>API 返回缓存，禁止重复调用（<code>禁止在已保存 JSON 的情况下重复调用 API</code>）</td>
+</tr>
+<tr>
+<td><code>api_requests/&#123;scenario&#125;_*_&#123;timestamp&#125;.json</code></td>
+<td>protocol <code>api_request_with_template_validation</code> Step 6</td>
+<td>完整请求+响应，下次迭代可复用（Step 3 <code>检查缓存</code> 会列出让用户选）</td>
+</tr>
+<tr>
+<td><code>feedback.log</code></td>
+<td><code>instructions.xml</code> Step 4</td>
+<td>跨会话的改进建议沉淀</td>
+</tr>
+<tr>
+<td><code>&#123;&#123;modification_request&#125;&#125;</code></td>
+<td>iteration Step 2</td>
+<td>第 2 轮起保留上轮用户反馈，做增量修改而不是重新生成</td>
+</tr>
+</tbody>
+</table>
+<ol start="8">
+<li>
+<h2 id="总结">总结</h2>
+</li>
+</ol>
+<p>针对上下文工程出现的管理llm问题</p>
+<table>
+<thead>
+<tr>
+<th>挑战</th>
+<th>表现</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>长程依赖</td>
+<td>任务跨越数十甚至数百轮交互</td>
+<td>早期信息容易被遗忘或稀释</td>
+</tr>
+<tr>
+<td>状态爆炸</td>
+<td>需要同时追踪任务进度、环境变化、中间结果</td>
+<td>上下文快速膨胀，token成本急剧上升</td>
+</tr>
+<tr>
+<td>信息来源多元</td>
+<td>用户输入、工具返回、环境观察、历史回顾</td>
+<td>难以区分哪些信息是关键、哪些是噪声</td>
+</tr>
+<tr>
+<td>动态重规划</td>
+<td>计划可能需要实时调整</td>
+<td>需要频繁修改上下文，但频繁修改易引入错误</td>
+</tr>
+</tbody>
+</table>
+<p>需要对上下文窗口的token进行系统的管理，而不是塞更多的信息：</p>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>内容</th>
+<th>特性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>系统层</td>
+<td>Agent 定义、角色、约束</td>
+<td>稳定，不变</td>
+</tr>
+<tr>
+<td>任务层</td>
+<td>当前目标、成功标准、约束</td>
+<td>任务级，变化频率低</td>
+</tr>
+<tr>
+<td>状态层</td>
+<td>进度、环境观察、动态计划</td>
+<td>需要频繁更新</td>
+</tr>
+<tr>
+<td>历史层</td>
+<td>执行轨迹、观察、决策</td>
+<td>可能很长，需要管理（可压缩）</td>
+</tr>
+<tr>
+<td>交互层</td>
+<td>当前步骤、即时输入、观察</td>
+<td>最新、最关键</td>
+</tr>
+</tbody>
+</table>
+<p>通过利用上下文的设计策略：选择、压缩、隔离、写入，针对实际的应用场景来重点设计对应的策略。</p>
+<ol start="9">
+<li>
+<h2 id="引用">引用</h2>
+</li>
+<li><a target="_blank" rel="noopener" href="https://yeasy.gitbook.io/context_engineering_guide/di-er-bu-fen-he-xin-ji-shu-yu-ce-le/06_compress/6.4_window_optimization">上下文权威指南</a></li>
+<li><a target="_blank" rel="noopener" href="https://manus.im/zh-cn/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus">AI代理的上下文工程：构建Manus的经验教训</a></li>
+<li><a target="_blank" rel="noopener" href="https://slack.engineering/managing-context-in-long-run-agentic-applications/">管理长期代理应用中的上下文 | Slack 工程 --- Managing context in long-run agentic applications | Engineering at Slack</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/davidkimai/Context-Engineering">上下文工程指南</a></li>
+<li><a target="_blank" rel="noopener" href="https://rlancemartin.github.io/2025/06/23/context_engineering/">Context Engineering for Agents</a></li>
+<li><a target="_blank" rel="noopener" href="https://platform.claude.com/cookbook/tool-use-context-engineering-context-engineering-tools">platform.claude.com --tool-use-context-engineering-context-engineering-tools</a></li>
+<li><a target="_blank" rel="noopener" href="https://platform.claude.com/cookbook/tool-use-memory-cookbook">platform.claude.com Memory &amp; context management with Claude Sonnet 4.6</a></li>
+<li><a target="_blank" rel="noopener" href="https://bmad-builder-docs.bmad-method.org/">bmad-method</a></li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Agent/" rel="tag">Agent</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Context-Engineering/" rel="tag">Context Engineering</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/LLM/" rel="tag">LLM</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Prompt-Engineering/" rel="tag">Prompt Engineering</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Skill/" rel="tag">Skill</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+
+
+
+  
     <article id="post-ddd-evolution" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
   <div class="article-meta">
     <a href="/ddd-domain-driven-design-guide/" class="article-date">
@@ -545,56 +1318,6 @@
 
 
   
-    <article id="post-zookeeper_utilize" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
-  <div class="article-meta">
-    <a href="/2023/05/20/zookeeper_utilize/" class="article-date">
-  <time class="dt-published" datetime="2023-05-19T16:00:00.000Z" itemprop="datePublished">2023-05-20</time>
-</a>
-    
-  <div class="article-category">
-    <a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>►<a class="article-category-link" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E4%B8%AD%E9%97%B4%E4%BB%B6/">中间件</a>
-  </div>
-
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="p-name article-title" href="/2023/05/20/zookeeper_utilize/">Zookeeper 简介与使用场景</a>
-    </h1>
-  
-
-      </header>
-    
-    
-    <div class="e-content article-entry" itemprop="articleBody">
-      
-        <img src="/2023/05/20/zookeeper_utilize/zookeeper.png" class="" width="300">  
-<p>  Zookeeper的视图结构和标准的Unix文件系统非常类似，但没有引入传统文件系统中目录和文件等相关概念，而是使用了其特有的“数据节点”概念，我们称之为ZNode。ZNode是Zookeeper中数据的最小单元，每个ZNode上都可以保存数据，同时还可以挂载子节点，因此构成了一个层次化的命名空间，我们称之为树。</p>
-        
-          <p class="article-more-link">
-            <a href="/2023/05/20/zookeeper_utilize/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      
-      
-      
-  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Zookeeper/" rel="tag">Zookeeper</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E5%8D%8F%E8%B0%83/" rel="tag">分布式协调</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E9%85%8D%E7%BD%AE%E7%AE%A1%E7%90%86/" rel="tag">配置管理</a></li></ul>
-
-    </footer>
-  </div>
-  
-</article>
-
-
-
-  
 
 
   <nav id="page-nav">
@@ -610,7 +1333,7 @@
   <div class="outer">
     <div id="footer-info" class="inner">
       
-      &copy; 2025 epic<br>
+      &copy; 2026 epic<br>
       Powered by <a href="https://hexo.io/" target="_blank">Hexo</a><br>
       
     </div>
